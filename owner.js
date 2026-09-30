@@ -5,13 +5,14 @@ import {
 } from "./fb.js";
 import {
   $, $$, esc, toast, errMsg, modal, confirmBox, info, field, select, empty, tsDate, fmtDate, ymd,
-  platformMark, waLink, debounce, applyTheme
+  platformMark, waLink, debounce, applyTheme, pickFile, compressImage
 } from "./ui.js";
 import { S, LS, logout, PLATFORM } from "./app.js";
 
 const main = () => $("#main");
 const plans = () => (S.platform?.plans?.length ? S.platform.plans : DEFAULT_PLANS);
 const planOf = (id) => plans().find((p) => p.id === id);
+export const PAY_METHODS = { shamcash: "شام كاش", syriatel: "سيريتل كاش", mtn: "MTN كاش", bank: "تحويل بنكي", cash: "نقداً", other: "أخرى" };
 const STATUS = { trial: ["تجربة", "warn"], active: ["فعّال", "ok"], suspended: ["موقوف", "danger"], expired: ["منتهٍ", "danger"] };
 function statusChip(c) {
   const st = clinicState(c);
@@ -155,11 +156,12 @@ export async function activate(c, planId, months) {
 async function renderPayments() {
   const all = (await list(P.subPays())).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
   const pend = all.filter((p) => p.status === "pending"), done = all.filter((p) => p.status !== "pending");
-  const M = { syriatel: "سيريتل كاش", mtn: "MTN كاش", bank: "تحويل بنكي", cash: "نقداً", other: "أخرى" };
+  const M = PAY_METHODS;
   const row = (p) => `<li class="req">
     <div class="row-between"><b>${esc(p.clinicName)}</b>${p.status === "pending" ? `<span class="chip warn">بانتظار المراجعة</span>` : p.status === "approved" ? `<span class="chip ok">مقبولة</span>` : `<span class="chip danger">مرفوضة</span>`}</div>
     <div>${esc(planOf(p.plan)?.name || p.plan)} · ${esc(p.months)} شهر · <b>${esc(p.amount)}</b> · ${esc(M[p.method] || p.method)}</div>
-    <div class="muted small">رقم العملية: <span dir="ltr">${esc(p.txn || "")}</span> · ${esc(tsDate(p.createdAt))}${p.note ? ` · ${esc(p.note)}` : ""}</div>
+    <div class="muted small">${p.txn ? `رقم العملية: <span dir="ltr">${esc(p.txn)}</span> · ` : ""}${esc(tsDate(p.createdAt))}${p.note ? ` · ${esc(p.note)}` : ""}</div>
+    ${p.receipt ? `<button type="button" class="receipt-thumb" data-id="${p.id}" aria-label="عرض صورة الإيصال"><img src="${esc(p.receipt)}" alt=""><span>صورة الإيصال · اضغط للتكبير</span></button>` : ""}
     ${p.status === "pending" ? `<div class="row gap"><button class="btn primary small ap" data-id="${p.id}">قبول وتفعيل</button><button class="btn small rj" data-id="${p.id}">رفض</button></div>` : ""}</li>`;
   main().innerHTML = `<h2 class="page-title">دفعات الاشتراك</h2>
     <section class="card"><h3>بانتظار المراجعة</h3>${pend.length ? `<ul class="plain">${pend.map(row).join("")}</ul>` : empty("لا توجد دفعات جديدة")}</section>
@@ -172,6 +174,10 @@ async function renderPayments() {
       await updateDoc(P.subPay(p.id), { status: "approved", reviewedAt: serverTimestamp() });
       toast("تم قبول الدفعة وتفعيل الاشتراك"); render();
     } catch (e) { toast(errMsg(e), true); }
+  });
+  $$(".receipt-thumb").forEach((b) => b.onclick = () => {
+    const p = all.find((x) => x.id === b.dataset.id);
+    info(`إيصال ${p.clinicName}`, `<img src="${esc(p.receipt)}" alt="صورة الإيصال" class="full">`);
   });
   $$(".rj").forEach((b) => b.onclick = async () => {
     const r = await modal("رفض الدفعة", `<form>${field("السبب (يظهر للعيادة)", "reason", { required: true })}</form>`, { ok: "رفض", danger: true });
@@ -194,6 +200,11 @@ function renderSettings() {
           ${["auto", "light", "dark"].map((m) => `<button type="button" class="btn small th ${(LS.get("theme") || "auto") === m ? "primary" : ""}" data-m="${m}">${{ auto: "تلقائي", light: "فاتح", dark: "داكن" }[m]}</button>`).join("")}</div>
       </section>
       <section class="card stack"><h3>طرق الدفع (تظهر للعيادات)</h3>
+        <fieldset class="stack"><legend>شام كاش</legend>
+          <div class="sc-qr-edit"><div class="qr-prev">${pay.shamcashQr ? `<img src="${esc(pay.shamcashQr)}" alt="رمز QR لشام كاش">` : `<span class="muted small">لا توجد صورة</span>`}</div>
+            <div class="stack"><button type="button" class="btn small up-qr">${pay.shamcashQr ? "تغيير صورة QR" : "رفع صورة QR"}</button>${pay.shamcashQr ? `<button type="button" class="btn small ghost rm-qr">حذف الصورة</button>` : ""}</div></div>
+          ${field("اسم الحساب أو رقمه في شام كاش", "shamcash", { value: pay.shamcash || "", attrs: 'dir="auto"' })}
+        </fieldset>
         ${field("رقم سيريتل كاش", "syriatel", { value: pay.syriatel, attrs: 'dir="ltr"' })}
         ${field("رقم MTN كاش", "mtn", { value: pay.mtn, attrs: 'dir="ltr"' })}
         ${field("بيانات التحويل البنكي", "bank", { type: "textarea", value: pay.bank, attrs: "data-novoice" })}
@@ -215,6 +226,16 @@ function renderSettings() {
       <p>تسجيل عيادة جديدة مباشرة:</p><code class="copy" dir="ltr">${esc(baseUrl())}#/signup</code>
     </section>`;
   $$(".th").forEach((b) => b.onclick = () => { LS.set("theme", b.dataset.m); applyTheme(b.dataset.m); renderSettings(); });
+  let qrImg = pay.shamcashQr || null;
+  $(".up-qr").onclick = async () => {
+    const file = await pickFile("image/*"); if (!file) return;
+    try {
+      qrImg = await compressImage(file, 900, 0.85);
+      $(".qr-prev").innerHTML = `<img src="${qrImg}" alt="رمز QR لشام كاش">`;
+      toast("اضغط «حفظ الإعدادات» لاعتماد الصورة");
+    } catch (e) { toast(errMsg(e), true); }
+  };
+  $(".rm-qr")?.addEventListener("click", () => { qrImg = null; $(".qr-prev").innerHTML = `<span class="muted small">لا توجد صورة</span>`; });
   $$("code.copy").forEach((c) => c.onclick = async () => { try { await navigator.clipboard.writeText(c.textContent); toast("تم النسخ"); } catch {} });
   $("#ps").onsubmit = async (e) => {
     e.preventDefault();
@@ -227,7 +248,7 @@ function renderSettings() {
     }));
     const data = {
       name: f.name.value.trim(), plans: newPlans,
-      payment: { syriatel: f.syriatel.value.trim(), mtn: f.mtn.value.trim(), bank: f.bank.value.trim(), whatsapp: f.whatsapp.value.trim(), notes: f.notes.value.trim() },
+      payment: { shamcash: f.shamcash.value.trim(), shamcashQr: qrImg, syriatel: f.syriatel.value.trim(), mtn: f.mtn.value.trim(), bank: f.bank.value.trim(), whatsapp: f.whatsapp.value.trim(), notes: f.notes.value.trim() },
       updatedAt: serverTimestamp()
     };
     try { await updateDoc(P.platform(), data); S.platform = { ...S.platform, ...data }; toast("حُفظت الإعدادات"); start(); }

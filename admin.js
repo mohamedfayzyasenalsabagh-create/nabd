@@ -9,6 +9,7 @@ import {
   field, select, logoHtml, waLink, empty, compressImage, pickFile, DAYS, qrSvg
 } from "./ui.js";
 import { S, PLATFORM } from "./app.js";
+import { PAY_METHODS } from "./owner.js";
 import { render, doctors, feat, hasMod, cur, isAdmin } from "./staff.js";
 
 const main = () => $("#main");
@@ -224,7 +225,7 @@ export async function renderSubscription() {
   const pay = S.platform?.payment || {};
   const mine = (await list(query(P.subPays(), where("clinicId", "==", C))).catch(() => [])).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
   const curPlan = plans().find((p) => p.id === c.plan);
-  const M = { syriatel: "سيريتل كاش", mtn: "MTN كاش", bank: "تحويل بنكي", cash: "نقداً", other: "أخرى" };
+  const M = PAY_METHODS;
   const expiry = new Date(tsMs(c.expiresAt));
   main().innerHTML = `<h2 class="page-title">الاشتراك</h2>
     <section class="card sub-status ${st.ok ? "" : "bad"}">
@@ -239,11 +240,12 @@ export async function renderSubscription() {
       <ul class="plain checks">${(p.perks || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
       <button class="btn ${p.id === c.plan || i === 1 ? "primary" : ""} block pick" data-id="${p.id}">${p.id === c.plan ? "تجديد" : "اختيار"}</button></article>`).join("")}</div>`}
     <section class="card stack"><h3>طرق الدفع</h3>
+      ${pay.shamcash || pay.shamcashQr ? `<div class="sc-box"><h4>شام كاش</h4>${pay.shamcashQr ? `<img class="sc-qr" src="${esc(pay.shamcashQr)}" alt="رمز QR للدفع عبر شام كاش">` : ""}${pay.shamcash ? `<p>الحساب: <b dir="auto">${esc(pay.shamcash)}</b></p>` : ""}<p class="muted small">امسح الرمز من تطبيق شام كاش وادفع، ثم ارفع صورة الإيصال عند اختيار الباقة.</p></div>` : ""}
       ${pay.syriatel ? `<p>سيريتل كاش: <b dir="ltr">${esc(pay.syriatel)}</b></p>` : ""}
       ${pay.mtn ? `<p>MTN كاش: <b dir="ltr">${esc(pay.mtn)}</b></p>` : ""}
       ${pay.bank ? `<p class="pre">${esc(pay.bank)}</p>` : ""}
       ${pay.notes ? `<p class="muted">${esc(pay.notes)}</p>` : ""}
-      ${!pay.syriatel && !pay.mtn && !pay.bank ? `<p class="muted">تواصل مع إدارة المنصة لمعرفة طرق الدفع.</p>` : ""}
+      ${!pay.syriatel && !pay.mtn && !pay.bank && !pay.shamcash && !pay.shamcashQr ? `<p class="muted">تواصل مع إدارة المنصة لمعرفة طرق الدفع.</p>` : ""}
       ${pay.whatsapp ? `<a class="btn" target="_blank" rel="noopener" href="${esc(waLink(pay.whatsapp, `مرحباً، أريد الاستفسار عن اشتراك ${c.name} (${c.slug}) في منصة ${PLATFORM()}.`))}">التواصل مع إدارة المنصة</a>` : ""}
     </section>
     <section class="card"><h3>سجل الدفعات</h3>${mine.length ? `<ul class="plain">${mine.map((p) => `<li class="req">
@@ -255,13 +257,19 @@ export async function renderSubscription() {
 
 async function payModal(p) {
   const pay = S.platform?.payment || {};
-  const methods = [["syriatel", "سيريتل كاش"], ["mtn", "MTN كاش"], ["bank", "تحويل بنكي"], ["cash", "نقداً"], ["other", "أخرى"]].filter(([k]) => !["syriatel", "mtn", "bank"].includes(k) || pay[k]);
+  const hasSham = !!(pay.shamcash || pay.shamcashQr);
+  const methods = [["shamcash", "شام كاش"], ["syriatel", "سيريتل كاش"], ["mtn", "MTN كاش"], ["bank", "تحويل بنكي"], ["cash", "نقداً"], ["other", "أخرى"]]
+    .filter(([k]) => (k === "shamcash" ? hasSham : !["syriatel", "mtn", "bank"].includes(k) || pay[k]));
+  let receipt = null;
   const r = await modal(`اشتراك ${p.name}`, `<form class="stack">
     ${select("المدة", "months", [[1, "شهر"], [3, "3 أشهر"], [6, "6 أشهر"], [12, "سنة"]], 1)}
     <p class="total">المبلغ: <b class="amt">${esc(p.price)} ${esc(p.currency || "$")}</b></p>
     ${select("طريقة الدفع", "method", methods, methods[0]?.[0])}
     <div class="pay-hint muted small"></div>
-    ${field("رقم العملية أو الإيصال", "txn", { required: true, attrs: 'dir="ltr"' })}
+    <div class="sc-pay"></div>
+    <div class="field"><span>صورة الإيصال <b class="req-mark"></b></span>
+      <div class="receipt-pick"><button type="button" class="btn small up-rc">رفع صورة الإيصال</button><div class="rc-prev"></div></div></div>
+    ${field("رقم العملية (اختياري مع شام كاش)", "txn", { attrs: 'dir="ltr"' })}
     ${field("ملاحظة (اختياري)", "note")}
     <p class="muted small">بعد مراجعة الدفعة يُفعَّل اشتراكك وتصلك رسالة.</p>
   </form>`, {
@@ -271,14 +279,26 @@ async function payModal(p) {
       const upd = () => {
         w.querySelector(".amt").textContent = `${(Number(p.price) * Number(f.months.value)).toLocaleString("en-US")} ${p.currency || "$"}`;
         const m = f.method.value;
-        w.querySelector(".pay-hint").textContent = pay[m] ? `حوّل إلى: ${pay[m]}` : "";
+        w.querySelector(".pay-hint").textContent = m !== "shamcash" && pay[m] ? `حوّل إلى: ${pay[m]}` : "";
+        w.querySelector(".sc-pay").innerHTML = m === "shamcash" ? `<div class="sc-box">${pay.shamcashQr ? `<img class="sc-qr" src="${esc(pay.shamcashQr)}" alt="رمز QR للدفع عبر شام كاش">` : ""}${pay.shamcash ? `<p>الحساب: <b dir="auto">${esc(pay.shamcash)}</b></p>` : ""}<p class="muted small">امسح الرمز من تطبيق شام كاش، ادفع المبلغ، ثم ارفع صورة الإيصال.</p></div>` : "";
+        w.querySelector(".req-mark").textContent = m === "shamcash" ? "(مطلوبة)" : "(اختيارية)";
       };
       f.months.onchange = upd; f.method.onchange = upd; upd();
+      w.querySelector(".up-rc").onclick = async () => {
+        const file = await pickFile("image/*"); if (!file) return;
+        try {
+          receipt = await compressImage(file, 1200, 0.7);
+          w.querySelector(".rc-prev").innerHTML = `<img src="${receipt}" alt="صورة الإيصال">`;
+          w.querySelector(".up-rc").textContent = "تغيير الصورة";
+        } catch (e) { toast(errMsg(e), true); }
+      };
     },
     onOk: async (f) => {
+      if (f.method === "shamcash" && !receipt) { toast("ارفع صورة إيصال شام كاش", true); return false; }
+      if (f.method !== "shamcash" && !receipt && !f.txn) { toast("اكتب رقم العملية أو ارفع صورة الإيصال", true); return false; }
       await addDoc(P.subPays(), {
         clinicId: C, clinicName: S.clinic.name, slug: S.clinic.slug, plan: p.id, months: Number(f.months),
-        amount: `${Number(p.price) * Number(f.months)} ${p.currency || "$"}`, method: f.method, txn: f.txn, note: f.note,
+        amount: `${Number(p.price) * Number(f.months)} ${p.currency || "$"}`, method: f.method, txn: f.txn, note: f.note, receipt,
         status: "pending", by: S.user.uid, createdAt: serverTimestamp()
       });
     }
