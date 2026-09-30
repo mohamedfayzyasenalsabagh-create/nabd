@@ -3,7 +3,7 @@ import {
   configured, auth, P, one, login, onAuthStateChanged, signOut, setClinic, C,
   updatePassword, sendPasswordResetEmail, updateDoc, setActor, onSnapshot, audit, pickBrand, DEFAULT_PLANS
 } from "./fb.js";
-import { $, esc, toast, errMsg, field, logoHtml, info, applyTheme, platformMark } from "./ui.js";
+import { COPYRIGHT, $, esc, toast, errMsg, field, logoHtml, info, applyTheme, platformMark } from "./ui.js";
 
 export const S = { user: null, profile: null, pub: null, clinic: null, platform: null, unsub: [], owner: false };
 const root = () => $("#app");
@@ -164,6 +164,7 @@ export function showLogin(msg = "") {
       <p class="muted small">${esc(S.pub.address || "")} ${S.pub.phone ? `· <span dir="ltr">${esc(S.pub.phone)}</span>` : ""}</p>
       <button class="link-btn small other">ليست عيادتك؟ اختر عيادة أخرى</button>
       <div class="powered">${platformMark(18)} <span>بإدارة منصة ${esc(PLATFORM())}</span></div>
+      <p class="copyright">${esc(COPYRIGHT)}</p>
     </div>`;
     root().querySelectorAll(".seg button").forEach((b) => b.onclick = () => { kind = b.dataset.k; msg = ""; render(); });
     $("#lf").onsubmit = async (e) => {

@@ -495,3 +495,7 @@ img.full { width: 100%; border-radius: 8px; }
 .rc-prev img { width: 84px; height: 84px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
 .receipt-thumb { display: flex; align-items: center; gap: 10px; background: var(--raise); border: 1px solid var(--line); border-radius: 10px; padding: 6px; cursor: pointer; margin: 6px 0; color: var(--ink); font: inherit; }
 .receipt-thumb img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; }
+
+/* حقوق الملكية */
+.copyright { color: var(--muted); font-size: .75rem; text-align: center; margin-top: 10px; opacity: .85; }
+.copyright span { direction: ltr; unicode-bidi: isolate; }

@@ -4,7 +4,7 @@ import {
   serverTimestamp, runTransaction, arrayUnion, arrayRemove, orderBy, limit, registerPatient, audit,
   normPhone, clinicState, tsMs
 } from "./fb.js";
-import {
+import { COPYRIGHT,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, logoHtml, waLink, debounce, download, empty, DAYS, daysBetween, printDoc
 } from "./ui.js";
@@ -623,7 +623,8 @@ function renderMore() {
     ${bookLink ? `<h4 class="menu-h">صفحة الحجز</h4><div class="card stack"><code class="copy" dir="ltr">${esc(bookLink)}</code><div class="row gap"><button class="btn small cp">نسخ الرابط</button><a class="btn small" target="_blank" rel="noopener" href="${esc(waLink("", `احجز موعدك في ${S.pub.name}: ${bookLink}`))}">مشاركة</a></div></div>` : ""}
     <ul class="menu"><li><button class="theme"><span>المظهر</span><span class="muted">${{ auto: "تلقائي", light: "فاتح", dark: "داكن" }[localStorage.getItem("theme") || "auto"] || "تلقائي"}</span></button></li>
     <li><button class="out"><span>تسجيل الخروج</span></button></li></ul>
-    <p class="muted small center">${esc(PLATFORM())} · رمز العيادة: <span dir="ltr">${esc(S.clinic?.slug || "")}</span></p>`;
+    <p class="muted small center">${esc(PLATFORM())} · رمز العيادة: <span dir="ltr">${esc(S.clinic?.slug || "")}</span></p>
+    <p class="copyright">${esc(COPYRIGHT)}</p>`;
   $(".out").onclick = logout;
   $(".cp")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(bookLink); toast("تم نسخ الرابط"); } catch { toast("انسخ الرابط يدوياً", true); } });
   $(".theme").onclick = async () => {

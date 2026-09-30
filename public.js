@@ -3,7 +3,7 @@ import {
   auth, P, one, list, doc, addDoc, getDoc, setClinic, signupClinic, bootstrapOwner, login, cleanSlug,
   SPECIALTIES, DEFAULT_PLANS, TRIAL_DAYS, serverTimestamp, normPhone, sendPasswordResetEmail
 } from "./fb.js";
-import {
+import { COPYRIGHT,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, toast, errMsg, modal, info, field, select,
   logoHtml, platformMark, applyTheme, DAYS
 } from "./ui.js";
@@ -111,7 +111,7 @@ export function landing() {
       <footer class="lp-foot">
         <div class="lp-brand">${platformMark(26)}<b>${esc(PLATFORM())}</b></div>
         ${pay.whatsapp ? `<p>للتواصل والاستفسار: <b dir="ltr">${esc(pay.whatsapp)}</b></p>` : ""}
-        <p class="muted small">© ${new Date().getFullYear()} ${esc(PLATFORM())}</p>
+        <p class="copyright">${esc(COPYRIGHT)}</p>
       </footer>
     </div>`;
     bindTheme(render);
