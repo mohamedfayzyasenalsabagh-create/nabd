@@ -1,0 +1,123 @@
+package com.nabd.app;
+
+import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintManager;
+import android.view.View;
+import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Toast;
+
+// تطبيق نبض: بيفتح النظام نفسه يلي على الموقع، وكل شي متزامن
+public class MainActivity extends Activity {
+    static final String HOME = "https://mohamedfayzyasenalsabagh-create.github.io/nabd/";
+    static final String HOST = "mohamedfayzyasenalsabagh-create.github.io";
+    static final int FILE_REQ = 7;
+    WebView web;
+    ValueCallback<Uri[]> fileCb;
+
+    @Override
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        web = new WebView(this);
+        setContentView(web);
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setDatabaseEnabled(true);
+        s.setAllowFileAccess(false);
+        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        s.setUserAgentString(s.getUserAgentString() + " NabdApp/1");
+        web.addJavascriptInterface(new Bridge(), "AndroidApp");
+
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                Uri u = r.getUrl();
+                if (HOST.equals(u.getHost())) return false;
+                openExternal(u);
+                return true;
+            }
+            @Override
+            public void onPageFinished(WebView v, String url) {
+                // الطباعة وحفظ PDF من داخل التطبيق
+                v.evaluateJavascript("window.print = function(){ AndroidApp.print(document.title || 'clinic'); };", null);
+            }
+            @Override
+            public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
+                if (r.isForMainFrame()) {
+                    v.loadData("<html dir='rtl'><body style='font-family:sans-serif;text-align:center;padding:40px;color:#1B2221;background:#F5F6F4'>"
+                        + "<h2 style='color:#0E7C7B'>لا يوجد اتصال بالإنترنت</h2><p>تحقق من الاتصال وحاول مجدداً.</p>"
+                        + "<button style='padding:12px 24px;border-radius:12px;border:0;background:#0E7C7B;color:#fff;font-size:16px' onclick=\"location.href='" + HOME + "'\">إعادة المحاولة</button></body></html>",
+                        "text/html; charset=utf-8", "UTF-8");
+                }
+            }
+        });
+
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
+                if (fileCb != null) fileCb.onReceiveValue(null);
+                fileCb = cb;
+                try {
+                    startActivityForResult(p.createIntent(), FILE_REQ);
+                } catch (ActivityNotFoundException e) {
+                    fileCb = null;
+                    return false;
+                }
+                return true;
+            }
+        });
+
+        if (b != null) web.restoreState(b); else web.loadUrl(HOME);
+    }
+
+    void openExternal(Uri u) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, u));
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "لا يوجد تطبيق لفتح هذا الرابط", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    class Bridge {
+        @JavascriptInterface
+        public void print(final String title) {
+            runOnUiThread(() -> {
+                PrintManager pm = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                PrintDocumentAdapter ad = web.createPrintDocumentAdapter(title);
+                pm.print(title, ad, new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build());
+            });
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        if (req == FILE_REQ && fileCb != null) {
+            fileCb.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data));
+            fileCb = null;
+            return;
+        }
+        super.onActivityResult(req, res, data);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle o) { super.onSaveInstanceState(o); web.saveState(o); }
+
+    @Override
+    public void onBackPressed() {
+        if (web.canGoBack()) web.goBack(); else super.onBackPressed();
+    }
+}

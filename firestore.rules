@@ -1,0 +1,242 @@
+rules_version = '2';
+// قواعد حماية منصة نبض
+// - كل عيادة معزولة تماماً عن غيرها
+// - السكرتارية لا تطّلع على أي بيانات طبية
+// - المالك (صاحب المنصة) يدير الاشتراكات فقط ولا يطّلع على بيانات المرضى
+// - العيادة منتهية الاشتراك تصبح للقراءة فقط
+// - لا حذف نهائي لأي سجل
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function me() { return get(uPath()).data; }
+    function active() { return signedIn() && exists(uPath()) && me().active == true; }
+    function inClinic(c) { return active() && me().clinicId == c; }
+    function isStaff(c) { return inClinic(c) && me().role in ['doctor', 'secretary']; }
+    function isDoctor(c) { return inClinic(c) && me().role == 'doctor'; }
+    function isAdmin(c) { return isDoctor(c) && me().get('admin', false) == true; }
+    function isPatient(c, pid) { return inClinic(c) && me().role == 'patient' && pid in me().patientIds; }
+    function isOwner() { return signedIn() && exists(/databases/$(database)/documents/owners/$(request.auth.uid)); }
+    function cl(c) { return get(/databases/$(database)/documents/clinics/$(c)).data; }
+    function clinicOK(c) { return cl(c).status in ['trial', 'active'] && cl(c).expiresAt > request.time; }
+    function feature(c, f) { return cl(c).features.get(f, false) == true; }
+    function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function bootPath() { return /databases/$(database)/documents/platform/bootstrap; }
+    function bootstrapping() { return signedIn() && !exists(bootPath()) && existsAfter(bootPath()); }
+    function newClinicBy(c) {
+      return signedIn() && !exists(/databases/$(database)/documents/clinics/$(c))
+        && getAfter(/databases/$(database)/documents/clinics/$(c)).data.ownerUid == request.auth.uid;
+    }
+    // الأقسام الطبية: الطبيب يكتب، والمريض يقرأ ملفه فقط
+    function medSub(s) {
+      return s in ['medical', 'visits', 'prescriptions', 'pregnancies', 'fertility', 'labs',
+                   'dental', 'growth', 'vaccines', 'eye', 'physio', 'vitals', 'plans'];
+    }
+
+    // ---------- إعدادات المنصة ----------
+    match /platform/config {
+      allow read: if true;
+      allow create: if bootstrapping();
+      allow update: if isOwner();
+      allow delete: if false;
+    }
+    match /platform/bootstrap {
+      allow read: if true;
+      allow create: if bootstrapping()
+        && existsAfter(/databases/$(database)/documents/owners/$(request.auth.uid));
+      allow update, delete: if false;
+    }
+    match /owners/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isOwner());
+      allow create: if (bootstrapping() && request.auth.uid == uid) || isOwner();
+      allow update, delete: if false;
+    }
+
+    // ---------- بيانات عامة لكل عيادة (صفحة الحجز والدخول) ----------
+    match /slugs/{slug} {
+      allow get: if true;
+      allow list: if isOwner();
+      allow create: if (newClinicBy(request.resource.data.cid)
+                        && getAfter(/databases/$(database)/documents/clinics/$(request.resource.data.cid)).data.slug == slug)
+                    || isOwner();
+      allow update, delete: if isOwner();
+    }
+    match /publicClinics/{c} {
+      allow get: if true;
+      allow list: if isOwner();
+      allow create: if newClinicBy(c);
+      allow update: if isAdmin(c) || isOwner();
+      allow delete: if false;
+    }
+    match /rxVerify/{code} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isDoctor(request.resource.data.clinicId)
+        && clinicOK(request.resource.data.clinicId) && feature(request.resource.data.clinicId, 'qr');
+      allow update, delete: if false;
+    }
+
+    // ---------- دفعات الاشتراك ----------
+    match /subscriptionPayments/{id} {
+      allow read: if isOwner() || isAdmin(resource.data.clinicId);
+      allow create: if isAdmin(request.resource.data.clinicId) && request.resource.data.status == 'pending';
+      allow update: if isOwner();
+      allow delete: if false;
+    }
+
+    // ---------- الحسابات ----------
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isStaff(resource.data.clinicId) || isOwner());
+      allow create: if
+        (request.auth.uid == uid && request.resource.data.role == 'doctor' && request.resource.data.admin == true
+          && newClinicBy(request.resource.data.clinicId))
+        || (isAdmin(request.resource.data.clinicId) && clinicOK(request.resource.data.clinicId)
+            && request.resource.data.role in ['secretary', 'doctor'] && request.resource.data.admin == false)
+        || (isStaff(request.resource.data.clinicId) && clinicOK(request.resource.data.clinicId)
+            && request.resource.data.role == 'patient' && request.resource.data.get('admin', false) == false
+            && request.resource.data.active == true);
+      allow update: if
+        (request.auth.uid == uid && onlyChanged(['mustChangePassword', 'consentAt', 'hideSensitive', 'fcmTokens', 'theme']))
+        || (isAdmin(resource.data.clinicId) && resource.data.role in ['secretary', 'doctor']
+            && resource.data.get('admin', false) == false
+            && onlyChanged(['active', 'name', 'title', 'mustChangePassword']))
+        || (isStaff(resource.data.clinicId) && resource.data.role == 'patient'
+            && onlyChanged(['patientIds', 'active', 'mustChangePassword']));
+      allow delete: if false;
+    }
+
+    // ---------- العيادة ----------
+    match /clinics/{c} {
+      allow read: if inClinic(c) || isOwner();
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid
+        && !exists(uPath())
+        && getAfter(uPath()).data.clinicId == c && getAfter(uPath()).data.admin == true
+        && request.resource.data.status == 'trial' && request.resource.data.plan == 'trial'
+        && request.resource.data.expiresAt <= request.time + duration.value(15, 'd')
+        && request.resource.data.maxDoctors <= 3 && request.resource.data.maxStaff <= 3;
+      allow update: if isOwner()
+        || (isAdmin(c) && clinicOK(c)
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(['status', 'plan', 'expiresAt', 'features', 'maxDoctors', 'maxStaff', 'ownerUid', 'slug']));
+      allow delete: if false;
+
+      match /phones/{phone} {
+        allow read: if isStaff(c);
+        allow create, update: if isStaff(c) && clinicOK(c);
+        allow delete: if false;
+      }
+
+      match /patients/{pid} {
+        allow read: if isStaff(c) || isPatient(c, pid);
+        allow create: if isStaff(c) && clinicOK(c);
+        allow update: if clinicOK(c) && (isStaff(c)
+          || (isPatient(c, pid) && onlyChanged(['lastMsgAt', 'lastMsgFrom'])));
+        allow delete: if false;
+
+        match /{sub}/{d} {
+          allow read: if (medSub(sub) && (isDoctor(c) || isPatient(c, pid)))
+            || (sub == 'private' && isDoctor(c))
+            || (sub in ['procedures', 'files'] && (isDoctor(c) || isPatient(c, pid)))
+            || (sub == 'messages' && (isStaff(c) || isPatient(c, pid)));
+          allow create: if clinicOK(c) && (
+            ((medSub(sub) || sub in ['private', 'procedures', 'files']) && isDoctor(c))
+            || (sub == 'vitals' && isPatient(c, pid) && request.resource.data.source == 'home')
+            || (sub == 'files' && isPatient(c, pid) && request.resource.data.uploadedBy == 'patient')
+            || (sub == 'messages' && isStaff(c) && request.resource.data.from == 'clinic')
+            || (sub == 'messages' && isPatient(c, pid) && request.resource.data.from == 'patient'));
+          allow update: if clinicOK(c) && (
+            ((medSub(sub) || sub in ['private', 'procedures', 'files']) && isDoctor(c))
+            || (sub == 'procedures' && isPatient(c, pid) && resource.data.consentSignedAt == null
+                && onlyChanged(['consentSignedAt', 'consentName'])));
+          allow delete: if false;
+        }
+      }
+
+      match /appointments/{a} {
+        allow read: if isStaff(c) || isPatient(c, resource.data.patientId);
+        allow create: if isStaff(c) && clinicOK(c);
+        allow update: if clinicOK(c) && (isStaff(c)
+          || (isPatient(c, resource.data.patientId)
+              && (onlyChanged(['rating', 'ratingNote'])
+                  || (onlyChanged(['status']) && request.resource.data.status == 'cancelled'))));
+        allow delete: if false;
+      }
+
+      match /requests/{r} {
+        allow read: if isStaff(c) || isPatient(c, resource.data.patientId);
+        allow create: if clinicOK(c) && (isStaff(c)
+          || (isPatient(c, request.resource.data.patientId) && request.resource.data.status == 'new'));
+        allow update: if isStaff(c) && clinicOK(c);
+        allow delete: if false;
+      }
+
+      // طلبات الحجز من الصفحة العامة (بدون حساب)
+      match /publicRequests/{r} {
+        allow read, update: if isStaff(c);
+        allow create: if clinicOK(c) && feature(c, 'booking')
+          && get(/databases/$(database)/documents/publicClinics/$(c)).data.bookingEnabled == true
+          && request.resource.data.keys().hasOnly(['name', 'phone', 'date', 'time', 'doctorId', 'service', 'note', 'status', 'createdAt'])
+          && request.resource.data.status == 'new'
+          && request.resource.data.name is string && request.resource.data.name.size() < 80
+          && request.resource.data.phone is string && request.resource.data.phone.size() < 20
+          && request.resource.data.get('note', '').size() < 300;
+        allow delete: if false;
+      }
+
+      // الأوقات المحجوزة فقط، بدون أسماء (لصفحة الحجز العامة)
+      match /busy/{date} {
+        allow read: if true;
+        allow create, update: if isStaff(c) && clinicOK(c);
+        allow delete: if false;
+      }
+
+      match /payments/{p} {
+        allow read: if isStaff(c) || isPatient(c, resource.data.patientId);
+        allow create: if isStaff(c) && clinicOK(c);
+        allow update: if isDoctor(c) && clinicOK(c);
+        allow delete: if false;
+      }
+
+      match /inventory/{i} {
+        allow read: if isStaff(c);
+        allow create, update: if isStaff(c) && clinicOK(c) && feature(c, 'inventory');
+        allow delete: if false;
+      }
+
+      match /waitlist/{w} {
+        allow read: if isStaff(c);
+        allow create, update: if isStaff(c) && clinicOK(c);
+        allow delete: if false;
+      }
+      match /live/{d} {
+        allow read: if isStaff(c);
+        allow create, update: if isStaff(c) && clinicOK(c);
+        allow delete: if false;
+      }
+
+      // تنبيهات الحمل والإحصاءات الطبية: للأطباء فقط
+      match /pregAlerts/{d} {
+        allow read: if isDoctor(c);
+        allow create, update: if isDoctor(c) && clinicOK(c);
+        allow delete: if false;
+      }
+      match /stats/{d} {
+        allow read: if isDoctor(c);
+        allow create, update: if isDoctor(c) && clinicOK(c);
+        allow delete: if false;
+      }
+      match /inbox/{d} {
+        allow read, update: if isDoctor(c);
+        allow create: if clinicOK(c) && (isDoctor(c) || isPatient(c, request.resource.data.patientId));
+        allow delete: if false;
+      }
+
+      match /audit/{x} {
+        allow read: if isAdmin(c);
+        allow create: if inClinic(c) && request.resource.data.by == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

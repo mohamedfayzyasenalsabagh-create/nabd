@@ -1,0 +1,32 @@
+name: بناء تطبيق أندرويد
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.9" }
+      - name: بناء APK و AAB
+        env: { VERSION_CODE: "${{ github.run_number }}" }
+        run: gradle -p android assembleRelease bundleRelease --no-daemon
+      - run: |
+          cp android/app/build/outputs/apk/release/app-release.apk nabd.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab nabd-play.aab
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-v${{ github.run_number }}
+          name: تطبيق نبض (نسخة ${{ github.run_number }})
+          make_latest: "true"
+          files: |
+            nabd.apk
+            nabd-play.aab
+          body: "nabd.apk للتثبيت المباشر على الجوال. nabd-play.aab للرفع على Google Play."
