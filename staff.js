@@ -506,7 +506,7 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
 export function showCredentials(phone, temp, name, shared = false) {
   const url = `${location.origin}${location.pathname}#/c/${S.clinic?.slug || ""}`;
   if (shared) return info("تم التسجيل", `<p>لهذا الرقم حساب سابق. أُضيف الملف الجديد إلى الحساب نفسه، ويُختار الملف عند الدخول.</p>`);
-  const text = `أهلاً ${name}، هذا حسابك في تطبيق ${S.pub.name}:\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب رمز العيادة: ${S.clinic?.slug || ""}\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\nسيُطلب منك تغييرها عند أول دخول.\n\nإذا كان جوالك آيفون، افتح هذا الرابط بدلاً من التطبيق:\n${url}`;
+  const text = `أهلاً ${name}، هذا حسابك في تطبيق ${S.pub.name}:\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب رمز العيادة: ${S.clinic?.slug || ""}\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\nسيُطلب منك تغييرها عند أول دخول.`;
   info("حساب المريض جاهز", `
     <div class="cred"><div>رقم الدخول: <b dir="ltr">${esc(phone)}</b></div><div>كلمة المرور المؤقتة: <b class="big" dir="ltr">${esc(temp)}</b></div></div>
     <p class="muted small">سلّمها للمريض، وسيُطلب منه تغييرها عند أول دخول. لن تظهر مرة أخرى.</p>

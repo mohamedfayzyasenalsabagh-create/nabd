@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تنزيل تطبيق نبض</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0E7C7B;font-family:system-ui,-apple-system,sans-serif;color:#fff;text-align:center;padding:24px;box-sizing:border-box}
+  .c{background:#fff;color:#222;border-radius:28px;padding:30px 22px;max-width:380px;width:100%}
+  h1{font-size:22px;margin:12px 0 6px;color:#0A5857}
+  p{color:#666;margin:6px 0 16px;line-height:1.8}
+  a.btn{display:block;background:#0E7C7B;color:#fff;text-decoration:none;padding:14px;border-radius:16px;font-weight:700;font-size:18px;margin-top:10px}
+  a.alt{background:#E6F4F3;color:#0A5857}
+  ol{text-align:right;line-height:2;padding-right:22px;margin:8px 0 14px;color:#333}
+  .hide{display:none}
+</style>
+</head>
+<body><div class="c">
+  <svg width="76" height="76" viewBox="0 0 48 48"><rect width="48" height="48" rx="13" fill="#0E7C7B"/><path d="M7 26h8l4-9 6 17 5-12 3 4h8" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <h1>تطبيق نبض</h1>
+  <div id="android">
+    <p>يبدأ تنزيل التطبيق الآن. إذا لم يبدأ، اضغط الزر.</p>
+    <a class="btn" href="https://github.com/mohamedfayzyasenalsabagh-create/nabd/releases/latest/download/nabd.apk">تنزيل التطبيق (أندرويد)</a>
+    <p style="font-size:14px;margin-top:14px">بعد التنزيل افتح الملف واختر «تثبيت». قد يطلب الجوال السماح بالتثبيت من هذا المصدر أول مرة.</p>
+  </div>
+  <div id="ios" class="hide">
+    <p>التطبيق متاح على أندرويد. على الآيفون استخدم النظام من المتصفح، ويعمل كتطبيق تماماً:</p>
+    <ol>
+      <li>اضغط الزر في الأسفل ليُفتح النظام في Safari.</li>
+      <li>اضغط زر المشاركة <b>⬆︎</b> أسفل الشاشة.</li>
+      <li>اختر «إضافة إلى الشاشة الرئيسية».</li>
+    </ol>
+    <a class="btn" href="./">فتح النظام</a>
+  </div>
+  <div id="desk" class="hide">
+    <p>افتح النظام من الحاسوب، أو نزّل تطبيق أندرويد.</p>
+    <a class="btn" href="./">فتح النظام</a>
+    <a class="btn alt" href="https://github.com/mohamedfayzyasenalsabagh-create/nabd/releases/latest/download/nabd.apk">تنزيل تطبيق أندرويد</a>
+  </div>
+</div>
+<script>
+  var ua = navigator.userAgent || "";
+  var ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var android = /Android/i.test(ua);
+  if (ios) { document.getElementById("android").className = "hide"; document.getElementById("ios").className = ""; }
+  else if (!android) { document.getElementById("android").className = "hide"; document.getElementById("desk").className = ""; }
+  else { setTimeout(function () { location.href = "https://github.com/mohamedfayzyasenalsabagh-create/nabd/releases/latest/download/nabd.apk"; }, 800); }
+</script>
+</body>
+</html>
