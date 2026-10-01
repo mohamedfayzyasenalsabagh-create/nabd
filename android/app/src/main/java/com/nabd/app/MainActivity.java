@@ -36,7 +36,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
-// تطبيق نبض: بيفتح النظام نفسه يلي على الموقع، وكل شي متزامن
+// تطبيق نبض: يفتح المنصة نفسها الموجودة على الموقع، وكل شيء متزامن
 public class MainActivity extends Activity {
     static final String HOME = "https://mohamedfayzyasenalsabagh-create.github.io/nabd/";
     static final String HOST = "mohamedfayzyasenalsabagh-create.github.io";
