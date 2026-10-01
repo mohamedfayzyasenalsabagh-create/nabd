@@ -1,4 +1,6 @@
 // أدوات الواجهة المشتركة
+// رابط تنزيل تطبيق أندرويد (آخر نسخة دائماً)
+export const APP_URL = "https://github.com/mohamedfayzyasenalsabagh-create/nabd/releases/latest/download/nabd.apk";
 export const COPYRIGHT = "© 2026 جميع الحقوق محفوظة · mohamedfayzyasenalsabagh@gmail.com";
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
