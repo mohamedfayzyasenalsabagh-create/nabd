@@ -113,7 +113,7 @@ export const MAX_VER = 5;
 export function genPassword() {
   const a = new Uint32Array(1);
   crypto.getRandomValues(a);
-  return String(100000 + (a[0] % 900000));
+  return String(10000000 + (a[0] % 90000000));
 }
 export function randId(n = 10) {
   const abc = "abcdefghijkmnpqrstuvwxyz23456789";
@@ -146,6 +146,64 @@ async function createAuthAt(phone, kind, password, startVer = 1) {
     }
   }
   throw new Error("بلغ هذا الرقم الحد الأقصى لإعادة التعيين. يرجى التواصل مع الدعم.");
+}
+
+
+// ---------- فهرس الدخول الموحد ----------
+// يربط (رقم الجوال + كلمة المرور) بالعيادة دون كشف أي منهما: المفتاح بصمة مشفّرة بطيئة
+// فلا يستطيع أحد معرفة عيادة رقمٍ ما إلا إذا كان يعرف كلمة مروره أصلاً.
+async function idxKey(phone, pw) {
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey("raw", enc.encode(String(pw)), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: enc.encode("nabd-login|" + phone), iterations: 60000, hash: "SHA-256" }, base, 256);
+  return [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+export async function saveLoginIdx(phone, pw, cid, kind) {
+  try { await setDoc(doc(db, "loginIdx", await idxKey(phone, pw)), { e: arrayUnion(`${cid}|${kind}`) }, { merge: true }); } catch (e) { console.warn("idx", e); }
+}
+export async function dropLoginIdx(phone, pw, cid, kind) {
+  try { await updateDoc(doc(db, "loginIdx", await idxKey(phone, pw)), { e: arrayRemove(`${cid}|${kind}`) }); } catch {}
+}
+async function findLogins(phone, pw) {
+  try { const d = await getDoc(doc(db, "loginIdx", await idxKey(phone, pw))); return d.exists() ? (d.data().e || []) : []; } catch { return []; }
+}
+async function tryPhone(phone, pw, cid, kind) {
+  let lastErr = null;
+  for (let v = 1; v <= MAX_VER; v++) {
+    try { return (await signInWithEmailAndPassword(auth, loginEmail(phone, kind, v, cid), pw)).user; }
+    catch (e) { lastErr = e; if (e.code === "auth/too-many-requests" || e.code === "auth/network-request-failed") throw e; }
+  }
+  throw lastErr || new Error("login failed");
+}
+export let lastLogin = null; // {phone, pw, cid, kind} لتحديث الفهرس بعد تغيير كلمة المرور
+
+// دخول موحد: بريد إلكتروني أو رقم جوال، دون رمز عيادة ودون اختيار نوع الحساب
+// pick(choices) تُستدعى إذا كان الرقم نفسه مسجلاً في أكثر من عيادة أو بأكثر من صفة
+export async function smartLogin(idText, password, pick) {
+  const id = String(idText || "").trim();
+  if (id.includes("@")) return (await signInWithEmailAndPassword(auth, id, password)).user;
+  const phone = normPhone(id);
+  if (phone.length < 9) throw new Error("رقم الجوال غير صحيح");
+  let cands = await findLogins(phone, password);
+  if (cands.length > 1 && pick) {
+    const chosen = await pick(cands.map((e) => { const [cid, kind] = e.split("|"); return { cid, kind }; }));
+    if (!chosen) throw new Error("أُلغي الدخول");
+    cands = [`${chosen.cid}|${chosen.kind}`];
+  }
+  if (!cands.length && C) cands = [`${C}|p`, `${C}|s`];
+  let lastErr = null;
+  for (const e of cands) {
+    const [cid, kind] = e.split("|");
+    try {
+      const u = await tryPhone(phone, password, cid, kind);
+      lastLogin = { phone, pw: password, cid, kind };
+      saveLoginIdx(phone, password, cid, kind);
+      return u;
+    } catch (err) { lastErr = err; if (err.code === "auth/too-many-requests" || err.code === "auth/network-request-failed") break; }
+  }
+  if (!cands.length || (lastErr && ["auth/invalid-credential", "auth/user-not-found", "auth/wrong-password", "auth/invalid-login-credentials"].includes(lastErr.code)))
+    throw new Error("رقم الجوال أو كلمة المرور غير صحيحة");
+  throw lastErr || new Error("رقم الجوال أو كلمة المرور غير صحيحة");
 }
 
 // ---------- الدخول ----------
@@ -295,6 +353,7 @@ export async function registerPatient(data) {
   } else {
     tempPassword = genPassword();
     const r = await createAuthAt(phone, "p", tempPassword, 1);
+    saveLoginIdx(phone, tempPassword, C, "p");
     uid = r.uid;
     await setDoc(P.user(uid), {
       role: "patient", clinicId: C, phone, patientIds: [pid], active: true,
@@ -318,6 +377,7 @@ export async function resetPatientPassword(phone) {
   const old = await getDoc(P.user(oldUid));
   const temp = genPassword();
   const r = await createAuthAt(phone, "p", temp, (ph.data().patientVer || 1) + 1);
+  saveLoginIdx(phone, temp, C, "p");
   const od = old.data();
   await setDoc(P.user(r.uid), {
     role: "patient", clinicId: C, phone, patientIds: od.patientIds || [], active: true,
@@ -344,6 +404,7 @@ export async function createStaff(name, phoneRaw, role = "secretary", title = ""
   const temp = genPassword();
   const start = ph.exists() && ph.data().staffVer ? ph.data().staffVer + 1 : 1;
   const r = await createAuthAt(phone, "s", temp, start);
+  saveLoginIdx(phone, temp, C, "s");
   await setDoc(P.user(r.uid), {
     role, admin: false, doctorId, clinicId: C, name: name.trim(), title, phone, active: true,
     mustChangePassword: true, ver: r.ver, createdAt: serverTimestamp()
@@ -359,6 +420,7 @@ export async function resetStaffPassword(uid) {
   const ph = await getDoc(P.phone(d.phone));
   const temp = genPassword();
   const r = await createAuthAt(d.phone, "s", temp, ((ph.exists() && ph.data().staffVer) || d.ver || 1) + 1);
+  saveLoginIdx(d.phone, temp, C, "s");
   await setDoc(P.user(r.uid), {
     role: d.role, admin: false, doctorId: d.doctorId || null, clinicId: C, name: d.name, title: d.title || "", phone: d.phone, active: true,
     mustChangePassword: true, ver: r.ver, createdAt: serverTimestamp(), replaces: uid

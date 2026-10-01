@@ -121,7 +121,7 @@ export function landing() {
       </footer>
     </div>`;
     bindTheme(render);
-    $(".enter").onclick = enterModal;
+    $(".enter").onclick = () => { location.hash = "#/login"; };
     $$('.lp a[href^="#features"], .lp a[href^="#pricing"]').forEach((a) => a.onclick = (e) => {
       e.preventDefault(); document.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth" });
     });
@@ -129,40 +129,6 @@ export function landing() {
   render();
 }
 
-function enterModal() {
-  modal("الدخول", `
-    <div class="stack">
-      <form class="stack f-slug">
-        <h4>لدي رابط عيادة</h4>
-        <p class="muted small">للمرضى والموظفين: اكتب رمز العيادة كما وصلك (مثل: dr-sara).</p>
-        <div class="row gap"><input name="slug" class="grow" dir="ltr" placeholder="dr-sara" aria-label="رمز العيادة" required><button class="btn primary">متابعة</button></div>
-      </form>
-      <hr>
-      <form class="stack f-mail">
-        <h4>مسؤول عيادة</h4>
-        ${field("البريد الإلكتروني", "email", { type: "email", required: true, attrs: 'dir="ltr" autocomplete="username"' })}
-        ${field("كلمة المرور", "pw", { type: "password", required: true, attrs: 'dir="ltr" autocomplete="current-password"' })}
-        <button class="btn primary">دخول</button>
-        <button type="button" class="link-btn small forgot">نسيت كلمة المرور؟</button>
-      </form>
-    </div>`, {
-    ok: null, cancel: "إغلاق",
-    onOpen: (w) => {
-      w.querySelector(".f-slug").onsubmit = (e) => { e.preventDefault(); const v = cleanSlug(e.target.slug.value); w.remove(); openClinic(v); };
-      w.querySelector(".f-mail").onsubmit = async (e) => {
-        e.preventDefault();
-        const b = e.target.querySelector("button"); b.disabled = true;
-        try { await login(e.target.email.value, e.target.pw.value, "s"); w.remove(); }
-        catch (err) { toast(errMsg(err), true); b.disabled = false; }
-      };
-      w.querySelector(".forgot").onclick = async () => {
-        const v = w.querySelector(".f-mail").email.value.trim();
-        if (!v) return toast("اكتب بريدك الإلكتروني أولاً", true);
-        try { await sendPasswordResetEmail(auth, v); toast("أُرسل رابط تغيير كلمة المرور إلى بريدك"); } catch (e) { toast(errMsg(e), true); }
-      };
-    }
-  });
-}
 
 // ---------- تسجيل عيادة جديدة ----------
 export function signupPage() {
@@ -176,7 +142,7 @@ export function signupPage() {
       <h3>العيادة</h3>
       ${field("اسم العيادة", "clinicName", { required: true, placeholder: "عيادة د. سارة للأسنان" })}
       ${select("الاختصاص", "specialty", Object.entries(SPECIALTIES).map(([k, v]) => [k, v.name]), "dental")}
-      ${field("رمز العيادة (رابطها)", "slug", { required: true, attrs: 'dir="ltr" pattern="[a-zA-Z0-9\\-]{3,30}" autocapitalize="off"', placeholder: "dr-sara", hint: "حروف لاتينية وأرقام فقط. يستخدمه المرضى للدخول ولصفحة الحجز." })}
+      ${field("رابط العيادة المختصر", "slug", { required: true, attrs: 'dir="ltr" pattern="[a-zA-Z0-9\\-]{3,30}" autocapitalize="off"', placeholder: "dr-sara", hint: "حروف لاتينية وأرقام فقط. يظهر في رابط صفحة الحجز." })}
       ${field("هاتف العيادة", "clinicPhone", { attrs: 'dir="ltr" inputmode="tel"' })}
       ${select("المدينة", "city", CITIES.map((x) => [x, x]), "دمشق")}
       ${field("العنوان", "address")}

@@ -524,7 +524,7 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
 export function showCredentials(phone, temp, name, shared = false) {
   const url = `${location.origin}${location.pathname}#/c/${S.clinic?.slug || ""}`;
   if (shared) return info("تم التسجيل", `<p>لهذا الرقم حساب سابق. أُضيف الملف الجديد إلى الحساب نفسه، ويُختار الملف عند الدخول.</p>`);
-  const text = `أهلاً ${name}، هذا حسابك في تطبيق ${S.pub.name}:\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب رمز العيادة: ${S.clinic?.slug || ""}\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\nسيُطلب منك تغييرها عند أول دخول.`;
+  const text = `أهلاً ${name}، هذا حسابك في تطبيق ${S.pub.name}:\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب:\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\nسيُطلب منك تغييرها عند أول دخول.`;
   info("حساب المريض جاهز", `
     <div class="cred"><div>رقم الدخول: <b dir="ltr">${esc(phone)}</b></div><div>كلمة المرور المؤقتة: <b class="big" dir="ltr">${esc(temp)}</b></div></div>
     <p class="muted small">سلّمها للمريض، وسيُطلب منه تغييرها عند أول دخول. لن تظهر مرة أخرى.</p>
@@ -641,7 +641,7 @@ function renderMore() {
     ${bookLink ? `<h4 class="menu-h">صفحة الحجز</h4><div class="card stack"><code class="copy" dir="ltr">${esc(bookLink)}</code><div class="row gap"><button class="btn small cp">نسخ الرابط</button><a class="btn small" target="_blank" rel="noopener" href="${esc(waLink("", `احجز موعدك في ${S.pub.name}: ${bookLink}`))}">مشاركة</a></div></div>` : ""}
     <ul class="menu"><li><button class="theme"><span>المظهر</span><span class="muted">${{ auto: "تلقائي", light: "فاتح", dark: "داكن" }[localStorage.getItem("theme") || "auto"] || "تلقائي"}</span></button></li>
     <li><button class="out"><span>تسجيل الخروج</span></button></li></ul>
-    <p class="muted small center">${esc(PLATFORM())} · رمز العيادة: <span dir="ltr">${esc(S.clinic?.slug || "")}</span></p>
+    <p class="muted small center">${esc(PLATFORM())}</p>
     <p class="copyright">${esc(COPYRIGHT)}</p>`;
   $(".out").onclick = logout;
   $(".cp")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(bookLink); toast("تم نسخ الرابط"); } catch { toast("انسخ الرابط يدوياً", true); } });

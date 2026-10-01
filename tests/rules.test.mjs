@@ -234,3 +234,11 @@ test("دليل الأطباء: العيادات الظاهرة فقط", async ()
   await assertSucceeds(updateDoc(doc(as("adm_A"), "publicClinics/A"), { listed: false }));
   await assertFails(updateDoc(doc(as("adm_B"), "publicClinics/A"), { listed: true }));
 });
+
+test("فهرس الدخول الموحد: قراءة مستند بعينه فقط، والكتابة لمستخدم مسجّل بصيغة محددة", async () => {
+  await assertSucceeds(setDoc(doc(as("sec_A"), "loginIdx/h1"), { e: arrayUnion("A|p") }, { merge: true }));
+  await assertSucceeds(getDoc(doc(anon(), "loginIdx/h1")));
+  await assertFails(getDocs(collection(anon(), "loginIdx")));
+  await assertFails(setDoc(doc(anon(), "loginIdx/h2"), { e: ["A|p"] }));
+  await assertFails(setDoc(doc(as("sec_A"), "loginIdx/h3"), { e: ["A|p"], extra: 1 }));
+});

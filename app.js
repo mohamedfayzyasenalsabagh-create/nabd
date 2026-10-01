@@ -1,9 +1,9 @@
 // نقطة البداية: الصفحات العامة، الدخول، والتوجيه لكل دور
 import {
-  configured, auth, P, one, login, onAuthStateChanged, signOut, setClinic, C,
+  configured, auth, P, one, smartLogin, saveLoginIdx, dropLoginIdx, lastLogin, onAuthStateChanged, signOut, setClinic, C,
   updatePassword, sendPasswordResetEmail, updateDoc, setActor, onSnapshot, audit, pickBrand, DEFAULT_PLANS
 } from "./fb.js";
-import { COPYRIGHT, $, esc, toast, errMsg, field, logoHtml, info, applyTheme, platformMark } from "./ui.js";
+import { COPYRIGHT, $, esc, toast, errMsg, field, logoHtml, info, applyTheme, platformMark, modal } from "./ui.js";
 
 export const S = { user: null, profile: null, pub: null, clinic: null, platform: null, unsub: [], owner: false };
 const root = () => $("#app");
@@ -91,6 +91,7 @@ async function publicRoute() {
   if (r === "signup") return pub.signupPage();
   if (r === "c" && arg) return openClinic(arg);
   if (r === "home") return pub.landing();
+  if (r === "login") { applyBrand({}); return showLogin(); }
   const last = LS.get("clinic");
   if (last) {
     const p = await one(P.pub(last)).catch(() => null);
@@ -139,58 +140,70 @@ export async function route() {
   m.start();
 }
 
-// ---------- شاشة الدخول ----------
+// ---------- شاشة الدخول الموحدة ----------
+// خانة واحدة لكل الحسابات: المريض والسكرتارية والطبيب ومسؤول العيادة، دون رمز عيادة
+function pickAccount(choices) {
+  return new Promise(async (resolve) => {
+    const names = await Promise.all(choices.map((c) => one(P.pub(c.cid)).then((p) => p?.name || "عيادة").catch(() => "عيادة")));
+    let picked = null;
+    await modal("اختر الحساب", `<p class="muted">رقمك مسجّل في أكثر من مكان، اختر الحساب الذي تريد الدخول إليه:</p>
+      <div class="stack">${choices.map((c, i) => `<button class="btn block pick" data-i="${i}">${esc(names[i])} · ${c.kind === "p" ? "مريض" : "فريق العيادة"}</button>`).join("")}</div>`, {
+      ok: null, cancel: "إلغاء",
+      onOpen: (w) => w.querySelectorAll(".pick").forEach((b) => b.onclick = () => { picked = choices[+b.dataset.i]; w.querySelector(".cancel").click(); })
+    });
+    resolve(picked);
+  });
+}
+
 export function showLogin(msg = "") {
-  let kind = "p";
-  const render = () => {
-    root().innerHTML = `<div class="center-page login-page">
+  const pub = S.pub || {};
+  const hasClinic = !!pub.name;
+  root().innerHTML = `<div class="center-page login-page">
       <div class="brand-block">
-        ${logoHtml(S.pub, 96)}
-        <h1>${esc(S.pub.doctorName ? "د. " + S.pub.doctorName : S.pub.name || PLATFORM())}</h1>
-        <p>${esc(S.pub.title || "")}</p>
+        ${hasClinic ? logoHtml(pub, 96) : platformMark(96)}
+        <h1>${esc(hasClinic ? (pub.doctorName ? "د. " + pub.doctorName : pub.name) : PLATFORM())}</h1>
+        <p>${esc(hasClinic ? pub.title || "" : "تسجيل الدخول")}</p>
       </div>
       <div class="card narrow">
-        <div class="seg" role="tablist">
-          <button role="tab" class="${kind === "p" ? "on" : ""}" data-k="p" aria-selected="${kind === "p"}">دخول المريض</button>
-          <button role="tab" class="${kind === "s" ? "on" : ""}" data-k="s" aria-selected="${kind === "s"}">فريق العيادة</button>
-        </div>
         <form id="lf" class="stack">
-          ${field(kind === "p" ? "رقم الجوال" : "رقم الجوال أو البريد الإلكتروني", "id", { required: true, attrs: `inputmode="${kind === "p" ? "tel" : "text"}" autocomplete="username" dir="ltr"`, placeholder: "09xxxxxxxx" })}
+          ${field("رقم الجوال أو البريد الإلكتروني", "id", { required: true, attrs: 'autocomplete="username" dir="ltr" autocapitalize="off"', placeholder: "09xxxxxxxx" })}
           ${field("كلمة المرور", "pw", { type: "password", required: true, attrs: 'autocomplete="current-password" dir="ltr"' })}
           ${msg ? `<div class="alert">${esc(msg)}</div>` : ""}
           <button class="btn primary block" type="submit">دخول</button>
           <button class="link-btn forgot" type="button">نسيت كلمة المرور؟</button>
         </form>
+        <p class="muted small center">للمرضى والأطباء وفريق العيادة: نفس الخانة للجميع.</p>
       </div>
-      ${S.pub.bookingEnabled && S.pub.slug ? `<a class="btn ghost" href="#/b/${esc(S.pub.slug)}">احجز موعداً دون حساب</a>` : ""}
-      <p class="muted small">${esc(S.pub.address || "")} ${S.pub.phone ? `· <span dir="ltr">${esc(S.pub.phone)}</span>` : ""}</p>
-      <button class="link-btn small other">ليست عيادتك؟ اختر عيادة أخرى</button>
+      ${hasClinic && pub.bookingEnabled && pub.slug ? `<a class="btn ghost" href="#/b/${esc(pub.slug)}">احجز موعداً دون حساب</a>` : ""}
+      ${hasClinic ? `<p class="muted small">${esc(pub.address || "")} ${pub.phone ? `· <span dir="ltr">${esc(pub.phone)}</span>` : ""}</p>` : ""}
+      <p class="small"><a href="#/home">الصفحة الرئيسية</a> · <a href="#/doctors">دليل الأطباء</a> · <a href="#/signup">سجّل عيادتك</a></p>
       <div class="powered">${platformMark(18)} <span>بإدارة منصة ${esc(PLATFORM())}</span></div>
       <p class="muted small legal-links"><a href="#/privacy">سياسة الخصوصية</a> · <a href="#/terms">شروط الاستخدام</a></p>
       <p class="copyright">${esc(COPYRIGHT)}</p>
     </div>`;
-    root().querySelectorAll(".seg button").forEach((b) => b.onclick = () => { kind = b.dataset.k; msg = ""; render(); });
-    $("#lf").onsubmit = async (e) => {
-      e.preventDefault();
-      const btn = e.target.querySelector("[type=submit]");
-      btn.disabled = true; btn.textContent = "يرجى الانتظار…";
-      try { await login(e.target.id.value, e.target.pw.value, kind); }
-      catch (err) { msg = errMsg(err); render(); }
-    };
-    $(".other").onclick = () => { LS.set("clinic", null); setClinic(null); location.hash = "#/home"; };
-    $(".forgot").onclick = async () => {
-      const v = $("#lf").id.value.trim();
-      if (kind === "s" && v.includes("@")) {
-        try { await sendPasswordResetEmail(auth, v); toast("أُرسل رابط تغيير كلمة المرور إلى بريدك الإلكتروني"); }
-        catch (e) { toast(errMsg(e), true); }
-        return;
-      }
-      info("نسيت كلمة المرور", kind === "p"
-        ? `<p>تواصل مع العيادة للحصول على كلمة مرور جديدة.</p>${S.pub.phone ? `<p>هاتف العيادة: <b dir="ltr">${esc(S.pub.phone)}</b></p><p><a class="btn primary" href="tel:${esc(S.pub.phone)}">اتصال بالعيادة</a></p>` : ""}`
-        : `<p>الموظفون والأطباء: يمنحك مسؤول العيادة كلمة مرور جديدة من قسم الفريق.</p><p>مسؤول العيادة: اكتب بريدك الإلكتروني في خانة الدخول ثم اضغط «نسيت كلمة المرور» ليصلك رابط التغيير.</p>`);
-    };
+  $("#lf").onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector("[type=submit]");
+    btn.disabled = true; btn.textContent = "يرجى الانتظار…";
+    try { await smartLogin(f.id.value, f.pw.value, pickAccount); }
+    catch (err) {
+      const box = f.querySelector(".alert") || Object.assign(document.createElement("div"), { className: "alert" });
+      box.textContent = errMsg(err); if (!box.parentNode) btn.before(box);
+      btn.disabled = false; btn.textContent = "دخول";
+    }
   };
-  render();
+  $(".forgot").onclick = async () => {
+    const v = $("#lf").id.value.trim();
+    if (v.includes("@")) {
+      try { await sendPasswordResetEmail(auth, v); toast("أُرسل رابط تغيير كلمة المرور إلى بريدك الإلكتروني"); }
+      catch (e) { toast(errMsg(e), true); }
+      return;
+    }
+    info("نسيت كلمة المرور", `<p><b>المرضى:</b> تواصل مع العيادة لتحصل على كلمة مرور جديدة.</p>
+      <p><b>فريق العيادة:</b> يعطيك مسؤول العيادة كلمة مرور جديدة من قسم «الفريق».</p>
+      <p><b>مسؤول العيادة:</b> اكتب بريدك الإلكتروني في خانة الدخول ثم اضغط «نسيت كلمة المرور» ليصلك رابط التغيير.</p>
+      ${hasClinic && pub.phone ? `<p><a class="btn primary" href="tel:${esc(pub.phone)}">اتصال بالعيادة</a></p>` : ""}`);
+  };
 }
 
 // ---------- تغيير كلمة المرور ----------
@@ -209,6 +222,12 @@ export function showChangePassword(forced = false) {
     if (p1.value !== p2.value) return toast("كلمتا المرور غير متطابقتين", true);
     try {
       await updatePassword(auth.currentUser, p1.value);
+      const pr = S.profile || {};
+      if (!S.owner && pr.phone) {
+        const kind = pr.role === "patient" ? "p" : "s";
+        if (lastLogin && lastLogin.phone === pr.phone) dropLoginIdx(lastLogin.phone, lastLogin.pw, lastLogin.cid, lastLogin.kind);
+        saveLoginIdx(pr.phone, p1.value, pr.clinicId, kind);
+      }
       if (S.profile.role !== "owner") await updateDoc(P.user(auth.currentUser.uid), { mustChangePassword: false });
       S.profile.mustChangePassword = false;
       toast("تم تغيير كلمة المرور");

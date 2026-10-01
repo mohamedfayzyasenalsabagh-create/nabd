@@ -53,6 +53,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ---------- فهرس الدخول الموحد ----------
+    // المفتاح بصمة (رقم الجوال + كلمة المرور)، فلا يمكن قراءته إلا لمن يعرف كلمة المرور. لا يُسمح بسرد المستندات.
+    match /loginIdx/{h} {
+      allow get: if true;
+      allow list, delete: if false;
+      allow create, update: if signedIn() && request.resource.data.keys().hasOnly(['e'])
+        && request.resource.data.e is list && request.resource.data.e.size() <= 10;
+    }
+
     // ---------- بيانات عامة لكل عيادة (صفحة الحجز والدخول) ----------
     match /slugs/{slug} {
       allow get: if true;
