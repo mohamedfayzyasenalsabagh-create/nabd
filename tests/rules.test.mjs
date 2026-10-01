@@ -189,3 +189,48 @@ test("لا حذف لأي سجل", async () => {
   await assertFails(deleteDoc(doc(as("adm_A"), "clinics/A/patients/p1")));
   await assertFails(deleteDoc(doc(as("own1"), "clinics/A")));
 });
+
+test("الملفات الكاملة (blob): نفس صلاحيات الملف", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "clinics/A/patients/p1/files/f1"), { kind: "lab", uploadedBy: "doctor" });
+    await setDoc(doc(db, "clinics/A/patients/p1/files/f1/blob/main"), { data: "data:image/jpeg;base64,AAA" });
+    await setDoc(doc(db, "clinics/A/patients/p1/private/ph1"), { type: "photo" });
+    await setDoc(doc(db, "clinics/A/patients/p1/private/ph1/blob/main"), { data: "data:image/jpeg;base64,BBB" });
+    await setDoc(doc(db, "clinics/A/patients/p1/files/f2"), { kind: "lab", uploadedBy: "patient" });
+    await setDoc(doc(db, "clinics/A/patients/p1/files/f3"), { kind: "lab", uploadedBy: "doctor" });
+    await setDoc(doc(db, "clinics/A/patients/p1/files/f4"), { kind: "lab", uploadedBy: "doctor" });
+  });
+  // القراءة
+  await assertSucceeds(getDoc(doc(as("doc_A"), "clinics/A/patients/p1/files/f1/blob/main")));
+  await assertSucceeds(getDoc(doc(as("pat_A"), "clinics/A/patients/p1/files/f1/blob/main")));
+  await assertFails(getDoc(doc(as("sec_A"), "clinics/A/patients/p1/files/f1/blob/main")));
+  await assertFails(getDoc(doc(as("adm_B"), "clinics/A/patients/p1/files/f1/blob/main")));
+  await assertSucceeds(getDoc(doc(as("doc_A"), "clinics/A/patients/p1/private/ph1/blob/main")));
+  await assertFails(getDoc(doc(as("pat_A"), "clinics/A/patients/p1/private/ph1/blob/main")));
+  // الكتابة
+  await assertSucceeds(setDoc(doc(as("pat_A"), "clinics/A/patients/p1/files/f2/blob/main"), { data: "data:image/jpeg;base64,CCC" }));
+  await assertFails(setDoc(doc(as("pat_A"), "clinics/A/patients/p1/files/f3/blob/main"), { data: "x" }));
+  await assertFails(setDoc(doc(as("pat_A"), "clinics/A/patients/p1/private/ph1/blob/other"), { data: "x" }));
+  await assertFails(setDoc(doc(as("sec_A"), "clinics/A/patients/p1/files/f3/blob/main"), { data: "x" }));
+  await assertSucceeds(setDoc(doc(as("doc_A"), "clinics/A/patients/p1/files/f3/blob/main"), { data: "data:x" }));
+  await assertFails(setDoc(doc(as("doc_A"), "clinics/A/patients/p1/files/f3/blob/main"), { data: "data:y" }));
+  await assertFails(setDoc(doc(as("doc_A"), "clinics/A/patients/p1/files/f4/blob/main"), { data: "z".repeat(1000001) }));
+  // المريض يحدّث رابط ملفه فقط
+  await assertSucceeds(updateDoc(doc(as("pat_A"), "clinics/A/patients/p1/files/f2"), { url: "https://x" }));
+  await assertFails(updateDoc(doc(as("pat_A"), "clinics/A/patients/p1/files/f2"), { kind: "echo" }));
+});
+
+test("دليل الأطباء: العيادات الظاهرة فقط", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "publicClinics/A"), { name: "A", bookingEnabled: true, listed: true, city: "دمشق" });
+  });
+  const pubs = collection(anon(), "publicClinics");
+  await assertSucceeds(getDocs(query(pubs, where("listed", "==", true))));
+  await assertFails(getDocs(pubs));
+  await assertFails(getDocs(query(pubs, where("city", "==", "دمشق"))));
+  // المسؤول يظهر عيادته أو يخفيها، وغيره لا
+  await assertSucceeds(updateDoc(doc(as("adm_A"), "publicClinics/A"), { listed: false }));
+  await assertFails(updateDoc(doc(as("adm_B"), "publicClinics/A"), { listed: true }));
+});

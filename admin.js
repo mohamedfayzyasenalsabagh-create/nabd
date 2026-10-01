@@ -1,5 +1,5 @@
 // صفحات المسؤول: الإعدادات، الفريق، الاشتراك، والمخزون
-import {
+import { CITIES,
   P, C, list, one, setDoc, updateDoc, addDoc, query, where, serverTimestamp, arrayUnion,
   createStaff, resetStaffPassword, normPhone, randId, publicCopy, clinicState, tsMs,
   SPECIALTIES, MODULES, DEFAULT_PLANS, DEFAULT_VACCINES, audit
@@ -66,6 +66,11 @@ export async function renderSettings() {
         <div class="book-share"><div class="qr-box">${qrSvg(bookLink, 132)}</div><div class="stack"><code class="copy" dir="ltr">${esc(bookLink)}</code><p class="muted small">اطبع الرمز وضعه في العيادة أو شاركه على وسائل التواصل.</p></div></div>`
         : `<p class="muted">صفحة الحجز العامة متاحة في الباقة الاحترافية. <a href="#/subscription">الترقية</a></p>`}
     </section>
+    <section class="card stack"><h3>دليل الأطباء</h3>
+      <p class="muted small">يبحث المرضى في دليل ${esc(PLATFORM())} حسب الاختصاص والمدينة، ويصلون إلى صفحة عيادتك ليحجزوا أو يتصلوا.</p>
+      <label class="check"><input type="checkbox" name="listed" ${c.listed ? "checked" : ""}><span>إظهار عيادتي في دليل الأطباء</span></label>
+      ${select("المدينة", "city", [["", "اختر المدينة"], ...CITIES.map((x) => [x, x])], c.city || "")}
+    </section>
     ${hasMod("peds") || mods.has("peds") ? `<section class="card stack"><h3>جدول اللقاحات</h3>
       <p class="muted small">جدول مبدئي قابل للتعديل. راجعه وطابقه مع الجدول الوطني المعتمد قبل الاستخدام.</p>
       <div class="vac-list"></div><button type="button" class="btn small add-vac">+ لقاح</button></section>` : ""}
@@ -121,7 +126,7 @@ export async function renderSettings() {
       specialty: f.specialty.value, modules: Object.keys(MODULES).filter((k) => f[`mod_${k}`].checked),
       currency: f.currency.value.trim() || "ل.س", hours: h, slotMinutes: Number(f.slotMinutes.value),
       services: services.filter((s) => s.name.trim()), consentText: f.consentText.value, rxFooter: f.rxFooter.value,
-      doctors: doctorsArr,
+      doctors: doctorsArr, listed: f.listed.checked, city: f.city.value,
       ...(feat("booking") ? { bookingEnabled: f.bookingEnabled.checked, showPrices: f.showPrices.checked } : {}),
       ...($(".vac-list") ? { vaccineSchedule: vaccines.filter((v) => v.name.trim()).sort((a, b) => a.months - b.months) } : {}),
     };

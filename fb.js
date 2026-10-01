@@ -10,7 +10,7 @@ import {
   doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs,
   onSnapshot, serverTimestamp, arrayUnion, arrayRemove, runTransaction, writeBatch, limit, orderBy, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { firebaseConfig } from "./config.js";
+import { firebaseConfig, USE_STORAGE } from "./config.js";
 
 export const configured = !String(firebaseConfig.apiKey).startsWith("PASTE");
 
@@ -92,6 +92,7 @@ export const DEFAULT_PLANS = [
     perks: ["أطباء وموظفون بلا حدود عملياً", "عدة اختصاصات في مركز واحد", "كل ميزات الاحترافي", "دعم مخصص"] },
 ];
 export const TRIAL_DAYS = 14;
+export const CITIES = ["دمشق", "ريف دمشق", "حلب", "حمص", "حماة", "اللاذقية", "طرطوس", "إدلب", "درعا", "السويداء", "القنيطرة", "دير الزور", "الرقة", "الحسكة"];
 export const ALL_FEATURES = { booking: true, inventory: true, qr: true, multiDoctor: true };
 
 // ---------- أرقام وإيميلات الدخول ----------
@@ -219,6 +220,9 @@ export function publicCopy(c) {
     doctors: (c.doctors || []).filter((d) => d.active !== false).map(({ id, name, title }) => ({ id, name, title: title || "" })),
     bookingEnabled: !!c.bookingEnabled,
     mapUrl: c.mapUrl || "",
+    // دليل الأطباء
+    listed: !!c.listed,
+    city: c.city || "",
   };
 }
 
@@ -240,7 +244,7 @@ export async function signupClinic(f) {
     specialty: spec, modules: SPECIALTIES[spec].modules, slug,
     currency: "ل.س", slotMinutes: 20, hours: defaultHours(), services: defaultServices(spec),
     doctors: [{ id: doctorId, uid, name: f.doctorName.trim(), title: f.title.trim(), active: true }],
-    bookingEnabled: false, showPrices: false,
+    city: CITIES.includes(f.city) ? f.city : "", listed: !!f.listed, bookingEnabled: !!f.listed, showPrices: false,
     status: "trial", plan: "trial", expiresAt: expires, features: ALL_FEATURES, maxDoctors: 3, maxStaff: 3,
     ownerUid: uid, ownerEmail: f.email.trim(), ownerPhone: normPhone(f.phone), createdAt: serverTimestamp()
   };
@@ -361,6 +365,42 @@ export async function resetStaffPassword(uid) {
   await setDoc(P.phone(d.phone), { staffUid: r.uid, staffVer: r.ver }, { merge: true });
   await audit("إعادة تعيين كلمة مرور موظف", d.name);
   return { temp, uid: r.uid };
+}
+
+// ---------- الملفات والصور ----------
+// المستند الأساسي يحمل صورة مصغّرة فقط، والملف الكامل منفصل ولا يُحمَّل إلا عند فتحه.
+// مجاناً: الملف الكامل في مستند فرعي blob/main. مع Blaze: في Cloud Storage (USE_STORAGE = true).
+let _st = null;
+async function storageApi() {
+  if (!_st) {
+    const m = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js");
+    _st = { m, s: m.getStorage(app) };
+  }
+  return _st;
+}
+export async function addFileDoc(colRef, meta, dataUrl) {
+  const ref = await addDoc(colRef, { ...meta, store: USE_STORAGE ? "storage" : "fs", createdAt: serverTimestamp() });
+  try {
+    if (USE_STORAGE) {
+      const { m, s } = await storageApi();
+      const r = m.ref(s, ref.path);
+      await m.uploadString(r, dataUrl, "data_url");
+      await updateDoc(ref, { url: await m.getDownloadURL(r) });
+    } else {
+      await setDoc(doc(ref, "blob", "main"), { data: dataUrl, at: serverTimestamp() });
+    }
+  } catch (e) {
+    await updateDoc(ref, { broken: true }).catch(() => {});
+    throw e;
+  }
+  return ref;
+}
+// يعيد الملف الكامل (data URL أو رابط)، ويدعم الملفات القديمة المحفوظة داخل المستند
+export async function fileData(colRef, f) {
+  if (f.data) return f.data;
+  if (f.url) return f.url;
+  const b = await getDoc(doc(colRef, f.id, "blob", "main"));
+  return b.exists() ? b.data().data : null;
 }
 
 // ---------- مساعدات قراءة ----------

@@ -7,3 +7,6 @@ export const firebaseConfig = {
   messagingSenderId: "666798561739",
   appId: "1:666798561739:web:dacf92fa0f021403c8fe4e"
 };
+
+// التخزين: false = الصور داخل Firestore (مجاني)، true = Cloud Storage (يحتاج خطة Blaze)
+export const USE_STORAGE = false;

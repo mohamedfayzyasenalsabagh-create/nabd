@@ -24,7 +24,7 @@ export function applyBrand(pub) {
 }
 
 const hashParts = () => location.hash.replace(/^#\/?/, "").split(/[/?]/);
-const PUBLIC_ROUTES = ["b", "v"];
+const PUBLIC_ROUTES = ["b", "v", "privacy", "terms", "doctors"];
 
 async function boot() {
   applyTheme(LS.get("theme") || "auto");
@@ -84,6 +84,8 @@ async function publicRoute() {
   const pub = await import("./public.js");
   if (r === "b") return pub.bookingPage(arg);
   if (r === "v") return pub.verifyPage(arg);
+  if (r === "doctors") return pub.directoryPage();
+  if (r === "privacy" || r === "terms") return (await import("./legal.js")).legalPage(r);
   if (S.user) return onUser(S.user);
   if (r === "owner") return pub.ownerLogin();
   if (r === "signup") return pub.signupPage();
@@ -164,6 +166,7 @@ export function showLogin(msg = "") {
       <p class="muted small">${esc(S.pub.address || "")} ${S.pub.phone ? `· <span dir="ltr">${esc(S.pub.phone)}</span>` : ""}</p>
       <button class="link-btn small other">ليست عيادتك؟ اختر عيادة أخرى</button>
       <div class="powered">${platformMark(18)} <span>بإدارة منصة ${esc(PLATFORM())}</span></div>
+      <p class="muted small legal-links"><a href="#/privacy">سياسة الخصوصية</a> · <a href="#/terms">شروط الاستخدام</a></p>
       <p class="copyright">${esc(COPYRIGHT)}</p>
     </div>`;
     root().querySelectorAll(".seg button").forEach((b) => b.onclick = () => { kind = b.dataset.k; msg = ""; render(); });
@@ -223,6 +226,7 @@ export function showChangePassword(forced = false) {
 export async function logout() {
   if (S.profile && !S.owner) { try { await audit("تسجيل خروج"); } catch {} }
   window.onhashchange = null;
+  try { window.AndroidApp?.setReminders?.("[]"); } catch {}
   await signOut(auth);
   history.replaceState(null, "", location.pathname);
 }

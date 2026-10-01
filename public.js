@@ -1,9 +1,9 @@
 // الصفحات العامة: الصفحة الرئيسية للمنصة، تسجيل عيادة، دخول المالك، صفحة الحجز، والتحقق من الوصفة
-import {
+import { query, where, collection, db, CITIES,
   auth, P, one, list, doc, addDoc, getDoc, setClinic, signupClinic, bootstrapOwner, login, cleanSlug,
   SPECIALTIES, DEFAULT_PLANS, TRIAL_DAYS, serverTimestamp, normPhone, sendPasswordResetEmail
 } from "./fb.js";
-import { COPYRIGHT,
+import { waLink, specialtyMark, COPYRIGHT,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, toast, errMsg, modal, info, field, select,
   logoHtml, platformMark, applyTheme, DAYS
 } from "./ui.js";
@@ -50,6 +50,11 @@ export function landing() {
           <button class="btn small ghost enter">دخول</button>
         </nav>
       </header>
+
+      <a class="lp-patient" href="#/doctors">
+        <span class="lp-patient-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+        <span><b>هل أنت مريض؟</b> ابحث عن طبيب واحجز موعدك</span><span class="chev">‹</span>
+      </a>
 
       <section class="lp-hero">
         <div class="lp-hero-text">
@@ -111,6 +116,7 @@ export function landing() {
       <footer class="lp-foot">
         <div class="lp-brand">${platformMark(26)}<b>${esc(PLATFORM())}</b></div>
         ${pay.whatsapp ? `<p>للتواصل والاستفسار: <b dir="ltr">${esc(pay.whatsapp)}</b></p>` : ""}
+        <p class="muted small"><a href="#/privacy">سياسة الخصوصية</a> · <a href="#/terms">شروط الاستخدام</a></p>
         <p class="copyright">${esc(COPYRIGHT)}</p>
       </footer>
     </div>`;
@@ -172,7 +178,9 @@ export function signupPage() {
       ${select("الاختصاص", "specialty", Object.entries(SPECIALTIES).map(([k, v]) => [k, v.name]), "dental")}
       ${field("رمز العيادة (رابطها)", "slug", { required: true, attrs: 'dir="ltr" pattern="[a-zA-Z0-9\\-]{3,30}" autocapitalize="off"', placeholder: "dr-sara", hint: "حروف لاتينية وأرقام فقط. يستخدمه المرضى للدخول ولصفحة الحجز." })}
       ${field("هاتف العيادة", "clinicPhone", { attrs: 'dir="ltr" inputmode="tel"' })}
+      ${select("المدينة", "city", CITIES.map((x) => [x, x]), "دمشق")}
       ${field("العنوان", "address")}
+      <label class="check"><input type="checkbox" name="listed" checked><span>إظهار عيادتي في دليل الأطباء ليحجز منها مرضى جدد</span></label>
       <h3>الطبيب المسؤول</h3>
       ${field("الاسم", "doctorName", { required: true })}
       ${field("اللقب / الاختصاص الدقيق", "title", { required: true, placeholder: "أخصائية تقويم الأسنان" })}
@@ -180,10 +188,11 @@ export function signupPage() {
       ${field("البريد الإلكتروني (للدخول)", "email", { type: "email", required: true, attrs: 'dir="ltr" autocomplete="username"' })}
       ${field("كلمة المرور", "password", { type: "password", required: true, attrs: 'minlength="6" dir="ltr" autocomplete="new-password"' })}
       ${field("تأكيد كلمة المرور", "password2", { type: "password", required: true, attrs: 'minlength="6" dir="ltr" autocomplete="new-password"' })}
-      <label class="check"><input type="checkbox" name="terms" required><span>أوافق على شروط الاستخدام وسياسة الخصوصية، وأتحمل مسؤولية بيانات مرضاي.</span></label>
+      <label class="check"><input type="checkbox" name="terms" required><span>أوافق على <a href="#/terms" data-legal="terms">شروط الاستخدام</a> و<a href="#/privacy" data-legal="privacy">سياسة الخصوصية</a>، وأتحمل مسؤولية بيانات مرضاي.</span></label>
       <button class="btn primary block" type="submit">إنشاء العيادة</button>
       <p class="muted small center">لديك عيادة؟ <a href="#/home">الدخول</a></p>
     </form></div>`;
+  import("./legal.js").then((m) => m.bindLegalLinks());
   const f = $("#su");
   f.slug.oninput = () => { const c = cleanSlug(f.slug.value); if (c !== f.slug.value.toLowerCase()) f.slug.value = c; };
   f.onsubmit = async (e) => {
@@ -294,7 +303,7 @@ export async function bookingPage(slug) {
         <p class="muted small">${esc(pub.address || "")}</p>
         <div class="row gap wrap">${pub.phone ? `<span class="chip" dir="ltr">${esc(pub.phone)}</span>` : ""}${pub.mapUrl ? `<a class="chip" href="${esc(pub.mapUrl)}" target="_blank" rel="noopener">الموقع على الخريطة</a>` : ""}</div></div>
       </header>
-      ${!pub.bookingEnabled ? `<div class="card"><p>الحجز الإلكتروني غير مفعّل لهذه العيادة حالياً. يرجى الاتصال بالعيادة.</p></div>` : `
+      ${!pub.bookingEnabled ? `<div class="card stack"><p>الحجز الإلكتروني غير مفعّل لهذه العيادة حالياً. تواصل مع العيادة لحجز موعدك.</p>${pub.phone ? `<div class="row gap wrap"><a class="btn primary" href="tel:${esc(pub.phone)}">اتصال</a><a class="btn" href="${esc(waLink(pub.phone, `مرحباً، أود حجز موعد في ${pub.name}`))}" target="_blank" rel="noopener">واتساب</a></div>` : ""}</div>` : `
       <form id="bk" class="card stack">
         <h2>احجز موعدك</h2>
         ${docs.length > 1 ? select("الطبيب", "doctorId", docs.map((d) => [d.id, `د. ${d.name}${d.title ? " · " + d.title : ""}`]), state.doctorId) : ""}
@@ -308,6 +317,7 @@ export async function bookingPage(slug) {
         <p class="muted small">ستتواصل معك العيادة لتأكيد الموعد.</p>
       </form>`}
       <div class="powered">${platformMark(18)} <span>الحجز عبر منصة ${esc(PLATFORM())}</span></div>
+      <p class="center small"><a href="#/doctors">ابحث عن طبيب آخر في دليل الأطباء</a></p>
     </div>`;
     const f = $("#bk");
     if (!f) return;
@@ -358,4 +368,62 @@ export async function verifyPage(code) {
     : `<div class="verify bad"><span>!</span><h2>رمز غير صالح</h2></div><p>لم يُعثر على وصفة بهذا الرمز. تواصل مع العيادة المصدرة.</p>`}
     <div class="powered">${platformMark(18)} <span>تحقق عبر منصة ${esc(PLATFORM())}</span></div>
   </div></div>`;
+}
+
+
+// ---------- دليل الأطباء (للمرضى) ----------
+export async function directoryPage() {
+  applyBrand({ accent: "#0E7C7B" });
+  document.title = `دليل الأطباء · ${PLATFORM()}`;
+  const saved = (() => { try { return JSON.parse(sessionStorage.getItem("dir") || "{}"); } catch { return {}; } })();
+  const st = { q: saved.q || "", spec: saved.spec || "", city: saved.city || "" };
+  root().innerHTML = `<div class="dir">
+    <header class="lp-top">
+      <a class="lp-brand" href="#/home">${platformMark(32)}<b>${esc(PLATFORM())}</b></a>
+      ${S.user ? `<a class="btn small ghost" href="${location.pathname}">رجوع</a>` : `<a class="btn small ghost" href="#/home">الرئيسية</a>`}
+    </header>
+    <h1 class="dir-title">ابحث عن طبيب</h1>
+    <p class="muted">اختر الاختصاص والمدينة، ثم احجز موعدك مباشرة.</p>
+    <div class="dir-filters card">
+      <input class="dq" type="search" placeholder="اسم الطبيب أو العيادة" aria-label="بحث" value="${esc(st.q)}">
+      <div class="grid2">
+        <select class="ds" aria-label="الاختصاص"><option value="">كل الاختصاصات</option>${Object.entries(SPECIALTIES).map(([k, v]) => `<option value="${k}" ${k === st.spec ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select>
+        <select class="dc" aria-label="المدينة"><option value="">كل المدن</option>${CITIES.map((c) => `<option ${c === st.city ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>
+      </div>
+    </div>
+    <div class="dir-list"><div class="loading">جارٍ التحميل…</div></div>
+    <p class="copyright">${esc(COPYRIGHT)}</p>
+  </div>`;
+  let all = [];
+  try { all = await list(query(collection(db, "publicClinics"), where("listed", "==", true))); }
+  catch { $(".dir-list").innerHTML = `<div class="card"><p>تعذّر تحميل الدليل. تحقق من الاتصال وحاول مجدداً.</p></div>`; return; }
+  const norm = (t) => String(t || "").toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
+  const draw = () => {
+    try { sessionStorage.setItem("dir", JSON.stringify(st)); } catch {}
+    const q = norm(st.q.trim());
+    const rows = all.filter((c) => c.slug
+      && (!st.spec || c.specialty === st.spec)
+      && (!st.city || c.city === st.city)
+      && (!q || norm([c.name, c.doctorName, c.title, ...(c.doctors || []).map((d) => d.name)].join(" ")).includes(q)))
+      .sort((a, b) => (b.bookingEnabled - a.bookingEnabled) || String(a.name).localeCompare(String(b.name), "ar"));
+    $(".dir-list").innerHTML = rows.length ? rows.map((c) => `<article class="card dir-card">
+      <div class="dir-top">${logoHtml(c, 56)}<div class="grow">
+        <h3>${esc(c.name)}</h3>
+        <p>${c.doctorName ? `د. ${esc(c.doctorName)}` : ""}${c.title ? ` · ${esc(c.title)}` : ""}</p>
+        <p class="muted small">${esc(SPECIALTIES[c.specialty]?.name || "")}${c.city ? ` · ${esc(c.city)}` : ""}${c.address ? ` · ${esc(c.address)}` : ""}</p>
+        ${(c.doctors || []).length > 1 ? `<p class="muted small">${c.doctors.length} أطباء</p>` : ""}
+      </div></div>
+      <div class="row gap wrap">
+        ${c.bookingEnabled ? `<a class="btn primary" href="#/b/${esc(c.slug)}">احجز موعداً</a>` : ""}
+        ${c.phone ? `<a class="btn" href="tel:${esc(c.phone)}">اتصال</a>` : ""}
+        ${c.mapUrl ? `<a class="btn ghost" href="${esc(c.mapUrl)}" target="_blank" rel="noopener">الخريطة</a>` : ""}
+      </div></article>`).join("")
+      : `<div class="card center"><p>لا توجد نتائج${st.spec || st.city || st.q ? " بهذه المعايير" : " بعد"}.</p>${st.spec || st.city || st.q ? `<button class="btn small clr">عرض الكل</button>` : ""}</div>`;
+    $(".clr")?.addEventListener("click", () => { st.q = st.spec = st.city = ""; $(".dq").value = ""; $(".ds").value = ""; $(".dc").value = ""; draw(); });
+  };
+  let t;
+  $(".dq").oninput = (e) => { clearTimeout(t); t = setTimeout(() => { st.q = e.target.value; draw(); }, 200); };
+  $(".ds").onchange = (e) => { st.spec = e.target.value; draw(); };
+  $(".dc").onchange = (e) => { st.city = e.target.value; draw(); };
+  draw();
 }

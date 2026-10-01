@@ -1,5 +1,5 @@
 // واجهة فريق العيادة: الأطباء والسكرتارية
-import {
+import { fileData,
   db, P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, onSnapshot,
   serverTimestamp, runTransaction, arrayUnion, arrayRemove, orderBy, limit, registerPatient, audit,
   normPhone, clinicState, tsMs
@@ -855,6 +855,7 @@ function renderBackup() {
         i++; prog.textContent = `المرضى ${i}/${PC.list.length}`;
         const rec = { ...p };
         for (const s of subs) rec[s] = await list(P.sub(p.id, s)).catch(() => []);
+        for (const s of ["files", "private"]) for (const f of rec[s]) if (!f.data && f.store) f.data = await fileData(P.sub(p.id, s), f).catch(() => null);
         out.patients.push(rec);
       }
       download(`${S.clinic?.slug || "clinic"}-backup-${ymd()}.json`, JSON.stringify(out, (k, v) => (v && typeof v === "object" && "seconds" in v && "nanoseconds" in v) ? new Date(v.seconds * 1000).toISOString() : v));

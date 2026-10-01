@@ -64,7 +64,8 @@ service cloud.firestore {
     }
     match /publicClinics/{c} {
       allow get: if true;
-      allow list: if isOwner();
+      // دليل الأطباء: أي زائر يتصفح العيادات التي اختارت الظهور فقط
+      allow list: if isOwner() || resource.data.get('listed', false) == true;
       allow create: if newClinicBy(c);
       allow update: if isAdmin(c) || isOwner();
       allow delete: if false;
@@ -148,8 +149,22 @@ service cloud.firestore {
           allow update: if clinicOK(c) && (
             ((medSub(sub) || sub in ['private', 'procedures', 'files']) && isDoctor(c))
             || (sub == 'procedures' && isPatient(c, pid) && resource.data.consentSignedAt == null
-                && onlyChanged(['consentSignedAt', 'consentName'])));
+                && onlyChanged(['consentSignedAt', 'consentName']))
+            || (sub == 'files' && isPatient(c, pid) && resource.data.uploadedBy == 'patient'
+                && onlyChanged(['url', 'broken'])));
           allow delete: if false;
+
+          // الملف الكامل للصورة أو المستند (يُحمَّل عند فتحه فقط)
+          match /blob/{b} {
+            allow read: if (sub == 'private' && isDoctor(c))
+              || (sub == 'files' && (isDoctor(c) || isPatient(c, pid)));
+            allow create: if clinicOK(c) && b == 'main'
+              && request.resource.data.data is string && request.resource.data.data.size() < 1000000
+              && ((sub in ['private', 'files'] && isDoctor(c))
+                  || (sub == 'files' && isPatient(c, pid)
+                      && get(/databases/$(database)/documents/clinics/$(c)/patients/$(pid)/files/$(d)).data.uploadedBy == 'patient'));
+            allow update, delete: if false;
+          }
         }
       }
 

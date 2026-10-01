@@ -1,9 +1,9 @@
 // الملف الطبي الكامل للمريض
-import {
+import { addFileDoc, fileData,
   P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, arrayUnion,
   audit, resetPatientPassword, randId
 } from "./fb.js";
-import {
+import { makeThumb, tileImg, isImg, showFile,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, waLink, empty, compressImage, pickFile, printDoc, daysBetween, qrSvg
 } from "./ui.js";
@@ -614,9 +614,9 @@ async function photosModal(p, x) {
   const load = async () => (await list(query(P.sub(p.id, "private"), where("procedureId", "==", x.id))));
   const draw = async (w) => {
     const ph = await load();
-    const grp = (st) => ph.filter((y) => y.stage === st).map((y) => `<img src="${y.data}" alt="صورة ${st === "before" ? "قبل" : "بعد"} ${esc(y.date)}" class="thumb">`).join("") || `<span class="muted small">لا توجد صور</span>`;
+    const grp = (st) => ph.filter((y) => y.stage === st && !y.broken).map((y) => `<img src="${y.thumb || y.data}" data-id="${y.id}" alt="صورة ${st === "before" ? "قبل" : "بعد"} ${esc(y.date)}" class="thumb">`).join("") || `<span class="muted small">لا توجد صور</span>`;
     w.querySelector(".ph-body").innerHTML = `<h4>قبل الإجراء</h4><div class="thumbs">${grp("before")}</div><h4>بعد الإجراء</h4><div class="thumbs">${grp("after")}</div>`;
-    w.querySelectorAll(".thumb").forEach((im) => im.onclick = () => { const v = window.open(); v?.document.write(`<img src="${im.src}" style="max-width:100%">`); });
+    w.querySelectorAll(".thumb").forEach((im) => im.onclick = () => { const y = ph.find((z) => z.id === im.dataset.id); showFile(`${x.name} · ${y.stage === "before" ? "قبل" : "بعد"} · ${y.date}`, "", () => fileData(P.sub(p.id, "private"), y), true); });
   };
   await modal(`صور ${x.name}`, `<p class="muted small">الصور سرية ولا تظهر إلا للأطباء.</p><div class="row gap"><button class="btn small up" data-s="before">+ صورة قبل الإجراء</button><button class="btn small up" data-s="after">+ صورة بعد الإجراء</button></div><div class="ph-body"></div>`, {
     ok: null, cancel: "إغلاق", wide: true,
@@ -626,7 +626,7 @@ async function photosModal(p, x) {
         const f = await pickFile("image/*"); if (!f) return;
         try {
           const data = await compressImage(f, 1200, 0.7);
-          await addDoc(P.sub(p.id, "private"), { type: "photo", procedureId: x.id, stage: b.dataset.s, date: ymd(), data, createdAt: serverTimestamp() });
+          await addFileDoc(P.sub(p.id, "private"), { type: "photo", procedureId: x.id, stage: b.dataset.s, date: ymd(), mime: "image/jpeg", thumb: await makeThumb(data) }, data);
           toast("حُفظت الصورة"); draw(w);
         } catch (e) { toast(errMsg(e), true); }
       });
@@ -641,6 +641,7 @@ async function files(p) {
   labs.forEach((l) => (byTest[l.test] = byTest[l.test] || []).push(l));
   Object.values(byTest).forEach((a) => a.sort((x, y) => y.date.localeCompare(x.date)));
   fls.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  for (let i = fls.length - 1; i >= 0; i--) if (fls[i].broken) fls.splice(i, 1);
   const unseen = await list(query(P.col("inbox"), where("patientId", "==", p.id), where("seen", "==", false)));
   for (const u of unseen) await updateDoc(P.colDoc("inbox", u.id), { seen: true });
   const KIND = { echo: "إيكو", lab: "تحليل", other: "ملف" };
@@ -652,7 +653,7 @@ async function files(p) {
     </section>
     <section class="card"><div class="row-between"><h3>الإيكو والملفات</h3><button class="btn primary small addf">+ رفع</button></div>
       ${fls.length ? `<div class="file-grid">${fls.map((f) => `<button class="file-tile" data-id="${f.id}">
-        ${f.data?.startsWith("data:image") ? `<img src="${f.data}" alt="">` : `<span class="pdf">PDF</span>`}
+        ${tileImg(f)}
         <span>${esc(KIND[f.kind] || "ملف")} · ${esc(f.date || "")}${f.uploadedBy === "patient" ? " · من المريض" : ""}</span></button>`).join("")}</div>` : empty("لا توجد ملفات")}
     </section>`;
   $(".addl").onclick = async () => {
@@ -671,14 +672,14 @@ async function files(p) {
     const f = await pickFile("image/*,application/pdf"); if (!f) return;
     try {
       const data = await compressImage(f);
-      await addDoc(P.sub(p.id, "files"), { ...r, data, uploadedBy: "doctor", createdAt: serverTimestamp() });
+      await addFileDoc(P.sub(p.id, "files"), { ...r, uploadedBy: "doctor", mime: data.slice(5, data.indexOf(";")), thumb: await makeThumb(data) }, data);
       await audit("رفع ملف", p.name);
       toast("تم رفع الملف"); refresh();
     } catch (e) { toast(errMsg(e), true); }
   };
   $$(".file-tile").forEach((b) => b.onclick = () => {
     const f = fls.find((x) => x.id === b.dataset.id);
-    info(`${KIND[f.kind] || "ملف"} · ${f.date}`, `${f.note ? `<p>${esc(f.note)}</p>` : ""}${f.data.startsWith("data:image") ? `<img src="${f.data}" alt="" class="full">` : `<a class="btn primary" href="${f.data}" download="file-${esc(f.date)}.pdf">تنزيل PDF</a>`}`);
+    showFile(`${KIND[f.kind] || "ملف"} · ${f.date}`, f.note, () => fileData(P.sub(p.id, "files"), f), isImg(f), `file-${f.date}.pdf`);
   });
 }
 

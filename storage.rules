@@ -1,0 +1,27 @@
+rules_version = '2';
+// قواعد Cloud Storage لمنصة نبض (تُستخدم عند تفعيل USE_STORAGE بعد الترقية لخطة Blaze)
+// المسار يطابق مسار المستند في Firestore: clinics/{c}/patients/{pid}/{sub}/{d}
+service firebase.storage {
+  match /b/{bucket}/o {
+    function me() { return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data; }
+    function inClinic(c) { return request.auth != null && me().active == true && me().clinicId == c; }
+    function isDoctor(c) { return inClinic(c) && me().role == 'doctor'; }
+    function isPatient(c, pid) { return inClinic(c) && me().role == 'patient' && pid in me().patientIds; }
+    function clinicOK(c) {
+      let cl = firestore.get(/databases/(default)/documents/clinics/$(c)).data;
+      return cl.status in ['trial', 'active'] && cl.expiresAt > request.time;
+    }
+
+    match /clinics/{c}/patients/{pid}/{sub}/{d} {
+      allow read: if (sub == 'private' && isDoctor(c))
+        || (sub == 'files' && (isDoctor(c) || isPatient(c, pid)));
+      allow create: if clinicOK(c) && request.resource.size < 3 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf')
+        && ((sub in ['private', 'files'] && isDoctor(c))
+            || (sub == 'files' && isPatient(c, pid)
+                && firestore.get(/databases/(default)/documents/clinics/$(c)/patients/$(pid)/files/$(d)).data.uploadedBy == 'patient'));
+      allow update, delete: if false;
+    }
+    match /{all=**} { allow read, write: if false; }
+  }
+}

@@ -1,6 +1,6 @@
 // يفتح التطبيق بسرعة ودون إنترنت (البيانات تتزامن عند عودة الاتصال)
-const CACHE = "nabd-v4";
-const SHELL = ["./", "index.html", "styles.css", "app.js", "fb.js", "ui.js", "staff.js", "admin.js", "card.js", "mods.js", "patient.js", "public.js", "owner.js", "config.js", "qrcode.js", "manifest.json", "icon.svg", "icon-192.png"];
+const CACHE = "nabd-v5";
+const SHELL = ["./", "index.html", "styles.css", "app.js", "fb.js", "ui.js", "staff.js", "admin.js", "card.js", "mods.js", "patient.js", "public.js", "owner.js", "legal.js", "config.js", "qrcode.js", "manifest.json", "icon.svg", "icon-192.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));

@@ -162,6 +162,35 @@ export async function compressImage(file, maxSide = 1400, quality = 0.72) {
   throw new Error("الصورة كبيرة جداً");
 }
 
+// صورة مصغّرة للعرض في القوائم (بضع عشرات من الكيلوبايت)
+export async function makeThumb(dataUrl, side = 320, q = 0.6) {
+  if (!dataUrl?.startsWith("data:image")) return null;
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+  const s = Math.min(1, side / Math.max(img.width, img.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+  const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", q);
+}
+// يعرض ملفاً كاملاً بعد تحميله عند الطلب
+export function isImg(f) { return f.mime ? f.mime.startsWith("image") : (f.thumb || f.data?.startsWith("data:image") || false); }
+export function tileImg(f) { const src = f.thumb || (f.data?.startsWith("data:image") ? f.data : ""); return src ? `<img src="${src}" alt="" loading="lazy">` : `<span class="pdf">PDF</span>`; }
+
+export function showFile(title, note, loader, image, fname = "file.pdf") {
+  return modal(title, `${note ? `<p>${esc(note)}</p>` : ""}<div class="file-full"><p class="muted center">جارٍ التحميل…</p></div>`, {
+    ok: "حسناً", cancel: null, wide: true,
+    onOpen: async (w) => {
+      const box = w.querySelector(".file-full");
+      try {
+        const src = await loader();
+        if (!src) { box.innerHTML = `<p class="alert">تعذّر تحميل الملف</p>`; return; }
+        box.innerHTML = image ? `<img src="${esc(src)}" alt="" class="full">` : `<a class="btn primary" href="${esc(src)}" download="${esc(fname)}" target="_blank" rel="noopener">تنزيل PDF</a>`;
+      } catch (e) { box.innerHTML = `<p class="alert">تعذّر تحميل الملف. تحقق من الاتصال.</p>`; }
+    }
+  });
+}
+
 // ---------- الشعار الافتراضي ----------
 export function logoSvg(size = 48, body = "var(--accent)", baby = "#E9D8F4", ring = "#EFE6F7") {
   return `<svg width="${size}" height="${size}" viewBox="0 0 120 120" aria-hidden="true">
@@ -259,8 +288,12 @@ export function platformMark(size = 40) {
 // ---------- الإملاء الصوتي ----------
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 export const voiceSupported = !!SR;
+// داخل تطبيق أندرويد يُستخدم محرك الإملاء في الجوال نفسه
+const NATIVE_SR = typeof window.AndroidApp?.startDictation === "function";
+const dictCbs = {};
+window.__dictResult = (id, text, err) => { const cb = dictCbs[id]; delete dictCbs[id]; if (cb) cb(text, err); };
 export function attachVoice(root) {
-  if (!SR) return;
+  if (!SR && !NATIVE_SR) return;
   root.querySelectorAll("textarea:not([data-novoice])").forEach((ta) => {
     if (ta.dataset.voiced) return;
     ta.dataset.voiced = "1";
@@ -271,6 +304,18 @@ export function attachVoice(root) {
     ta.parentElement.appendChild(b);
     let rec = null;
     b.onclick = () => {
+      if (NATIVE_SR) {
+        if (b.classList.contains("on")) { window.AndroidApp.stopDictation(); return; }
+        const id = Math.random().toString(36).slice(2);
+        b.classList.add("on");
+        dictCbs[id] = (text, err) => {
+          b.classList.remove("on");
+          if (err) return toast(err, true);
+          if (text) { ta.value = (ta.value ? ta.value.trimEnd() + " " : "") + text.trim(); ta.dispatchEvent(new Event("input")); }
+        };
+        window.AndroidApp.startDictation(id);
+        return;
+      }
       if (rec) { rec.stop(); return; }
       rec = new SR();
       rec.lang = "ar-SY"; rec.interimResults = false; rec.continuous = true;

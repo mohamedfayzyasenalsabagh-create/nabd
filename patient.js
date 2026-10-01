@@ -1,7 +1,7 @@
 // تطبيق المريض
-import { P, list, one, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, audit, clinicState } from "./fb.js";
-import {
-  $, $$, esc, ymd, addDays, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info, field, select,
+import { addFileDoc, fileData, P, list, one, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, audit, clinicState } from "./fb.js";
+import { makeThumb, tileImg, isImg, showFile,
+  parseYmd, $, $$, esc, ymd, addDays, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info, field, select,
   logoHtml, empty, compressImage, pickFile
 } from "./ui.js";
 import { S, logout, showChangePassword } from "./app.js";
@@ -24,9 +24,11 @@ export function showConsent() {
       <li>لا نشارك معلوماتك مع أي جهة دون إذنك.</li>
       <li>إذا كان الرقم مشتركاً مع أحد أفراد أسرتك، يمكنك إخفاء التفاصيل الطبية من الإعدادات.</li>
     </ul>
+    <p class="small"><a href="#/privacy" data-legal="privacy">اقرأ سياسة الخصوصية كاملة</a></p>
     <label class="check"><input type="checkbox" class="ag"><span>قرأت وأوافق</span></label>
     <button class="btn primary block go" disabled>متابعة</button>
     <button class="link-btn out">خروج</button></div></div>`;
+  import("./legal.js").then((m) => m.bindLegalLinks());
   $(".ag").onchange = (e) => $(".go").disabled = !e.target.checked;
   $(".go").onclick = async () => {
     try {
@@ -85,6 +87,7 @@ function routeName() { return (location.hash.replace(/^#\/?/, "").split(/[/?]/)[
 
 async function render() {
   const r = routeName();
+  if (!main() || ["doctors", "privacy", "terms", "b", "v"].includes(r)) return;
   $$(".bottomnav a").forEach((a) => a.classList.toggle("on", a.dataset.r === r));
   window.scrollTo(0, 0);
   if (!main()) return;
@@ -231,6 +234,7 @@ async function cancelAppt(a) {
   if (!(await confirmBox("إلغاء الموعد", `هل تريد إلغاء موعد ${fmtDate(a.date)} الساعة ${fmtTime(a.time)}؟`, "إلغاء الموعد", true))) return;
   try {
     await updateDoc(P.colDoc("appointments", a.id), { status: "cancelled" });
+    scheduleDoseReminders();
     await sendMsg(`ألغيت موعدي يوم ${fmtDate(a.date)} الساعة ${fmtTime(a.time)}.`);
     toast("أُلغي الموعد");
     render();
@@ -254,22 +258,58 @@ function todayDoses(meds) {
 async function meds() {
   const rxs = (await list(P.sub(T.pid, "prescriptions"))).sort((a, b) => b.date.localeCompare(a.date));
   const act = activeMeds(rxs);
-  const perm = "Notification" in window ? Notification.permission : "unsupported";
+  const perm = NATIVE ? AndroidApp.notifyState() : "Notification" in window ? Notification.permission : "unsupported";
   main().innerHTML = `<h2 class="page-title">أدويتي</h2>
     <section class="card">${act.length ? `<ul class="plain">${act.map((m) => `<li class="req"><b>${esc(m.drug)}</b> ${esc(m.dose || "")}
       ${m.times ? `<div>⏰ ${esc(m.times.split(/[,،\s]+/).filter(Boolean).map(fmtTime).join(" · "))}</div>` : ""}
       ${m.note ? `<div class="muted">${esc(m.note)}</div>` : ""}
       <div class="muted small">${m.endDate ? `لغاية ${esc(fmtDate(m.endDate, false))}` : "مستمر"}</div></li>`).join("")}</ul>` : empty("لا توجد أدوية حالية")}</section>
     <section class="card stack"><h3>التذكير</h3>
-      ${perm === "granted" ? `<p class="muted">يعمل التذكير ما دام التطبيق مفتوحاً أو في الخلفية.</p>`
+      ${perm === "granted" ? `<p class="muted">${NATIVE ? "✓ التذكير مفعّل، ويعمل حتى لو كان التطبيق مغلقاً. يصلك أيضاً تذكير بموعدك مساء اليوم السابق وقبله بساعتين." : "يعمل التذكير ما دام التطبيق مفتوحاً أو في الخلفية. للتذكير والتطبيق مغلق، ثبّت تطبيق أندرويد."}</p>`
+        : perm === "denied" ? `<p class="muted">الإشعارات متوقفة لهذا التطبيق. فعّلها من إعدادات الجوال ← التطبيقات ← نبض ← الإشعارات.</p>`
         : perm === "unsupported" ? `<p class="muted">جهازك لا يدعم الإشعارات من المتصفح. تابع الأوقات من هنا.</p>`
         : `<button class="btn primary en">تفعيل تذكير الأدوية</button>`}
     </section>
     <section class="card"><h3>كل الوصفات</h3>${rxs.length ? rxs.map((r) => `<details><summary>${esc(fmtDate(r.date, false))}</summary><ol class="rx-items">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b> ${esc(it.dose || "")} ${it.times ? `· ${esc(it.times)}` : ""} ${it.days ? `· ${esc(it.days)} يوم` : ""}</li>`).join("")}</ol></details>`).join("") : empty("لا توجد وصفات")}</section>`;
-  $(".en")?.addEventListener("click", async () => { const r = await Notification.requestPermission(); if (r === "granted") { scheduleDoseReminders(); toast("تم تفعيل التذكير"); } meds(); });
+  $(".en")?.addEventListener("click", async () => {
+    if (NATIVE) {
+      window.__notifyChanged = () => { if (AndroidApp.notifyState() === "granted") { scheduleDoseReminders(); toast("تم تفعيل التذكير"); } meds(); };
+      AndroidApp.requestNotify();
+      return;
+    }
+    const r = await Notification.requestPermission(); if (r === "granted") { scheduleDoseReminders(); toast("تم تفعيل التذكير"); } meds();
+  });
 }
 let doseTimers = [];
+// داخل تطبيق أندرويد: التذكيرات تُجدول على الجوال نفسه فتعمل والتطبيق مغلق
+const NATIVE = typeof window.AndroidApp?.setReminders === "function";
+async function scheduleNative() {
+  try {
+    const [rxs, appts] = await Promise.all([list(P.sub(T.pid, "prescriptions")), myAppts()]);
+    const now = Date.now(), items = [], clinic = S.pub.name || "العيادة";
+    const hide = !!T.me?.hideSensitive;
+    for (let d = 0; d < 7; d++) {
+      const day = addDays(ymd(), d);
+      todayDoses(activeMeds(rxs, day)).forEach((m) => {
+        const [h, mi] = m.time.split(":").map(Number);
+        const at = parseYmd(day); at.setHours(h, mi, 0, 0);
+        if (+at > now) items.push({ id: `dose-${day}-${m.time}-${m.drug}`, at: +at, title: "وقت الدواء", body: hide ? "لديك جرعة دواء الآن" : `${m.drug} ${m.dose || ""}`.trim() });
+      });
+    }
+    upcoming(appts).forEach((a) => {
+      const [h, mi] = String(a.time || "09:00").split(":").map(Number);
+      const t = parseYmd(a.date); t.setHours(h, mi, 0, 0);
+      const eve = parseYmd(addDays(a.date, -1)); eve.setHours(18, 0, 0, 0);
+      if (+eve > now) items.push({ id: `appt-eve-${a.id}`, at: +eve, title: "تذكير بموعدك غداً", body: `موعدك في ${clinic} غداً الساعة ${fmtTime(a.time)}` });
+      const b2 = +t - 2 * 3600e3;
+      if (b2 > now) items.push({ id: `appt-2h-${a.id}`, at: b2, title: "موعدك بعد ساعتين", body: `${clinic} · الساعة ${fmtTime(a.time)}` });
+    });
+    items.sort((a, b) => a.at - b.at);
+    AndroidApp.setReminders(JSON.stringify(items.slice(0, 80)));
+  } catch {}
+}
 async function scheduleDoseReminders() {
+  if (NATIVE) return scheduleNative();
   doseTimers.forEach(clearTimeout); doseTimers = [];
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   try {
@@ -301,6 +341,7 @@ async function file() {
     list(query(P.col("payments"), where("patientId", "==", T.pid)))
   ]);
   vs.sort((a, b) => b.date.localeCompare(a.date)); labs.sort((a, b) => b.date.localeCompare(a.date)); fls.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  for (let i = fls.length - 1; i >= 0; i--) if (fls[i].broken) fls.splice(i, 1);
   const g = pregs.find((x) => x.status === "active");
   const cur = S.clinic?.currency || "ل.س";
   const due = pays.reduce((s, x) => s + (x.total || 0) - (x.paid || 0), 0);
@@ -313,7 +354,7 @@ async function file() {
     <section class="card"><h3>التحاليل</h3>${labs.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>التحليل</th><th>النتيجة</th></tr></thead><tbody>${labs.map((l) => `<tr><td>${esc(l.date)}</td><td>${esc(l.test)}</td><td dir="ltr">${esc(l.value)} ${esc(l.unit || "")}</td></tr>`).join("")}</tbody></table>` : empty("لا توجد تحاليل")}</section>
     <section class="card"><div class="row-between"><h3>${hasMod("preg") ? "الإيكو والملفات" : "الصور والملفات"}</h3><button class="btn small up">+ رفع تحليل</button></div>
       <p class="muted small">إذا أجريت تحليلاً في مختبر خارجي، صوّره وارفعه ليطّلع عليه الطبيب.</p>
-      ${fls.length ? `<div class="file-grid">${fls.map((f) => `<button class="file-tile" data-id="${f.id}">${f.data?.startsWith("data:image") ? `<img src="${f.data}" alt="">` : `<span class="pdf">PDF</span>`}<span>${esc(KIND[f.kind] || "ملف")} · ${esc(f.date || "")}</span></button>`).join("")}</div>` : empty("لا توجد ملفات")}</section>
+      ${fls.length ? `<div class="file-grid">${fls.map((f) => `<button class="file-tile" data-id="${f.id}">${tileImg(f)}<span>${esc(KIND[f.kind] || "ملف")} · ${esc(f.date || "")}</span></button>`).join("")}</div>` : empty("لا توجد ملفات")}</section>
     ${procs.length ? `<section class="card"><h3>الإجراءات</h3>${procs.map((x) => `<div class="visit-mini"><b>${esc(x.name)}</b> · ${esc(fmtDate(x.date, false))}<div>الجلسات: ${x.sessionsDone || 0} / ${x.sessionsTotal || 1}</div>${x.aftercare ? `<div class="pre muted">${esc(x.aftercare)}</div>` : ""}<div>${x.consentSignedAt ? `<span class="chip ok">الموافقة موقّعة</span>` : `<button class="btn small primary sign" data-id="${x.id}">توقيع الموافقة</button>`}</div></div>`).join("")}</section>` : ""}
     <section class="card"><h3>الفواتير</h3>${pays.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>الخدمة</th><th>المدفوع</th></tr></thead><tbody>${pays.sort((a, b) => b.date.localeCompare(a.date)).map((x) => `<tr><td>${esc(x.date)}</td><td>${esc(x.service || "")}</td><td>${esc(money(x.paid, cur))}</td></tr>`).join("")}</tbody></table>${due > 0 ? `<p class="alert">المبلغ المتبقي عليك: ${esc(money(due, cur))}</p>` : ""}` : empty("لا توجد فواتير")}</section>`;
   $(".up").onclick = uploadLab;
@@ -321,7 +362,7 @@ async function file() {
   $$(".sign").forEach((b) => b.onclick = () => signConsent(procs.find((x) => x.id === b.dataset.id)));
   $$(".file-tile").forEach((b) => b.onclick = () => {
     const f = fls.find((x) => x.id === b.dataset.id);
-    info(`${KIND[f.kind] || "ملف"} · ${f.date}`, f.data.startsWith("data:image") ? `<img src="${f.data}" alt="" class="full">` : `<a class="btn primary" href="${f.data}" download="file.pdf">تنزيل</a>`);
+    showFile(`${KIND[f.kind] || "ملف"} · ${f.date}`, f.note, () => fileData(P.sub(T.pid, "files"), f), isImg(f));
   });
 }
 
@@ -370,7 +411,7 @@ async function uploadLab() {
     toast("جارٍ الرفع…");
     const data = await compressImage(f);
     const p = me();
-    const ref = await addDoc(P.sub(T.pid, "files"), { ...r, data, uploadedBy: "patient", createdAt: serverTimestamp() });
+    const ref = await addFileDoc(P.sub(T.pid, "files"), { ...r, uploadedBy: "patient", mime: data.slice(5, data.indexOf(";")), thumb: await makeThumb(data) }, data);
     await addDoc(P.col("inbox"), { patientId: p.id, patientName: p.name, label: r.kind === "echo" ? "إيكو" : "تحليل", fileId: ref.id, seen: false, at: serverTimestamp() });
     toast("تم الرفع، وسيطّلع عليه الطبيب");
     file();
@@ -425,10 +466,12 @@ async function settings() {
       <li><label class="menu-check"><span>إخفاء التفاصيل الطبية</span><input type="checkbox" class="hs" ${T.me.hideSensitive ? "checked" : ""}></label></li>
       ${T.patients.length > 1 ? `<li><button class="sw"><span>تبديل الملف (${esc(me().name)})</span><span class="chev">‹</span></button></li>` : ""}
       <li><a href="#/learn"><span>معلومات صحية</span><span class="chev">‹</span></a></li>
+      <li><a href="#/doctors" class="dir-link"><span>دليل الأطباء: ابحث عن طبيب واحجز</span><span class="chev">‹</span></a></li>
       <li><button class="cp"><span>تغيير كلمة المرور</span><span class="chev">‹</span></button></li>
       <li><button class="out"><span>تسجيل الخروج</span></button></li>
     </ul>
     <p class="muted small">مفيد إذا كان الجوال مشتركاً: تبقى التفاصيل مخفية حتى تضغط «إظهار».</p>`;
+  $(".dir-link").onclick = (e) => { e.preventDefault(); location.hash = "#/doctors"; location.reload(); };
   $(".hs").onchange = async (e) => {
     try { await updateDoc(P.user(S.user.uid), { hideSensitive: e.target.checked }); T.me.hideSensitive = e.target.checked; T._revealed = false; toast("تم الحفظ"); }
     catch (err) { toast(errMsg(err), true); }
