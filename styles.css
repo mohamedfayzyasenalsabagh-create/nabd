@@ -525,3 +525,38 @@ img.full { width: 100%; border-radius: 8px; }
 .dir-top { display: flex; gap: 12px; align-items: flex-start; }
 .dir-top h3 { margin: 0 0 2px; }
 .dir-top p { margin: 0; }
+
+/* مخطط الأسنان الواقعي */
+.arch-wrap { max-width: 440px; margin: 0 auto; }
+.arch { width: 100%; height: auto; display: block; }
+.arch .t.tap { cursor: pointer; }
+.arch .t.tap:hover > g, .arch .t.tap:focus > g { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 60%, transparent)); }
+.arch .t.sel > g path:first-child { stroke: var(--accent); stroke-width: 3; }
+.arch .t:focus { outline: none; }
+.arch .t-num { font-size: 10px; fill: var(--muted); font-family: inherit; }
+.arch .t-num.on { fill: var(--ink); font-weight: 700; }
+.arch .t-dot { fill: var(--accent); stroke: var(--card); stroke-width: 1.5; }
+.arch .arch-lb { font-size: 12px; fill: var(--muted); font-weight: 600; }
+.arch .arch-side { font-size: 10px; fill: var(--muted); }
+.arch .arch-mid { stroke: var(--line); stroke-dasharray: 3 4; }
+.t-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.t-chip { border: 1.5px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: .82rem; color: var(--ink); cursor: pointer; }
+.t-chip b { margin-inline-end: 6px; }
+.tooth-sheet .ts-top { display: flex; gap: 14px; align-items: center; background: var(--accent-soft); border-radius: 16px; padding: 10px 12px; margin-bottom: 10px; }
+.tooth-sheet .ts-fig { width: 120px; flex: none; }
+.tooth-big { width: 100%; height: auto; display: block; }
+.tooth-sheet .ts-info { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.tooth-sheet .ts-n { font-size: 2rem; line-height: 1; color: var(--accent); }
+.ts-hist { list-style: none; padding: 0; margin: 6px 0 12px; display: grid; gap: 8px; }
+.ts-hist li { display: flex; gap: 10px; align-items: flex-start; }
+.ts-hist li i { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex: none; background: var(--muted); }
+.ts-hist li.done i { background: #1E9E6A; }
+.ts-hist li.plan i { background: #E0A117; }
+.ts-hist li.st i { background: var(--accent); }
+.ts-hist li div { display: flex; flex-direction: column; }
+.ts-hist small { color: var(--muted); }
+.surf { display: flex; flex-wrap: wrap; gap: 6px; }
+.s-chip { display: inline-flex; }
+.s-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.s-chip span { border: 1.5px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: .85rem; cursor: pointer; }
+.s-chip input:checked + span { background: var(--accent); color: #fff; border-color: var(--accent); }

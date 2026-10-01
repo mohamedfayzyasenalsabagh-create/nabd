@@ -21,14 +21,128 @@ const ADULT = [[18, 17, 16, 15, 14, 13, 12, 11], [21, 22, 23, 24, 25, 26, 27, 28
 const CHILD = [[55, 54, 53, 52, 51], [61, 62, 63, 64, 65], [85, 84, 83, 82, 81], [71, 72, 73, 74, 75]];
 const PROCS = ["فحص وتشخيص", "تنظيف وتلميع", "حشوة تجميلية", "حشوة أملغم", "معالجة لبية", "إعادة معالجة لبية", "قلع بسيط", "قلع جراحي", "تاج خزفي", "تاج زيركون", "جسر", "زرعة", "تبييض", "تقويم", "قشور تجميلية", "جهاز متحرك"];
 
-function chartHtml(teeth, dentition) {
+// ---------- مخطط الأسنان: قوس واقعي بنظرة إطباقية ----------
+const SURF = { O: "إطباقي", M: "أنسي", D: "وحشي", B: "دهليزي", L: "لساني" };
+// نوع السن من رقمه (FDI)
+function toothType(n) {
+  const q = Math.floor(n / 10), i = n % 10, child = q >= 5;
+  if (child) return i <= 2 ? "inc" : i === 3 ? "can" : "mol";
+  return i <= 2 ? "inc" : i === 3 ? "can" : i <= 5 ? "pre" : "mol";
+}
+const TW = { inc: 1, can: 1, pre: 1.05, mol: 1.42 };
+const STC = {
+  sound: ["#FFFFFF", "#AFC3C1"], caries: ["#FDE3E1", "#D64545"], filling: ["#DCEBFF", "#2F6FDE"], rct: ["#EEE3FB", "#7A4BC4"],
+  crown: ["#FFF1C9", "#C9961A"], bridge: ["#FFE6CF", "#E07B17"], implant: ["#D7F2EF", "#0E7C7B"], extracted: ["#F1F3F3", "#9AA7A6"],
+  missing: ["#FFFFFF", "#B9C4C3"], fracture: ["#FDE3E1", "#D64545"],
+};
+function toothShape(type, w) {
+  // شكل السن بنظرة إطباقية، مركزه (0,0) ووجهه الخارجي للأعلى
+  const h = type === "mol" ? w * 0.92 : type === "pre" ? w * 1.02 : type === "can" ? w * 0.95 : w * 0.72;
+  const x = w / 2, y = h / 2;
+  if (type === "inc") return { h, d: `M${-x} ${-y * 0.6} Q${-x} ${-y} ${-x * 0.6} ${-y} L${x * 0.6} ${-y} Q${x} ${-y} ${x} ${-y * 0.6} L${x * 0.55} ${y * 0.75} Q0 ${y * 1.15} ${-x * 0.55} ${y * 0.75} Z`, g: "" };
+  if (type === "can") return { h, d: `M0 ${-y} Q${x * 0.95} ${-y * 0.55} ${x} 0 Q${x * 0.8} ${y} 0 ${y} Q${-x * 0.8} ${y} ${-x} 0 Q${-x * 0.95} ${-y * 0.55} 0 ${-y} Z`, g: `M0 ${-y * 0.45} L0 ${y * 0.35}` };
+  if (type === "pre") return { h, d: `M0 ${-y} C${x * 1.05} ${-y} ${x * 1.05} ${y} 0 ${y} C${-x * 1.05} ${y} ${-x * 1.05} ${-y} 0 ${-y} Z`, g: `M${-x * 0.45} 0 Q0 ${y * 0.15} ${x * 0.45} 0` };
+  return { h, d: `M${-x * 0.7} ${-y} Q0 ${-y * 1.08} ${x * 0.7} ${-y} Q${x} ${-y} ${x} ${-y * 0.6} L${x} ${y * 0.6} Q${x} ${y} ${x * 0.7} ${y} Q0 ${y * 1.08} ${-x * 0.7} ${y} Q${-x} ${y} ${-x} ${y * 0.6} L${-x} ${-y * 0.6} Q${-x} ${-y} ${-x * 0.7} ${-y} Z`,
+    g: `M${-x * 0.55} ${-y * 0.1} Q0 ${y * 0.12} ${x * 0.55} ${-y * 0.1} M0 ${-y * 0.55} L0 ${y * 0.55}` };
+}
+function statusMarks(st, type, w) {
+  const c = (STC[st] || STC.sound)[1];
+  if (st === "filling") return `<ellipse rx="${w * 0.2}" ry="${w * 0.16}" fill="${c}" opacity=".85"/>`;
+  if (st === "caries") return `<circle r="${w * 0.13}" fill="${c}" cx="${w * 0.12}" cy="${-w * 0.08}"/><circle r="${w * 0.07}" fill="${c}" cx="${-w * 0.14}" cy="${w * 0.1}"/>`;
+  if (st === "rct") return `<circle r="${w * 0.12}" fill="${c}"/><circle r="${w * 0.05}" fill="#fff"/>`;
+  if (st === "implant") return `<circle r="${w * 0.2}" fill="none" stroke="${c}" stroke-width="1.6"/><path d="M${-w * .14} ${-w * .05}h${w * .28}M${-w * .14} ${w * .05}h${w * .28}" stroke="${c}" stroke-width="1.4"/>`;
+  if (st === "extracted") return `<path d="M${-w * .3} ${-w * .3}L${w * .3} ${w * .3}M${w * .3} ${-w * .3}L${-w * .3} ${w * .3}" stroke="${c}" stroke-width="2.2" stroke-linecap="round"/>`;
+  if (st === "fracture") return `<path d="M${-w * .3} ${-w * .2}l${w * .15} ${w * .12}l${w * .1} ${-w * .1}l${w * .12} ${w * .14}l${w * .12} ${-w * .1}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round"/>`;
+  return "";
+}
+function archLayout(dentition) {
   const rows = dentition === "child" ? CHILD : ADULT;
-  const t = (n) => { const s = teeth[n]?.status || "sound"; return `<button type="button" class="tooth ${TOOTH[s]?.[1] || ""} ${teeth[n]?.note ? "noted" : ""}" data-t="${n}" aria-label="السن ${n}: ${TOOTH[s]?.[0] || ""}"><i></i><span>${n}</span></button>`; };
-  return `<div class="dchart" dir="ltr">
-    <div class="jaw"><div class="q">${rows[0].map(t).join("")}</div><div class="q">${rows[1].map(t).join("")}</div></div>
-    <div class="jaw lower"><div class="q">${rows[2].map(t).join("")}</div><div class="q">${rows[3].map(t).join("")}</div></div>
-  </div>
-  <div class="legend dl">${Object.entries(TOOTH).filter(([k]) => k !== "sound").map(([, [n, c]]) => `<span><i class="sw ${c}"></i>${n}</span>`).join("")}</div>`;
+  // كل ربع: من خط المنتصف إلى الخلف
+  const quads = dentition === "child"
+    ? [[51, 52, 53, 54, 55], [61, 62, 63, 64, 65], [71, 72, 73, 74, 75], [81, 82, 83, 84, 85]]
+    : [[11, 12, 13, 14, 15, 16, 17, 18], [21, 22, 23, 24, 25, 26, 27, 28], [31, 32, 33, 34, 35, 36, 37, 38], [41, 42, 43, 44, 45, 46, 47, 48]];
+  const base = dentition === "child" ? 34 : 29;
+  const out = [];
+  quads.forEach((q, qi) => {
+    const upper = qi < 2, viewerLeft = qi === 0 || qi === 3; // يمين المريض يظهر على يسار الشاشة
+    const cx = 200, cy = upper ? 232 : 308, a = dentition === "child" ? 112 : 140, b = dentition === "child" ? 140 : 182;
+    const ws = q.map((n) => TW[toothType(n)] * base);
+    const total = ws.reduce((x, y) => x + y, 0);
+    let acc = 0;
+    const span = dentition === "child" ? 96 : 104; // درجات من المنتصف للخلف
+    q.forEach((n, i) => {
+      const mid = (acc + ws[i] / 2) / total; acc += ws[i];
+      const ang = (90 - mid * span) * Math.PI / 180; // 90° عند المنتصف
+      let x = cx + (viewerLeft ? -1 : 1) * a * Math.cos(ang);
+      let y = upper ? cy - b * Math.sin(ang) : cy + b * Math.sin(ang);
+      // اتجاه الوجه الخارجي (عمودي على القوس)
+      const nx = (viewerLeft ? -1 : 1) * Math.cos(ang) / a, ny = (upper ? -1 : 1) * Math.sin(ang) / b;
+      const rot = Math.atan2(nx, -ny) * 180 / Math.PI;
+      out.push({ n, x, y, w: ws[i], rot, type: toothType(n), upper, lx: x + (ws[i] * 0.5 + 12) * Math.sin(rot * Math.PI / 180), ly: y - (ws[i] * 0.5 + 12) * Math.cos(rot * Math.PI / 180) });
+    });
+  });
+  return out;
+}
+export function archSvg(teeth = {}, dentition = "adult", { interactive = true, sel = null } = {}) {
+  const T = archLayout(dentition);
+  return `<svg class="arch" viewBox="0 0 400 540" role="img" aria-label="مخطط الأسنان">
+    <defs><radialGradient id="tg" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#E8EFEE"/></radialGradient></defs>
+    <text x="200" y="250" text-anchor="middle" class="arch-lb">الفك العلوي</text>
+    <text x="200" y="300" text-anchor="middle" class="arch-lb">الفك السفلي</text>
+    <line x1="120" y1="270" x2="280" y2="270" class="arch-mid"/>
+    <text x="44" y="18" text-anchor="middle" class="arch-side">يمين المريض</text><text x="356" y="18" text-anchor="middle" class="arch-side">يسار المريض</text>
+    ${T.map((t) => {
+      const d = teeth[t.n] || {}, st = d.status || "sound", [fill, stroke] = STC[st] || STC.sound;
+      const sh = toothShape(t.type, t.w), dashed = st === "missing";
+      const busy = (d.history || []).length || d.note;
+      return `<g class="t ${interactive ? "tap" : ""} ${sel == t.n ? "sel" : ""}" data-t="${t.n}" transform="translate(${t.x.toFixed(1)} ${t.y.toFixed(1)})" ${interactive ? `role="button" tabindex="0" aria-label="السن ${t.n}: ${TOOTH[st]?.[0] || ""}"` : ""}>
+        <g transform="rotate(${t.rot.toFixed(1)})">
+          <path d="${sh.d}" fill="${st === "sound" ? "url(#tg)" : fill}" stroke="${stroke}" stroke-width="${st === "sound" ? 1.3 : 2}" ${dashed ? 'stroke-dasharray="3 2.5" opacity=".7"' : ""} ${st === "extracted" ? 'opacity=".55"' : ""}/>
+          ${sh.g && !["extracted", "missing"].includes(st) ? `<path d="${sh.g}" fill="none" stroke="${st === "sound" ? "#C9D7D6" : stroke}" stroke-width="1" stroke-linecap="round" opacity=".7"/>` : ""}
+          ${statusMarks(st, t.type, t.w)}
+        </g>
+        ${busy ? `<circle class="t-dot" cx="${(t.w * 0.42).toFixed(1)}" cy="${(-t.w * 0.42).toFixed(1)}" r="3.6"/>` : ""}
+      </g>
+      <text class="t-num ${st !== "sound" ? "on" : ""}" x="${t.lx.toFixed(1)}" y="${(t.ly + 3.5).toFixed(1)}" text-anchor="middle">${t.n}</text>`;
+    }).join("")}
+  </svg>`;
+}
+function chartHtml(teeth, dentition) {
+  const treated = Object.entries(teeth).filter(([, v]) => v.status && v.status !== "sound").sort((a, b) => a[0] - b[0]);
+  return `<div class="arch-wrap">${archSvg(teeth, dentition)}</div>
+  <div class="legend dl">${Object.entries(TOOTH).filter(([k]) => k !== "sound").map(([k, [n]]) => `<span><i class="sw" style="background:${STC[k][0]};border-color:${STC[k][1]}"></i>${n}</span>`).join("")}</div>
+  ${treated.length ? `<div class="t-chips">${treated.map(([n, v]) => `<button type="button" class="t-chip" data-t="${n}" style="border-color:${STC[v.status][1]}"><b>${n}</b>${esc(TOOTH[v.status]?.[0] || "")}${v.surfaces?.length ? ` · ${v.surfaces.map((x) => SURF[x]).join("، ")}` : ""}</button>`).join("")}</div>` : ""}`;
+}
+// رسم جانبي مكبّر للسن مع الجذور والأسطح
+function toothDetailSvg(n, d = {}) {
+  const type = toothType(n), upper = [1, 2, 5, 6].includes(Math.floor(n / 10));
+  const st = d.status || "sound", [fill, stroke] = STC[st] || STC.sound, surf = new Set(d.surfaces || []);
+  const roots = type === "mol" ? (upper ? 3 : 2) : (type === "pre" && n % 10 === 4 && upper) ? 2 : 1;
+  const W = type === "mol" ? 120 : type === "pre" ? 92 : type === "can" ? 84 : 78;
+  const crown = type === "inc" ? `M${-W / 2} -10 Q${-W / 2} -90 0 -96 Q${W / 2} -90 ${W / 2} -10 Q${W / 2} 6 ${W * .38} 10 L${-W * .38} 10 Q${-W / 2} 6 ${-W / 2} -10 Z`
+    : type === "can" ? `M${-W / 2} -10 Q${-W / 2} -70 -10 -92 Q0 -102 10 -92 Q${W / 2} -70 ${W / 2} -10 Q${W / 2} 6 ${W * .38} 10 L${-W * .38} 10 Q${-W / 2} 6 ${-W / 2} -10 Z`
+    : type === "pre" ? `M${-W / 2} -10 Q${-W / 2} -70 ${-W * .28} -84 Q${-W * .12} -92 0 -80 Q${W * .12} -92 ${W * .28} -84 Q${W / 2} -70 ${W / 2} -10 Q${W / 2} 6 ${W * .38} 10 L${-W * .38} 10 Q${-W / 2} 6 ${-W / 2} -10 Z`
+    : `M${-W / 2} -8 Q${-W / 2} -66 ${-W * .36} -78 Q${-W * .24} -88 ${-W * .12} -76 Q0 -86 ${W * .12} -76 Q${W * .24} -88 ${W * .36} -78 Q${W / 2} -66 ${W / 2} -8 Q${W / 2} 8 ${W * .38} 12 L${-W * .38} 12 Q${-W / 2} 8 ${-W / 2} -8 Z`;
+  const rootW = W * (roots === 1 ? .5 : roots === 2 ? .3 : .24), rootL = type === "can" ? 150 : type === "mol" ? 112 : 128;
+  const xs = roots === 1 ? [0] : roots === 2 ? [-W * .24, W * .24] : [-W * .3, 0, W * .3];
+  const rootsD = xs.map((x, i) => `M${x - rootW / 2} 10 Q${x - rootW / 2.4} ${rootL * .7} ${x + (roots > 1 ? (i - (roots - 1) / 2) * 6 : 0)} ${rootL} Q${x + rootW / 2.4} ${rootL * .7} ${x + rootW / 2} 10 Z`).join(" ");
+  const canals = st === "rct" ? xs.map((x) => `<path d="M${x} 0 L${x} ${rootL - 14}" stroke="${stroke}" stroke-width="5" stroke-linecap="round"/>`).join("") : "";
+  const implant = st === "implant" ? `<rect x="-14" y="16" width="28" height="${rootL - 20}" rx="10" fill="#B7C7C6" stroke="#6E8584" stroke-width="2"/>${Array.from({ length: 7 }, (_, i) => `<path d="M-15 ${30 + i * 14}l30 -5" stroke="#6E8584" stroke-width="2"/>`).join("")}` : "";
+  const ext = ["extracted", "missing"].includes(st);
+  const flip = upper ? "scale(1,-1)" : "";
+  return `<svg class="tooth-big" viewBox="-110 -120 220 300">
+    <defs><linearGradient id="cg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#E6EEED"/></linearGradient>
+    <linearGradient id="rg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#F3E9D6"/><stop offset="1" stop-color="#E2D2B4"/></linearGradient></defs>
+    <g transform="translate(0 ${upper ? 50 : 0}) ${flip}" opacity="${ext ? .35 : 1}">
+      ${st === "implant" ? implant : `<path d="${rootsD}" fill="url(#rg)" stroke="#C5B28F" stroke-width="2"/>${canals}`}
+      <path d="${crown}" fill="${st === "sound" ? "url(#cg)" : fill}" stroke="${stroke}" stroke-width="3"/>
+      ${st === "filling" ? `<ellipse cx="0" cy="-58" rx="${W * .22}" ry="14" fill="${stroke}" opacity=".85"/>` : ""}
+      ${st === "caries" ? `<circle cx="${W * .15}" cy="-50" r="11" fill="${stroke}"/><circle cx="${-W * .12}" cy="-32" r="6" fill="${stroke}"/>` : ""}
+      ${st === "crown" ? `<path d="${crown}" fill="none" stroke="#C9961A" stroke-width="7" opacity=".5"/>` : ""}
+      ${st === "fracture" ? `<path d="M${-W * .3} -80 l14 22 l-10 14 l18 24" fill="none" stroke="${stroke}" stroke-width="4"/>` : ""}
+    </g>
+    ${ext ? `<path d="M-60 -60 L60 120 M60 -60 L-60 120" stroke="${stroke}" stroke-width="6" stroke-linecap="round" opacity=".7"/>` : ""}
+  </svg>`;
 }
 
 async function planTotals(p, plan) {
@@ -50,7 +164,7 @@ export async function dental(p, el, refresh) {
       <div class="row-between"><h3>مخطط الأسنان</h3>
         <div class="seg-scroll">${[["adult", "دائمة"], ["child", "لبنية"]].map(([k, t]) => `<button class="pill ${chart.dentition === k ? "on" : ""}" data-dent="${k}">${t}</button>`).join("")}</div></div>
       ${chartHtml(chart.teeth || {}, chart.dentition)}
-      <p class="muted small">اضغط على أي سن لتسجيل حالته أو إضافة إجراء لخطة العلاج.</p>
+      <p class="muted small">اضغط على أي سن لعرضه مكبّراً مع سجل معالجاته، أو لتحديث حالته وإضافة إجراء لخطة العلاج.</p>
     </section>
     <section class="card">
       <div class="row-between"><h3>خطة العلاج</h3><button class="btn small ${plan ? "" : "primary"} newplan">${plan ? "خطة جديدة" : "+ خطة علاج"}</button></div>
@@ -73,7 +187,7 @@ export async function dental(p, el, refresh) {
     </section>`;
   const chartRef = P.subDoc(p.id, "dental", "chart");
   $$("[data-dent]", el).forEach((b) => b.onclick = async () => { await setDoc(chartRef, { ...chart, dentition: b.dataset.dent, updatedAt: serverTimestamp() }); refresh(); });
-  $$(".tooth", el).forEach((b) => b.onclick = () => toothModal(p, chart, plan, b.dataset.t, refresh));
+  $$(".arch .t.tap, .t-chip", el).forEach((b) => { const go = () => toothModal(p, chart, plan, b.dataset.t, refresh); b.onclick = go; b.onkeydown = (e) => { if (e.key === "Enter") go(); }; });
   $(".newplan", el).onclick = async () => {
     if (plan && !(await confirmBox("خطة جديدة", "ستُنقل الخطة الحالية إلى الخطط السابقة.", "متابعة"))) return;
     const r = await modal("خطة علاج جديدة", `<form class="stack">${field("اسم الخطة", "name", { value: "خطة العلاج", required: true })}${field("خصم (اختياري)", "discount", { type: "number", attrs: 'min="0"' })}${field("ملاحظات", "note", { type: "textarea" })}</form>`, { ok: "إنشاء" });
@@ -92,7 +206,7 @@ export async function dental(p, el, refresh) {
     if (c.checked && it.tooth) {
       const auto = { "حشوة": "filling", "معالجة": "rct", "قلع": "extracted", "تاج": "crown", "جسر": "bridge", "زرعة": "implant" };
       const k = Object.keys(auto).find((w) => it.proc.includes(w));
-      if (k) await setDoc(chartRef, { ...chart, teeth: { ...chart.teeth, [it.tooth]: { ...(chart.teeth?.[it.tooth] || {}), status: auto[k] } } });
+      if (k) { const old = chart.teeth?.[it.tooth] || {}; await setDoc(chartRef, { ...chart, teeth: { ...chart.teeth, [it.tooth]: { ...old, status: auto[k], history: [...(old.history || []), { date: ymd(), status: auto[k], surfaces: old.surfaces || [], note: it.proc }] } } }); }
     }
     refresh();
   });
@@ -116,17 +230,41 @@ function planTable(plan) {
     </tbody></table></div>`).join("");
 }
 async function toothModal(p, chart, plan, n, refresh) {
-  const cur0 = chart.teeth?.[n] || {};
-  await modal(`السن ${n}`, `<form class="stack">
-    ${select("الحالة", "status", Object.entries(TOOTH).map(([k, [t]]) => [k, t]), cur0.status || "sound")}
-    ${field("ملاحظة", "note", { value: cur0.note || "" })}
-    ${plan ? `<hr><h4>إضافة إجراء لخطة العلاج</h4>
-      <datalist id="procs">${PROCS.map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
-      ${field("الإجراء", "proc", { attrs: 'list="procs"' })}
-      <div class="grid2">${field("الكلفة", "cost", { type: "number", attrs: 'min="0"' })}${field("المرحلة", "phase", { type: "number", value: 1, attrs: 'min="1" max="9"' })}</div>` : `<p class="muted small">أنشئ خطة علاج لتتمكن من إضافة إجراءات.</p>`}
-  </form>`, {
+  n = String(n);
+  const d = chart.teeth?.[n] || {};
+  const plans = await list(P.sub(p.id, "plans")).catch(() => []);
+  const procs = plans.flatMap((pl) => (pl.items || []).filter((i) => String(i.tooth) === n).map((i) => ({ ...i, plan: pl.name || "خطة", planDate: pl.date })));
+  const hist = [...(d.history || []).map((h) => ({ date: h.date, text: `${TOOTH[h.status]?.[0] || ""}${h.surfaces?.length ? ` (${h.surfaces.map((x) => SURF[x]).join("، ")})` : ""}${h.note ? ` · ${h.note}` : ""}`, kind: "st", status: h.status })),
+    ...procs.map((i) => ({ date: i.doneDate || i.planDate || "", text: `${i.proc}${i.cost ? ` · ${money(i.cost, cur())}` : ""}`, kind: i.status === "done" ? "done" : "plan" }))]
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const type = { inc: "قاطعة", can: "ناب", pre: "ضاحكة", mol: "رحى" }[toothType(+n)];
+  const jaw = [1, 2, 5, 6].includes(Math.floor(+n / 10)) ? "علوي" : "سفلي";
+  const side = [1, 4, 5, 8].includes(Math.floor(+n / 10)) ? "أيمن" : "أيسر";
+  await modal(`السن ${n}`, `<div class="tooth-sheet">
+    <div class="ts-top">
+      <div class="ts-fig">${toothDetailSvg(n, d)}</div>
+      <div class="ts-info"><b class="ts-n">${n}</b><span>${type} · ${jaw} ${side}</span>
+        <span class="chip" style="background:${STC[d.status || "sound"][0]};color:${STC[d.status || "sound"][1]};border:1px solid ${STC[d.status || "sound"][1]}">${esc(TOOTH[d.status || "sound"]?.[0])}</span>
+        ${d.note ? `<p class="muted small">${esc(d.note)}</p>` : ""}</div>
+    </div>
+    <h4>سجل المعالجات</h4>
+    ${hist.length ? `<ul class="ts-hist">${hist.map((h) => `<li class="${h.kind}"><i></i><div><b>${esc(h.text)}</b><small>${h.kind === "plan" ? "مخطط" : h.kind === "done" ? "منجز" : "تغيير الحالة"}${h.date ? ` · ${esc(fmtDate(h.date, false))}` : ""}</small></div></li>`).join("")}</ul>` : `<p class="muted small">لا توجد معالجات مسجلة لهذا السن.</p>`}
+    <form class="stack">
+      <h4>تحديث الحالة</h4>
+      ${select("الحالة", "status", Object.entries(TOOTH).map(([k, [t]]) => [k, t]), d.status || "sound")}
+      <div class="field"><span>الأسطح المعنية</span><div class="surf">${Object.entries(SURF).map(([k, t]) => `<label class="s-chip"><input type="checkbox" name="s_${k}" ${(d.surfaces || []).includes(k) ? "checked" : ""}><span>${t}</span></label>`).join("")}</div></div>
+      ${field("ملاحظة", "note", { value: d.note || "" })}
+      ${plan ? `<h4>إضافة إجراء لخطة العلاج</h4>
+        <datalist id="procs">${PROCS.map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
+        ${field("الإجراء", "proc", { attrs: 'list="procs"' })}
+        <div class="grid2">${field("الكلفة", "cost", { type: "number", attrs: 'min="0"' })}${field("المرحلة", "phase", { type: "number", value: 1, attrs: 'min="1" max="9"' })}</div>` : `<p class="muted small">أنشئ خطة علاج لتتمكن من إضافة إجراءات لهذا السن.</p>`}
+    </form></div>`, {
+    wide: true,
     onOk: async (f) => {
-      await setDoc(P.subDoc(p.id, "dental", "chart"), { ...chart, teeth: { ...(chart.teeth || {}), [n]: { status: f.status, note: f.note } }, updatedAt: serverTimestamp() });
+      const surfaces = Object.keys(SURF).filter((k) => f[`s_${k}`]);
+      const changed = f.status !== (d.status || "sound") || surfaces.join() !== (d.surfaces || []).join() || (f.note || "") !== (d.note || "");
+      const history = changed ? [...(d.history || []), { date: ymd(), status: f.status, surfaces, note: f.note || "" }] : (d.history || []);
+      await setDoc(P.subDoc(p.id, "dental", "chart"), { ...chart, teeth: { ...(chart.teeth || {}), [n]: { status: f.status, note: f.note || "", surfaces, history } }, updatedAt: serverTimestamp() });
       if (plan && f.proc) await updateDoc(P.subDoc(p.id, "plans", plan.id), { items: [...(plan.items || []), { id: randId(6), tooth: n, proc: f.proc, cost: f.cost || 0, phase: f.phase || 1, status: "planned" }] });
       setTimeout(refresh, 50);
     }

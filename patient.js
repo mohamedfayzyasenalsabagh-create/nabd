@@ -7,7 +7,7 @@ import { makeThumb, tileImg, isImg, showFile,
 import { S, logout, showChangePassword } from "./app.js";
 import { pregCalc, gaText, activeMeds } from "./card.js";
 import { hasMod } from "./staff.js";
-import { vacStatus, nextVac, vitalsView, vitalsForm, glassesTable, TOOTH } from "./mods.js";
+import { vacStatus, nextVac, vitalsView, vitalsForm, glassesTable, TOOTH, archSvg } from "./mods.js";
 
 const T = { me: null, pid: null, patients: [] };
 const main = () => $("#main");
@@ -394,7 +394,7 @@ async function fileModules() {
         <table class="kv"><tr><th>الكلفة</th><td>${esc(money(total, cur))}</td></tr><tr><th>المدفوع</th><td>${esc(money(paid, cur))}</td></tr><tr><th>المتبقي</th><td><b>${esc(money(total - paid, cur))}</b></td></tr></table></section>`);
     }
     const bad = Object.entries(chart?.teeth || {}).filter(([, v]) => v.status && v.status !== "sound");
-    if (bad.length) out.push(`<section class="card"><h3>حالة أسنانك</h3><p>${bad.map(([n, v]) => `السن ${esc(n)}: ${esc(TOOTH[v.status]?.[0] || "")}`).join(" · ")}</p></section>`);
+    if (bad.length) out.push(`<section class="card"><h3>حالة أسنانك</h3><div class="arch-wrap">${archSvg(chart?.teeth || {}, chart?.dentition || "adult", { interactive: false })}</div><p class="small">${bad.map(([n, v]) => `السن ${esc(n)}: ${esc(TOOTH[v.status]?.[0] || "")}`).join(" · ")}</p></section>`);
   }
   if (hasMod("eye")) {
     const e = (await list(P.sub(T.pid, "eye")).catch(() => [])).sort((a, b) => a.date.localeCompare(b.date)).at(-1);
