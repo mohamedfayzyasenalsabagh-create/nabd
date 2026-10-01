@@ -195,6 +195,7 @@ async function renderHome() {
       ${doctorBits}
     </div>
     ${alerts.length ? `<section class="card alerts"><h3>تنبيهات</h3><ul class="plain">${alerts.join("")}</ul></section>` : ""}
+    ${waiting ? `<button class="btn primary block call-next">📢 استدعاء الدور التالي · ${waiting} بالانتظار</button>` : ""}
     <section class="card">
       <div class="row-between"><h3>مواعيد اليوم</h3><div class="row gap"><button class="btn small primary new">+ موعد</button><a class="btn small" href="#/appts">الجدول</a></div></div>
       ${appts.length ? `<ul class="appt-list">${appts.map(apptRow).join("")}</ul>` : empty("لا توجد مواعيد اليوم")}
@@ -207,6 +208,7 @@ async function renderHome() {
     </section>`;
   bindDocFilter(renderHome);
   $(".new").onclick = () => bookModal({});
+  $(".call-next")?.addEventListener("click", async () => { await callNext(); render(); });
   bindApptButtons([...appts, ...week]);
 }
 
@@ -841,6 +843,17 @@ function openTvMode() {
   ov.querySelector(".tvx-next").onclick = () => $(".next")?.click();
 }
 
+// استدعاء الدور التالي: يحدّث شاشة الانتظار على كل الأجهزة فوراً
+async function callNext() {
+  const today = ymd();
+  const arr = byDoc((await list(query(P.col("appointments"), where("date", "==", today))))).filter((a) => a.status === "arrived" && a.queueNo).sort((a, b) => a.queueNo - b.queueNo);
+  if (!arr.length) return info("لا يوجد أحد في الانتظار", `<p>يأخذ المريض رقم الدور عند وصوله إلى العيادة.</p><p>من «المواعيد» افتح موعد المريض واضغط <b>«حضر ✓»</b>، فيظهر رقمه هنا وعلى شاشة التلفاز، ثم اضغط «استدعاء الدور التالي».</p>`);
+  const a = arr[0];
+  await updateDoc(P.colDoc("appointments", a.id), { status: "in" });
+  await callNumber(a.queueNo, apptDoc(a));
+  toast(`تم استدعاء الرقم ${a.queueNo}`);
+}
+
 function renderTv() {
   main().innerHTML = `<div class="tv">
     <div class="tv-brand">${logoHtml(S.pub, 90)}<div><h1>${esc(S.pub.name)}</h1><p>${esc(S.pub.title || "")}</p></div></div>
@@ -854,14 +867,7 @@ function renderTv() {
     el.textContent = s.data()?.number ?? "—"; el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse");
     const d = $(".tv-doc"); if (d) d.textContent = s.data()?.doctor ? `إلى د. ${s.data().doctor}` : "";
   }));
-  $(".next").onclick = async () => {
-    const today = ymd();
-    const arr = byDoc((await list(query(P.col("appointments"), where("date", "==", today))))).filter((a) => a.status === "arrived" && a.queueNo).sort((a, b) => a.queueNo - b.queueNo);
-    if (!arr.length) return info("لا يوجد أحد في الانتظار", `<p>يأخذ المريض رقم الدور عند وصوله إلى العيادة.</p><p>من «المواعيد» افتح موعد المريض واضغط <b>«حضر ✓»</b>، فيظهر رقمه هنا وعلى شاشة التلفاز، ثم اضغط «استدعاء الدور التالي».</p>`);
-    const a = arr[0];
-    await updateDoc(P.colDoc("appointments", a.id), { status: "in" });
-    await callNumber(a.queueNo, apptDoc(a));
-  };
+  $(".next").onclick = callNext;
   $(".fs").onclick = openTvMode;
 }
 
