@@ -1,27 +1,30 @@
-# نشر قواعد الحماية وخدمات الخادم تلقائياً (اختياري)
-# يعمل فقط بعد إضافة السر FIREBASE_SERVICE_ACCOUNT إلى إعدادات المستودع
+# نشر الموقع على nabdsy.web.app وقواعد الحماية تلقائياً عند كل تعديل
+# يحتاج السر FIREBASE_SERVICE_ACCOUNT (مفتاح حساب الخدمة من Firebase)
 name: نشر Firebase
 on:
   push:
     branches: [main]
-    paths: ["firestore.rules", "functions/**"]
+    paths-ignore: ["android/**", ".github/workflows/android.yml", "*.md"]
   workflow_dispatch:
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - name: النشر
         env:
           SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          if [ -z "$SA" ]; then echo "لم يُضبط FIREBASE_SERVICE_ACCOUNT، تم التخطي"; exit 0; fi
+          if [ -z "$SA" ]; then echo "::warning::لم يُضبط FIREBASE_SERVICE_ACCOUNT، تم التخطي"; exit 0; fi
           echo "$SA" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
           PROJECT=$(node -e "console.log(require('$RUNNER_TEMP/sa.json').project_id)")
           npm i -g firebase-tools@13 >/dev/null
-          (cd functions && npm install --no-audit --no-fund)
-          firebase deploy --only firestore:rules --project "$PROJECT" --non-interactive
-          firebase deploy --only functions --project "$PROJECT" --non-interactive || echo "خدمات الخادم تتطلب خطة Blaze"
+          firebase deploy --only hosting,firestore:rules --project "$PROJECT" --non-interactive
+          if git diff --name-only HEAD~1 HEAD | grep -q '^functions/'; then
+            (cd functions && npm install --no-audit --no-fund)
+            firebase deploy --only functions --project "$PROJECT" --non-interactive || echo "خدمات الخادم تتطلب خطة Blaze"
+          fi
