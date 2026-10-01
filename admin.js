@@ -222,7 +222,7 @@ export async function renderTeam() {
 }
 function staffCred(phone, temp, name) {
   const url = `${baseUrl()}#/c/${S.clinic?.slug || ""}`;
-  const text = `أهلاً ${name}، حسابك في نظام ${S.pub.name}:\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب:\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\n\nعلى الآيفون أو الحاسوب استخدم هذا الرابط:\n${url}`;
+  const text = `أهلاً ${name}، أهلاً بك في تطبيق ${PLATFORM()} 👋\nهذا حسابك لدى ${S.pub.name}:\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب:\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\n\nعلى الآيفون أو الحاسوب استخدم هذا الرابط:\n${url}`;
   info("الحساب جاهز", `<div class="cred"><div>الرقم: <b dir="ltr">${esc(phone)}</b></div><div>كلمة المرور المؤقتة: <b class="big" dir="ltr">${esc(temp)}</b></div></div>
     <a class="btn primary block" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">إرسال على واتساب</a>`);
 }

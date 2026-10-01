@@ -281,7 +281,7 @@ export async function apptActions(a) {
         if (nb) {
           await updateDoc(P.colDoc("appointments", a.id), { status: "cancelled", cancelReason: "تأجيل", updatedAt: serverTimestamp() });
           await markBusy(a.date, a.time, apptDoc(a), false);
-          offerNotify(a.phone || p.phone, `مرحباً ${a.patientName}، تم تغيير موعدك في ${S.pub.name} إلى ${fmtDate(nb.date)} الساعة ${fmtTime(nb.time)}.`);
+          offerNotify(a.phone || p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، تم تغيير موعدك في ${S.pub.name} إلى ${fmtDate(nb.date)} الساعة ${fmtTime(nb.time)}.`);
         }
       } else if (act === "cancel") {
         if (!(await confirmBox("إلغاء الموعد", `إلغاء موعد ${a.patientName}؟`, "إلغاء الموعد", true))) return;
@@ -289,7 +289,7 @@ export async function apptActions(a) {
         await markBusy(a.date, a.time, apptDoc(a), false);
         await audit("إلغاء موعد", a.patientName);
         const wl = await list(query(P.col("waitlist"), where("status", "==", "waiting")));
-        offerNotify(a.phone || p.phone, `مرحباً ${a.patientName}، نعتذر، تم إلغاء موعدك في ${S.pub.name} بتاريخ ${fmtDate(a.date)}. يرجى التواصل معنا لتحديد موعد جديد.`,
+        offerNotify(a.phone || p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، نعتذر، تم إلغاء موعدك في ${S.pub.name} بتاريخ ${fmtDate(a.date)}. يرجى التواصل معنا لتحديد موعد جديد.`,
           wl.length ? `<p class="alert">يوجد ${wl.length} في قائمة الانتظار الاحتياطية. <a href="#/waitlist">افتحها</a> لإعطاء الموعد لأحدهم.</p>` : "");
       }
     } catch (e) { toast(errMsg(e), true); }
@@ -297,7 +297,7 @@ export async function apptActions(a) {
   });
 }
 function reminderText(a) {
-  return `مرحباً ${a.patientName}، تذكير بموعدك في ${S.pub.name} يوم ${fmtDate(a.date)} الساعة ${fmtTime(a.time)}.${S.pub.address ? " العنوان: " + S.pub.address : ""}`;
+  return `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، تذكير بموعدك في ${S.pub.name} يوم ${fmtDate(a.date)} الساعة ${fmtTime(a.time)}.${S.pub.address ? " العنوان: " + S.pub.address : ""}`;
 }
 export function offerNotify(phone, text, extra = "") {
   info("إبلاغ المريض", `${extra}<p>${esc(text)}</p><a class="btn primary" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">إرسال على واتساب</a>`);
@@ -407,7 +407,7 @@ export async function bookModal({ pid = "", date = ymd(), time = "", type = "", 
       if (requestId) await updateDoc(P.colDoc("requests", requestId), { status: "done", apptId: r.id });
       toast("تم الحجز");
       const p = PC.byId[f.pid];
-      if (p) offerNotify(p.phone, `مرحباً ${p.name}، تم تثبيت موعدك في ${S.pub.name} يوم ${fmtDate(f.date)} الساعة ${fmtTime(t)}${multiDoc() ? ` مع د. ${docName(r.doctorId)}` : ""}.`);
+      if (p) offerNotify(p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${p.name}، تم تثبيت موعدك في ${S.pub.name} يوم ${fmtDate(f.date)} الساعة ${fmtTime(t)}${multiDoc() ? ` مع د. ${docName(r.doctorId)}` : ""}.`);
       setTimeout(render, 100);
       return r;
     }
@@ -524,7 +524,7 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
 export function showCredentials(phone, temp, name, shared = false) {
   const url = `${location.origin}${location.pathname}#/c/${S.clinic?.slug || ""}`;
   if (shared) return info("تم التسجيل", `<p>لهذا الرقم حساب سابق. أُضيف الملف الجديد إلى الحساب نفسه، ويُختار الملف عند الدخول.</p>`);
-  const text = `أهلاً ${name}، هذا حسابك في تطبيق ${S.pub.name}:\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب:\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\nسيُطلب منك تغييرها عند أول دخول.`;
+  const text = `أهلاً ${name}، أهلاً بك في تطبيق ${PLATFORM()} 👋\nهذا حسابك لدى ${S.pub.name}:\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب:\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\nسيُطلب منك تغييرها عند أول دخول.`;
   info("حساب المريض جاهز", `
     <div class="cred"><div>رقم الدخول: <b dir="ltr">${esc(phone)}</b></div><div>كلمة المرور المؤقتة: <b class="big" dir="ltr">${esc(temp)}</b></div></div>
     <p class="muted small">سلّمها للمريض، وسيُطلب منه تغييرها عند أول دخول. لن تظهر مرة أخرى.</p>
@@ -685,7 +685,7 @@ async function renderRequests() {
   $$(".pno").forEach((b) => b.onclick = async () => {
     const r = pubs.find((x) => x.id === b.dataset.id);
     await updateDoc(P.colDoc("publicRequests", r.id), { status: "rejected" });
-    offerNotify(r.phone, `مرحباً ${r.name}، نعتذر، الموعد الذي طلبته في ${S.pub.name} (${fmtDate(r.date)} الساعة ${fmtTime(r.time)}) غير متاح. يرجى التواصل معنا لإيجاد وقت آخر.`);
+    offerNotify(r.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${r.name}، نعتذر، الموعد الذي طلبته في ${S.pub.name} (${fmtDate(r.date)} الساعة ${fmtTime(r.time)}) غير متاح. يرجى التواصل معنا لإيجاد وقت آخر.`);
     render();
   });
 }
@@ -713,7 +713,7 @@ async function confirmPublic(r) {
     const ap = await bookAppointment({ pid, date: r.date, time: r.time, type: r.service, note: r.note, doctorId: r.doctorId && doctors().some((d) => d.id === r.doctorId) ? r.doctorId : defaultDoc() });
     await updateDoc(P.colDoc("publicRequests", r.id), { status: "done", apptId: ap.id, patientId: pid });
     toast("تم تأكيد الموعد");
-    if (choice !== "new") offerNotify(r.phone, `مرحباً ${r.name}، تم تأكيد موعدك في ${S.pub.name} يوم ${fmtDate(r.date)} الساعة ${fmtTime(r.time)}.`);
+    if (choice !== "new") offerNotify(r.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${r.name}، تم تأكيد موعدك في ${S.pub.name} يوم ${fmtDate(r.date)} الساعة ${fmtTime(r.time)}.`);
   } catch (e) { toast(errMsg(e), true); }
   render();
 }

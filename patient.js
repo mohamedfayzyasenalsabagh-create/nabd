@@ -2,9 +2,10 @@
 import { addFileDoc, fileData, P, list, one, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, audit, clinicState } from "./fb.js";
 import { makeThumb, tileImg, isImg, showFile,
   parseYmd, $, $$, esc, ymd, addDays, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info, field, select,
-  logoHtml, empty, compressImage, pickFile
+  logoHtml, empty, compressImage, pickFile,
+  platformMark,
 } from "./ui.js";
-import { S, logout, showChangePassword } from "./app.js";
+import { S, logout, showChangePassword, PLATFORM } from "./app.js";
 import { pregCalc, gaText, activeMeds } from "./card.js";
 import { hasMod } from "./staff.js";
 import { vacStatus, nextVac, vitalsView, vitalsForm, glassesTable, TOOTH, archSvg } from "./mods.js";
@@ -16,7 +17,7 @@ const STATUS = { confirmed: "مؤكد", arrived: "في الانتظار", in: "�
 // ---------- الموافقة على الخصوصية (أول مرة) ----------
 export function showConsent() {
   $("#app").innerHTML = `<div class="center-page"><div class="card narrow stack">
-    <div class="brand-block small">${logoHtml(S.pub, 64)}<h2>مرحباً بك في تطبيق ${esc(S.pub.name || "العيادة")}</h2></div>
+    <div class="brand-block small">${platformMark(64)}<h2>أهلاً بك في تطبيق ${esc(PLATFORM())}</h2></div>
     <p>قبل البدء، إليك كيف نتعامل مع معلوماتك:</p>
     <ul class="plain dots">
       <li>لا يطّلع على ملفك الطبي سواك وأطباء العيادة.</li>

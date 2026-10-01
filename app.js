@@ -95,7 +95,7 @@ async function publicRoute() {
   const last = LS.get("clinic");
   if (last) {
     const p = await one(P.pub(last)).catch(() => null);
-    if (p) { setClinic(last); applyBrand(p); return showLogin(); }
+    if (p) { setClinic(last); return showLogin(); }
   }
   return pub.landing();
 }
@@ -112,7 +112,6 @@ export async function openClinic(slugOrId) {
   }
   setClinic(cid);
   LS.set("clinic", cid);
-  applyBrand(p);
   history.replaceState(null, "", location.pathname);
   showLogin();
 }
@@ -156,8 +155,8 @@ function pickAccount(choices) {
 }
 
 export function showLogin(msg = "") {
-  const pub = S.pub || {};
-  const hasClinic = !!pub.name;
+  applyBrand({});
+  const pub = {}, hasClinic = false;
   root().innerHTML = `<div class="center-page login-page">
       <div class="brand-block">
         ${hasClinic ? logoHtml(pub, 96) : platformMark(96)}
