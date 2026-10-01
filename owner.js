@@ -216,7 +216,7 @@ function renderSettings() {
           <div class="grid2">${field("الاسم", `pn${i}`, { value: p.name, required: true })}${field("السعر الشهري", `pp${i}`, { type: "number", value: p.price, attrs: 'min="0" step="0.5"' })}</div>
           <div class="grid2">${field("العملة", `pc${i}`, { value: p.currency || "$" })}${field("أقصى عدد أطباء / موظفين", `pl${i}`, { type: "number", value: p.maxDoctors, attrs: 'min="1"' })}</div>
           ${field("المزايا (سطر لكل ميزة)", `pk${i}`, { type: "textarea", value: (p.perks || []).join("\n"), attrs: "data-novoice" })}
-          <div class="row gap wrap">${[["booking", "صفحة الحجز"], ["inventory", "المخزون"], ["qr", "وصفة QR"], ["multiDoctor", "تعدد الأطباء"]].map(([k, t]) => `<label class="check small"><input type="checkbox" name="pf${i}_${k}" ${p.features?.[k] ? "checked" : ""}><span>${t}</span></label>`).join("")}</div>
+          <div class="row gap wrap">${[["booking", "صفحة الحجز"], ["inventory", "المخزون"], ["qr", "وصفة QR"], ["multiDoctor", "تعدد الأطباء"], ["multiSpecialty", "تعدد الاختصاصات"]].map(([k, t]) => `<label class="check small"><input type="checkbox" name="pf${i}_${k}" ${p.features?.[k] ? "checked" : ""}><span>${t}</span></label>`).join("")}</div>
         </fieldset>`).join("")}
       </section>
       <button class="btn primary block">حفظ الإعدادات</button>
@@ -244,7 +244,7 @@ function renderSettings() {
       ...p, name: f[`pn${i}`].value.trim(), price: Number(f[`pp${i}`].value) || 0, currency: f[`pc${i}`].value.trim() || "$",
       maxDoctors: Number(f[`pl${i}`].value) || 1, maxStaff: Number(f[`pl${i}`].value) || 1,
       perks: f[`pk${i}`].value.split("\n").map((x) => x.trim()).filter(Boolean),
-      features: Object.fromEntries(["booking", "inventory", "qr", "multiDoctor"].map((k) => [k, f[`pf${i}_${k}`].checked])),
+      features: Object.fromEntries(["booking", "inventory", "qr", "multiDoctor", "multiSpecialty"].map((k) => [k, f[`pf${i}_${k}`].checked])),
     }));
     const data = {
       name: f.name.value.trim(), plans: newPlans,

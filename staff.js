@@ -1,5 +1,5 @@
 // واجهة فريق العيادة: الأطباء والسكرتارية
-import { fileData,
+import { SPECIALTIES, fileData,
   db, P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, onSnapshot,
   serverTimestamp, runTransaction, arrayUnion, arrayRemove, orderBy, limit, registerPatient, audit,
   normPhone, clinicState, tsMs
@@ -12,7 +12,10 @@ import { S, logout, showChangePassword, PLATFORM } from "./app.js";
 
 export const isDoctor = () => S.profile.role === "doctor";
 export const isAdmin = () => isDoctor() && !!S.profile.admin;
-export const hasMod = (m) => (S.clinic?.modules || []).includes(m);
+// تعدد الاختصاصات متاح لباقة المراكز الطبية فقط
+export const multiSpec = () => !!S.clinic?.features?.multiSpecialty || S.clinic?.plan === "center";
+export const specMods = (spec = S.clinic?.specialty) => SPECIALTIES[spec]?.modules || [];
+export const hasMod = (m) => (multiSpec() ? (S.clinic?.modules || specMods()) : specMods()).includes(m);
 export const feat = (f) => !!S.clinic?.features?.[f];
 export const doctors = () => (S.clinic?.doctors || []).filter((d) => d.active !== false);
 export const multiDoc = () => doctors().length > 1;

@@ -10,7 +10,7 @@ import { APP_URL,
 } from "./ui.js";
 import { S, PLATFORM } from "./app.js";
 import { PAY_METHODS } from "./owner.js";
-import { render, doctors, feat, hasMod, cur, isAdmin } from "./staff.js";
+import { multiSpec, specMods, render, doctors, feat, hasMod, cur, isAdmin } from "./staff.js";
 
 const main = () => $("#main");
 const plans = () => (S.platform?.plans?.length ? S.platform.plans : DEFAULT_PLANS);
@@ -46,8 +46,10 @@ export async function renderSettings() {
     </section>
     <section class="card stack"><h3>الاختصاص والوحدات</h3>
       ${select("الاختصاص الرئيسي", "specialty", Object.entries(SPECIALTIES).map(([k, v]) => [k, v.name]), c.specialty)}
-      <p class="muted small">فعّل الوحدات التي تحتاجها عيادتك. المراكز متعددة الاختصاصات تستطيع تفعيل أكثر من وحدة.</p>
-      <div class="mod-grid">${Object.entries(MODULES).map(([k, t]) => `<label class="check"><input type="checkbox" name="mod_${k}" ${mods.has(k) ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div>
+      ${multiSpec() ? `<p class="muted small">باقة المراكز الطبية: فعّل وحدات كل الاختصاصات التي يعمل بها مركزك.</p>
+      <div class="mod-grid">${Object.entries(MODULES).map(([k, t]) => `<label class="check"><input type="checkbox" name="mod_${k}" ${mods.has(k) ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div>`
+      : `<p class="muted small">الوحدات المفعّلة لاختصاصك:</p><div class="chips spec-mods"></div>
+      <p class="muted small">تفعيل أكثر من اختصاص في العيادة نفسها متاح في باقة المراكز الطبية. <a href="#/subscription">الترقية</a></p>`}
     </section>
     <section class="card stack"><h3>أوقات الدوام</h3>
       <p class="muted small">يُقبل الحجز ضمن هذه الأوقات فقط.</p>
@@ -113,6 +115,8 @@ export async function renderSettings() {
     catch (e) { toast(errMsg(e), true); }
   };
   $(".rst")?.addEventListener("click", () => { newLogo = null; $(".lg").innerHTML = logoHtml({ specialty: c.specialty }, 88); });
+  const drawSpecMods = () => { const box = $(".spec-mods"); if (box) { const ms = specMods($("#set").specialty.value); box.innerHTML = ms.length ? ms.map((k) => `<span class="chip">${esc(MODULES[k])}</span>`).join("") : `<span class="muted small">لا توجد وحدة خاصة لهذا الاختصاص، وتتوفر كل الميزات العامة.</span>`; } };
+  drawSpecMods(); $("#set").specialty.addEventListener("change", drawSpecMods);
   $("#set").onsubmit = async (e) => {
     e.preventDefault();
     const f = e.target;
@@ -123,7 +127,7 @@ export async function renderSettings() {
       name: f.name.value.trim(), doctorName: f.doctorName.value.trim(), title: f.title.value.trim(),
       address: f.address.value.trim(), phone: f.phone.value.trim(), accent: f.accent.value, mapUrl: f.mapUrl.value.trim(),
       logo: newLogo === undefined ? (c.logo || null) : newLogo,
-      specialty: f.specialty.value, modules: Object.keys(MODULES).filter((k) => f[`mod_${k}`].checked),
+      specialty: f.specialty.value, modules: multiSpec() ? Object.keys(MODULES).filter((k) => f[`mod_${k}`].checked) : specMods(f.specialty.value),
       currency: f.currency.value.trim() || "ل.س", hours: h, slotMinutes: Number(f.slotMinutes.value),
       services: services.filter((s) => s.name.trim()), consentText: f.consentText.value, rxFooter: f.rxFooter.value,
       doctors: doctorsArr, listed: f.listed.checked, city: f.city.value,

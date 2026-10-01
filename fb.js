@@ -82,18 +82,20 @@ export const MODULES = {
 };
 export const DEFAULT_PLANS = [
   { id: "basic", name: "أساسي", price: 15, currency: "$", maxDoctors: 1, maxStaff: 1,
-    features: { booking: false, inventory: false, qr: false, multiDoctor: false },
+    features: { booking: false, inventory: false, qr: false, multiDoctor: false, multiSpecialty: false },
     perks: ["طبيب واحد وسكرتيرة واحدة", "المواعيد والملفات الطبية", "تطبيق المرضى", "وحدة الاختصاص"] },
   { id: "pro", name: "احترافي", price: 30, currency: "$", maxDoctors: 3, maxStaff: 3,
-    features: { booking: true, inventory: true, qr: true, multiDoctor: true },
+    features: { booking: true, inventory: true, qr: true, multiDoctor: true, multiSpecialty: false },
     perks: ["حتى 3 أطباء و3 موظفين", "صفحة حجز عامة", "المخزون", "وصفة برمز QR", "كل ميزات الأساسي"] },
   { id: "center", name: "مراكز طبية", price: 60, currency: "$", maxDoctors: 50, maxStaff: 50,
-    features: { booking: true, inventory: true, qr: true, multiDoctor: true },
+    features: { booking: true, inventory: true, qr: true, multiDoctor: true, multiSpecialty: true },
     perks: ["أطباء وموظفون بلا حدود عملياً", "عدة اختصاصات في مركز واحد", "كل ميزات الاحترافي", "دعم مخصص"] },
 ];
 export const TRIAL_DAYS = 14;
 export const CITIES = ["دمشق", "ريف دمشق", "حلب", "حمص", "حماة", "اللاذقية", "طرطوس", "إدلب", "درعا", "السويداء", "القنيطرة", "دير الزور", "الرقة", "الحسكة"];
-export const ALL_FEATURES = { booking: true, inventory: true, qr: true, multiDoctor: true };
+export const ALL_FEATURES = { booking: true, inventory: true, qr: true, multiDoctor: true, multiSpecialty: true };
+// التجربة المجانية: كل الميزات ما عدا تعدد الاختصاصات (خاص بباقة المراكز الطبية)
+export const TRIAL_FEATURES = { ...ALL_FEATURES, multiSpecialty: false };
 
 // ---------- أرقام وإيميلات الدخول ----------
 export function normPhone(v) {
@@ -245,7 +247,7 @@ export async function signupClinic(f) {
     currency: "ل.س", slotMinutes: 20, hours: defaultHours(), services: defaultServices(spec),
     doctors: [{ id: doctorId, uid, name: f.doctorName.trim(), title: f.title.trim(), active: true }],
     city: CITIES.includes(f.city) ? f.city : "", listed: !!f.listed, bookingEnabled: !!f.listed, showPrices: false,
-    status: "trial", plan: "trial", expiresAt: expires, features: ALL_FEATURES, maxDoctors: 3, maxStaff: 3,
+    status: "trial", plan: "trial", expiresAt: expires, features: TRIAL_FEATURES, maxDoctors: 3, maxStaff: 3,
     ownerUid: uid, ownerEmail: f.email.trim(), ownerPhone: normPhone(f.phone), createdAt: serverTimestamp()
   };
   const b = writeBatch(db);
