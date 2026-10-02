@@ -709,3 +709,16 @@ a.stat { color: inherit; text-decoration: none; }
 .faq-q[open] summary::after { content: "−"; }
 .faq-q p { margin: 8px 0 0; color: var(--muted); }
 .guide-cta { display: flex; justify-content: center; margin: 18px 0 0; }
+
+/* ---------- مجموعات الميزات في الصفحة الرئيسية ---------- */
+.lp-grp { --gc: #0E7C7B; --gs: #E6F4F3; margin: 18px 0; }
+.lp-grp.g2 { --gc: #2563A8; --gs: #E7F0FA; }
+.lp-grp.g3 { --gc: #B26B00; --gs: #FDF2E1; }
+.lp-grp.g4 { --gc: #6B46C1; --gs: #F0EBFB; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lp-grp { --gs: color-mix(in srgb, var(--gc) 16%, var(--card)); } }
+:root[data-theme="dark"] .lp-grp { --gs: color-mix(in srgb, var(--gc) 16%, var(--card)); }
+.lp-gh { display: inline-block; background: var(--gc); color: #fff; font-weight: 700; padding: 4px 14px; border-radius: 99px; margin-bottom: 8px; font-size: .9rem; }
+.lp-grp .lp-feat { background: var(--gs); border: 0; border-top: 4px solid var(--gc); }
+.lp-grp .lp-feat h3 { color: var(--gc); }
+.lp-grp .lp-feat p { color: var(--ink); opacity: .82; }
+.lp-sub { font-weight: 800; font-size: 1.25rem; margin: 0 0 6px; color: var(--ink); }
