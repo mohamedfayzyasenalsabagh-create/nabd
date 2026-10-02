@@ -293,6 +293,13 @@ export async function signupClinic(f) {
   if (slug.length < 3) throw new Error("رابط العيادة يجب أن يتكون من 3 أحرف لاتينية على الأقل");
   const taken = await getDoc(P.slug(slug));
   if (taken.exists()) throw new Error("رابط العيادة مستخدم، اختاري رابطاً آخر");
+  // رمز الدعوة: رابط عيادة الزميل الذي دعاه
+  let referredBy = "";
+  const ref = cleanSlug(f.ref || "");
+  if (ref && ref !== slug) {
+    const r = await getDoc(P.slug(ref)).catch(() => null);
+    if (r?.exists()) referredBy = ref; else throw new Error("رمز الدعوة غير صحيح، تأكد منه أو اتركه فارغاً");
+  }
   const cred = await createUserWithEmailAndPassword(auth, f.email.trim(), f.password);
   const uid = cred.user.uid;
   const cid = randId(10);
@@ -307,7 +314,8 @@ export async function signupClinic(f) {
     doctors: [{ id: doctorId, uid, name: f.doctorName.trim(), title: f.title.trim(), active: true }],
     city: CITIES.includes(f.city) ? f.city : "", listed: !!f.listed, bookingEnabled: !!f.listed, showPrices: false,
     status: "trial", plan: "trial", expiresAt: expires, features: TRIAL_FEATURES, maxDoctors: 3, maxStaff: 3,
-    ownerUid: uid, ownerEmail: f.email.trim(), ownerPhone: normPhone(f.phone), createdAt: serverTimestamp()
+    ownerUid: uid, ownerEmail: f.email.trim(), ownerPhone: normPhone(f.phone), createdAt: serverTimestamp(),
+    ...(referredBy ? { referredBy } : {})
   };
   const b = writeBatch(db);
   b.set(P.user(uid), {

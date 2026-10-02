@@ -253,3 +253,10 @@ test("المصاريف للأطباء فقط، والطبيب غير المسؤ�
   await assertFails(updateDoc(doc(as("doc_A"), "clinics/A"), { name: "x" }));
   await assertFails(updateDoc(doc(as("sec_A"), "clinics/A"), { rxTemplates: [] }));
 });
+
+test("الدعوات: مسؤول العيادة لا يعدّل بيانات المكافأة، والمالك يعدّلها", async () => {
+  await assertFails(updateDoc(doc(as("adm_A"), "clinics/A"), { referrals: 5 }));
+  await assertFails(updateDoc(doc(as("adm_A"), "clinics/A"), { referredBy: "B" }));
+  await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), { name: "A2" }));
+  await assertSucceeds(updateDoc(doc(as("own1"), "clinics/A"), { referrals: 1, referralRewarded: true }));
+});

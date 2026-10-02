@@ -117,3 +117,17 @@ export const QUICK_TIMES = [
   ["مساءً", "21:00"],
   ["عند اللزوم", ""],
 ];
+
+// ---------- قوائم التحاليل والأشعة الشائعة لطلب مطبوع ----------
+export const LAB_GROUPS = [
+  ["تحاليل الدم العامة", ["CBC (تعداد دم كامل)", "ESR (سرعة التثفل)", "CRP", "Blood group & Rh (زمرة دموية)", "PT / INR", "PTT", "Ferritin", "Serum iron", "Vitamin D (25-OH)", "Vitamin B12"]],
+  ["السكر والدهون", ["FBS (سكر صيامي)", "RBS (سكر عشوائي)", "HbA1c (السكر التراكمي)", "Total cholesterol", "Triglycerides", "HDL", "LDL"]],
+  ["الكلية والكبد", ["Urea", "Creatinine", "Uric acid", "ALT (GPT)", "AST (GOT)", "Total bilirubin", "Alkaline phosphatase", "Albumin"]],
+  ["الهرمونات", ["TSH", "Free T4", "Free T3", "Prolactin", "FSH", "LH", "Estradiol (E2)", "Progesterone", "Testosterone", "β-hCG (هرمون الحمل)", "AMH"]],
+  ["البول والبراز", ["Urine analysis (تحليل بول)", "Urine culture (زرع بول)", "Stool analysis (تحليل براز)", "H. pylori Ag (stool)"]],
+  ["المصليات والفيروسات", ["HBsAg", "HCV Ab", "HIV Ab", "TORCH", "Widal", "Brucella", "ASO"]],
+];
+export const IMAGING_GROUPS = [
+  ["أشعة الأسنان", ["صورة بانوراما (OPG)", "صورة ذروية (Periapical)", "صورة مجنحة (Bitewing)", "CBCT ثلاثي الأبعاد", "صورة سيفالومترية (Ceph)"]],
+  ["الأشعة العامة", ["صورة صدر (Chest X-ray)", "صورة جيوب (Sinuses)", "إيكو بطن وحوض", "إيكو غدة درقية", "إيكو ثدي", "إيكو حمل", "إيكو قلب", "طبقي محوري (CT)", "رنين مغناطيسي (MRI)", "تخطيط قلب (ECG)"]],
+];

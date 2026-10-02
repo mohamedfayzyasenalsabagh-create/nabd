@@ -181,6 +181,7 @@ export async function dental(p, el, refresh) {
           <button class="btn small additem">+ إجراء</button>
           <button class="btn small primary payplan">دفعة على الخطة</button>
           <button class="btn small prplan">طباعة الخطة</button>
+          <button class="btn small quote">💰 عرض سعر للمريض</button>
           <button class="btn small closeplan">إنهاء الخطة</button>
         </div>` : empty("لا توجد خطة علاج حالية")}
       ${plans.filter((x) => x.status !== "active").length ? `<details><summary class="muted">خطط سابقة (${plans.filter((x) => x.status !== "active").length})</summary>${plans.filter((x) => x.status !== "active").map((x) => `<div class="visit-mini"><b>${esc(x.name || "خطة")}</b> · ${esc(x.date)}<div class="muted small">${(x.items || []).length} إجراء</div></div>`).join("")}</details>` : ""}
@@ -214,6 +215,7 @@ export async function dental(p, el, refresh) {
   $(".additem", el).onclick = () => itemModal(p, plan, "", refresh);
   $(".payplan", el).onclick = () => paymentModal(p.id, `خطة علاج: ${plan.name || ""}`, { total: Math.max(0, tot.remaining), paid: "", planId: plan.id, note: "قسط على خطة العلاج" });
   $(".prplan", el).onclick = () => printPlan(p, plan, tot, chart);
+  $(".quote", el)?.addEventListener("click", () => printQuote(p, plan, tot));
   $(".closeplan", el).onclick = async () => {
     if (!(await confirmBox("إنهاء الخطة", tot.remaining > 0 ? `ما زال على المريض ${money(tot.remaining, cur())}. هل تريد إنهاء الخطة؟` : "نقل الخطة إلى الخطط السابقة؟", "إنهاء"))) return;
     await updateDoc(planRef, { status: "done" }); refresh();
@@ -280,6 +282,45 @@ async function itemModal(p, plan, tooth, refresh) {
     onOk: async (f) => { await updateDoc(P.subDoc(p.id, "plans", plan.id), { items: [...(plan.items || []), { id: randId(6), ...f, phase: f.phase || 1, cost: f.cost || 0, status: "planned" }] }); setTimeout(refresh, 50); }
   });
 }
+// عرض سعر مطبوع لخطة العلاج، مع خيار تقسيط وموافقة المريض
+async function printQuote(p, plan, tot) {
+  const items = (plan.items || []);
+  const sub = items.reduce((s, i) => s + (Number(i.cost) || 0), 0);
+  const r = await modal("عرض سعر للمريض", `<form class="stack">
+    <p class="muted small">مجموع الإجراءات: <b>${esc(money(sub, cur()))}</b></p>
+    <div class="grid2">
+      ${field("خصم إضافي", "disc", { type: "number", value: plan.discount || 0, attrs: 'min="0" inputmode="numeric"' })}
+      ${field("صلاحية العرض (يوم)", "valid", { type: "number", value: 30, attrs: 'min="1"' })}
+    </div>
+    <div class="grid2">
+      ${select("طريقة الدفع", "inst", [[1, "دفعة واحدة"], [2, "قسطان"], [3, "3 أقساط"], [4, "4 أقساط"], [6, "6 أقساط"]], 1)}
+      ${field("الدفعة الأولى %", "first", { type: "number", value: 30, attrs: 'min="0" max="100"' })}
+    </div>
+    ${field("ملاحظة", "note", { value: "الأسعار تشمل المواد والمتابعة خلال فترة العلاج." })}
+  </form>`, { ok: "طباعة العرض" });
+  if (!r) return;
+  const disc = Math.max(0, Number(r.disc) || 0), total = Math.max(0, sub - disc), n = Number(r.inst) || 1;
+  const first = n > 1 ? Math.round(total * Math.min(100, Math.max(0, Number(r.first) || 0)) / 100 / 1000) * 1000 : total;
+  const rest = n > 1 ? Math.round((total - first) / (n - 1) / 1000) * 1000 : 0;
+  const lastAmt = n > 1 ? total - first - rest * (n - 2) : 0;
+  const until = addDays(ymd(), Number(r.valid) || 30);
+  printDoc(S.pub, "عرض سعر · خطة علاج", `<p><b>المريض:</b> ${esc(p.name)} · <b>رقم العرض:</b> <span dir="ltr">${esc(plan.id.slice(0, 6).toUpperCase())}</span></p>
+    <table class="tbl"><thead><tr><th>#</th><th>الإجراء</th><th>السن</th><th>المرحلة</th><th>السعر</th></tr></thead><tbody>
+    ${items.map((i, k) => `<tr><td>${k + 1}</td><td>${esc(i.proc)}${i.status === "done" ? ` <small class="muted">(منجز)</small>` : ""}</td><td>${esc(i.tooth || "—")}</td><td>${esc(i.phase || 1)}</td><td>${esc(money(i.cost, cur()))}</td></tr>`).join("")}
+    </tbody></table>
+    <table class="kv q-tot"><tr><th>المجموع</th><td>${esc(money(sub, cur()))}</td></tr>
+      ${disc ? `<tr><th>الخصم</th><td>− ${esc(money(disc, cur()))}</td></tr>` : ""}
+      <tr class="q-final"><th>الإجمالي المطلوب</th><td>${esc(money(total, cur()))}</td></tr>
+      ${tot.paid ? `<tr><th>المدفوع حتى الآن</th><td>${esc(money(tot.paid, cur()))}</td></tr>` : ""}</table>
+    ${n > 1 ? `<div class="mr-sec"><h4>خطة الدفع بالتقسيط</h4><table class="tbl"><tbody>
+      <tr><td>الدفعة الأولى (عند بدء العلاج)</td><td><b>${esc(money(first, cur()))}</b></td></tr>
+      ${Array.from({ length: n - 1 }, (_, k) => `<tr><td>القسط ${k + 2}</td><td>${esc(money(k === n - 2 ? lastAmt : rest, cur()))}</td></tr>`).join("")}
+    </tbody></table></div>` : `<p><b>طريقة الدفع:</b> دفعة واحدة.</p>`}
+    ${r.note ? `<p>${esc(r.note)}</p>` : ""}
+    <p class="muted small">هذا العرض صالح حتى ${esc(fmtDate(until, false))}.</p>
+    <p class="q-accept">موافقة المريض على الخطة والتكلفة: ........................................</p>`, { signer: `د. ${S.profile.name || S.clinic?.doctorName || ""}` });
+}
+
 function printPlan(p, plan, tot, chart) {
   const bad = Object.entries(chart.teeth || {}).filter(([, v]) => v.status && v.status !== "sound");
   printDoc(S.pub, "خطة علاج الأسنان", `<p><b>المريض:</b> ${esc(p.name)} · <b>التاريخ:</b> ${esc(fmtDate(plan.date, false))}</p>

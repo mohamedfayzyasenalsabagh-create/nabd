@@ -117,6 +117,7 @@ async function render() {
       case "requests": return await renderRequests();
       case "waitlist": return await renderWaitlist();
       case "remind": return await renderRemind();
+      case "debts": return await renderDebts();
       case "messages": return await renderMessages();
       case "tv": return renderTv();
       case "inventory": return feat("inventory") ? (await admin()).renderInventory() : renderMore();
@@ -348,6 +349,38 @@ async function renderRemind() {
     li.classList.add("done"); b.classList.remove("primary"); b.textContent = "✓ أُرسل";
     updateDoc(P.colDoc("appointments", b.dataset.id), { remindedAt: serverTimestamp() }).catch(() => {});
     const n = $$(".remind-list li.done").length; const c = $(".chip"); if (c) c.textContent = `أُرسل ${n} من ${arr.length}`;
+  }));
+}
+
+// ---------- تحصيل الديون ----------
+async function renderDebts() {
+  const all = await list(P.col("payments"));
+  const per = {};
+  all.forEach((p) => {
+    const x = per[p.patientId] = per[p.patientId] || { id: p.patientId, name: p.patientName, d: 0, last: "" };
+    x.d += (Number(p.total) || 0) - (Number(p.paid) || 0);
+    if (p.date > x.last) x.last = p.date;
+  });
+  const rows = Object.values(per).filter((x) => x.d > 0).sort((a, b) => b.d - a.d);
+  const total = rows.reduce((s, x) => s + x.d, 0);
+  const txt = (x) => `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${x.name}، نود تذكيرك بلطف بوجود مبلغ متبقٍ قدره ${money(x.d, cur())} لدى ${S.pub.name}.\nيمكنك تسديده في زيارتك القادمة أو التواصل معنا لترتيب طريقة مناسبة.\nشكراً لثقتك بنا.`;
+  const recent = (x) => { const t = tsMs(PC.byId[x.id]?.debtRemindedAt); return t && Date.now() - t < 7 * 864e5; };
+  main().innerHTML = `<h2 class="page-title">تحصيل الديون</h2>
+    <div class="stats">
+      <div class="stat warn"><b>${esc(money(total, cur()))}</b><span>مجموع الديون</span></div>
+      <div class="stat"><b>${rows.length}</b><span>مريض عليه مبلغ</span></div>
+    </div>
+    <section class="card">
+      <p class="muted small">رسالة لطيفة جاهزة بالمبلغ المتبقي. يظهر «✓ ذُكّر» لمدة أسبوع بعد الإرسال حتى لا تُكرَّر الرسالة.</p>
+      ${rows.length ? `<ul class="remind-list">${rows.map((x) => `<li class="${recent(x) ? "done" : ""}">
+        <span class="t debt">${esc(money(x.d, cur()))}</span>
+        <span class="n"><a href="#/p/${x.id}/money">${esc(x.name)}</a><small>آخر دفعة: ${esc(x.last)}</small></span>
+        ${PC.byId[x.id]?.phone ? `<a class="btn small ${recent(x) ? "" : "primary"} wa" data-id="${x.id}" target="_blank" rel="noopener" href="${esc(waLink(PC.byId[x.id].phone, txt(x)))}">${recent(x) ? "✓ ذُكّر" : "📲 تذكير"}</a>` : ""}
+      </li>`).join("")}</ul>` : empty("لا توجد ديون، كل الحسابات مسددة ✓")}
+    </section>`;
+  $$(".wa").forEach((b) => b.addEventListener("click", () => {
+    b.closest("li").classList.add("done"); b.classList.remove("primary"); b.textContent = "✓ ذُكّر";
+    updateDoc(P.patient(b.dataset.id), { debtRemindedAt: serverTimestamp() }).catch(() => {});
   }));
 }
 
@@ -681,6 +714,7 @@ function renderMore() {
       ["#/requests", "طلبات المواعيد", req],
       ["#/messages", "رسائل المرضى", S._msgCount],
       ["#/remind", "تذكير مواعيد الغد (واتساب)"],
+      ["#/debts", "تحصيل الديون"],
       ["#/waitlist", "قائمة الانتظار الاحتياطية"],
       ["#/tv", "شاشة الانتظار (للتلفاز)"],
       ...(feat("inventory") ? [["#/inventory", "المخزون"]] : []),

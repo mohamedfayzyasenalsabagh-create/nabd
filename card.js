@@ -60,7 +60,7 @@ export async function renderCard() {
     </div>
     <div class="row gap wrap quick">
       <button class="btn small primary q-book">+ موعد</button>
-      ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button><button class="btn small q-doc">📄 ورقة طبية</button>` : ""}
+      ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button><button class="btn small q-doc">📄 ورقة طبية</button><button class="btn small q-lab">🧪 طلب تحاليل وأشعة</button><button class="btn small q-file">🖨 ملف المريض</button>` : ""}
       <button class="btn small q-pay">دفعة</button>
       <a class="btn small" href="tel:${esc(p.phone)}">اتصال</a>
       <a class="btn small" target="_blank" rel="noopener" href="${esc(waLink(p.phone, `مرحباً ${p.name}، `))}">واتساب</a>
@@ -73,6 +73,8 @@ export async function renderCard() {
   $(".q-visit")?.addEventListener("click", () => visitModal(pid));
   $(".q-rx")?.addEventListener("click", () => rxModal(pid));
   $(".q-doc")?.addEventListener("click", () => medDocModal(pid));
+  $(".q-lab")?.addEventListener("click", () => labOrderModal(pid));
+  $(".q-file")?.addEventListener("click", () => printPatientFile(pid));
   const T = { summary, info: infoTab, visits, rx, preg, gyn, cosm, files, private: privateTab, appts, money: moneyTab, msgs, account };
   try {
     if (!T[tab]) { const M = await mods(); await M[tab](p, tabEl(), refresh); return; }
@@ -386,6 +388,68 @@ export async function medDocModal(pid) {
       <p>مع الشكر والتقدير.</p>`, { signer });
   }
   await audit({ leave: "طباعة إجازة مرضية", report: "طباعة تقرير طبي", ref: "طباعة رسالة تحويل" }[r.kind], p.name);
+}
+
+// ---------- طلب تحاليل وأشعة ----------
+export async function labOrderModal(pid) {
+  const p = PC.byId[pid];
+  const { LAB_GROUPS, IMAGING_GROUPS } = await import("./drugs.js");
+  const dental = (S.clinic?.modules || []).includes("dental");
+  const groups = [...(dental ? [IMAGING_GROUPS[0]] : []), ...LAB_GROUPS, ...(dental ? [IMAGING_GROUPS[1]] : IMAGING_GROUPS)];
+  const r = await modal(`طلب تحاليل وأشعة · ${p?.name || ""}`, `<form class="stack lab-form">
+    ${groups.map(([g, items], gi) => `<details ${gi < 2 ? "open" : ""}><summary><b>${esc(g)}</b></summary><div class="lab-grid">
+      ${items.map((t) => `<label class="check"><input type="checkbox" name="t" value="${esc(t)}"><span dir="auto">${esc(t)}</span></label>`).join("")}</div></details>`).join("")}
+    ${field("تحاليل أو صور أخرى", "other", { placeholder: "اكتبها مفصولة بفاصلة" })}
+    ${field("ملاحظة سريرية للمخبر / مركز الأشعة", "note", { placeholder: "مثلاً: صائم 12 ساعة، أو المنطقة المطلوبة" })}
+  </form>`, {
+    ok: "طباعة الطلب", wide: true,
+    onOk: (f, w) => {
+      const picked = [...document.querySelectorAll(".lab-form input[name=t]:checked")].map((x) => x.value);
+      const other = String(f.other || "").split(/[,،]/).map((x) => x.trim()).filter(Boolean);
+      if (!picked.length && !other.length) { toast("اختر تحليلاً أو صورة واحدة على الأقل", true); return false; }
+      return { picked: [...picked, ...other], note: f.note };
+    }
+  });
+  if (!r || !r.picked) return;
+  printDoc(S.pub, "طلب تحاليل وأشعة", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · ${esc(ageText(p))}` : ""} · <b>التاريخ:</b> ${esc(fmtDate(ymd(), false))}</p>
+    <p>يرجى إجراء ما يلي:</p>
+    <ol class="lab-print">${r.picked.map((t) => `<li dir="auto">☐ ${esc(t)}</li>`).join("")}</ol>
+    ${r.note ? `<p><b>ملاحظة:</b> ${esc(r.note)}</p>` : ""}
+    <p class="muted small">يرجى إرسال النتائج إلى العيادة، أو رفعها من تطبيق المريض.</p>`, { signer: `د. ${S.profile.name || S.clinic?.doctorName || ""}` });
+  await audit("طباعة طلب تحاليل", p.name);
+}
+
+// ---------- ملف المريض كاملاً للطباعة أو PDF ----------
+export async function printPatientFile(pid) {
+  const p = PC.byId[pid];
+  toast("جارٍ تجهيز الملف…");
+  const [med, vis, rxs, labs, chart] = await Promise.all([
+    one(P.subDoc(pid, "medical", "profile")), list(P.sub(pid, "visits")), list(P.sub(pid, "prescriptions")),
+    list(P.sub(pid, "labs")).catch(() => []), (S.clinic?.modules || []).includes("dental") ? one(P.subDoc(pid, "dental", "chart")).catch(() => null) : null,
+  ]);
+  const m = med || {};
+  const meds = activeMeds(rxs);
+  const vs = vis.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
+  const ls = labs.sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 20);
+  const { TOOTH } = await import("./mods.js");
+  const teeth = Object.entries(chart?.teeth || {}).filter(([, t]) => t.status && t.status !== "sound").sort((a, b) => a[0].localeCompare(b[0]));
+  const sec = (t, body) => `<div class="mr-sec"><h4>${t}</h4>${body}</div>`;
+  printDoc(S.pub, "الملف الطبي للمريض", `
+    <table class="kv"><tr><th>الاسم</th><td><b>${esc(p.name)}</b></td></tr>
+      ${ageText(p) ? `<tr><th>العمر</th><td>${esc(ageText(p))}</td></tr>` : ""}
+      <tr><th>الجوال</th><td dir="ltr">${esc(p.phone || "")}</td></tr>
+      ${p.bloodType ? `<tr><th>الزمرة الدموية</th><td>${esc(p.bloodType)}</td></tr>` : ""}</table>
+    ${m.allergies ? `<div class="pf-alert">⚠️ حساسية: ${esc(m.allergies)}</div>` : ""}
+    ${sec("التاريخ المرضي", `<table class="kv">
+      <tr><th>أمراض مزمنة</th><td>${esc(m.chronic || "لا يوجد")}</td></tr>
+      <tr><th>عمليات سابقة</th><td>${esc(m.surgeries || "لا يوجد")}</td></tr>
+      <tr><th>أدوية دائمة</th><td>${esc(m.permanentMeds || "لا يوجد")}</td></tr></table>`)}
+    ${sec("الأدوية الحالية", meds.length ? `<ul>${meds.map((x) => `<li dir="auto"><b>${esc(x.drug)}</b> ${esc(x.dose || "")}${x.times ? ` · ${esc(x.times)}` : ""}</li>`).join("")}</ul>` : `<p class="muted">لا توجد</p>`)}
+    ${sec(`الزيارات${vis.length > 15 ? " (آخر 15)" : ""}`, vs.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>الشكوى</th><th>التشخيص</th><th>العلاج</th></tr></thead><tbody>${vs.map((v) => `<tr><td>${esc(v.date)}</td><td>${esc(v.complaint || "")}</td><td>${esc(v.diagnosis || "")}</td><td>${esc(v.treatment || "")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">لا توجد زيارات</p>`)}
+    ${ls.length ? sec("التحاليل", `<table class="tbl"><thead><tr><th>التاريخ</th><th>التحليل</th><th>النتيجة</th></tr></thead><tbody>${ls.map((l) => `<tr><td>${esc(l.date || "")}</td><td dir="auto">${esc(l.test || "")}</td><td dir="auto">${esc(l.value || "")} ${esc(l.unit || "")}</td></tr>`).join("")}</tbody></table>`) : ""}
+    ${teeth.length ? sec("حالة الأسنان", `<table class="tbl"><tbody>${teeth.map(([n, t]) => `<tr><td>السن ${esc(n)}</td><td>${esc(TOOTH[t.status]?.[0] || t.status)}</td><td>${esc(t.note || "")}</td></tr>`).join("")}</tbody></table>`) : ""}
+    <p class="muted small">ملف صادر عن العيادة بتاريخ ${esc(fmtDate(ymd(), false))}. لا يشمل الملاحظات الخاصة بالطبيب.</p>`, { signer: `د. ${S.profile.name || S.clinic?.doctorName || ""}` });
+  await audit("طباعة الملف الطبي", p.name);
 }
 
 export function maskName(n) {
