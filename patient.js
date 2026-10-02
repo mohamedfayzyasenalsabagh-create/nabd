@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 // تطبيق المريض
 import { addFileDoc, fileData, P, list, one, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, audit, clinicState } from "./fb.js";
 import { makeThumb, tileImg, isImg, showFile,
@@ -447,7 +448,7 @@ async function uploadLab() {
 }
 
 async function signConsent(x) {
-  const r = await modal(`موافقة: ${x.name}`, `<div class="consent-text pre">${esc(x.consentText || "أقرّ بأنني اطّلعت على طبيعة الإجراء وأوافق على إجرائه.")}</div>
+  const r = await modal(`موافقة: ${x.name}`, `<div class="consent-text pre">${esc(x.consentText || t("أقرّ بأنني اطّلعت على طبيعة الإجراء وأوافق على إجرائه."))}</div>
     ${x.details ? `<p class="muted">${esc(x.details)}</p>` : ""}
     <form class="stack">${field("اكتب اسمك الكامل كتوقيع", "name", { required: true, value: me().name })}${field("قرأت النص وأوافق", "ok", { type: "checkbox" })}</form>`, {
     ok: "توقيع",
@@ -496,6 +497,7 @@ async function settings() {
       <li><a href="#/learn"><span>معلومات صحية</span><span class="chev">‹</span></a></li>
       <li><a href="#/doctors" class="dir-link"><span>دليل الأطباء: ابحث عن طبيب واحجز</span><span class="chev">‹</span></a></li>
       <li><button class="cp"><span>تغيير كلمة المرور</span><span class="chev">‹</span></button></li>
+      <li><button class="lng" onclick="window.__setLang(document.documentElement.lang==='en'?'ar':'en')"><span>اللغة</span><span class="muted">${document.documentElement.lang === "en" ? "الإنكليزية" : "العربية"} ⇄ ${document.documentElement.lang === "en" ? "العربية" : "الإنكليزية"}</span></button></li>
       <li><button class="out"><span>تسجيل الخروج</span></button></li>
     </ul>
     <p class="muted small">مفيد إذا كان الجوال مشتركاً: تبقى التفاصيل مخفية حتى تضغط «إظهار».</p>`;

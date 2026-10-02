@@ -247,7 +247,7 @@ export function defaultServices(spec) {
   ];
   const extra = {
     obgyn: [{ id: "echo", name: "إيكو", price: 0, duration: 20, kind: "general" }, { id: "preg", name: "متابعة حمل", price: 0, duration: 20, kind: "general" }, { id: "cosm", name: "استشارة تجميلية", price: 0, duration: 30, kind: "cosmetic" }],
-    dental: [{ id: "fill", name: "حشوة", price: 0, duration: 30, kind: "general" }, { id: "rct", name: "معالجة لبية", price: 0, duration: 45, kind: "general" }, { id: "clean", name: "تنظيف", price: 0, duration: 30, kind: "general" }, { id: "ext", name: "قلع", price: 0, duration: 30, kind: "general" }],
+    dental: [{ id: "fill", name: "حشوة", price: 0, duration: 30, kind: "general" }, { id: "rct", name: "معالجة لبية", price: 0, duration: 45, kind: "general" }, { id: "clean", name: "تنظيف", price: 0, duration: 30, kind: "general" }, { id: "ext", name: "قلع", price: 0, duration: 30, kind: "general" }, { id: "implant", name: "زرع", price: 0, duration: 60, kind: "general" }],
     peds: [{ id: "vac", name: "لقاح", price: 0, duration: 10, kind: "general" }, { id: "growth", name: "متابعة نمو", price: 0, duration: 15, kind: "general" }],
     derm: [{ id: "session", name: "جلسة", price: 0, duration: 30, kind: "cosmetic" }, { id: "consult", name: "استشارة تجميلية", price: 0, duration: 20, kind: "cosmetic" }],
     eye: [{ id: "exam", name: "فحص نظر", price: 0, duration: 20, kind: "general" }],
@@ -390,6 +390,42 @@ export async function resetPatientPassword(phone) {
   for (const pid of od.patientIds || []) await updateDoc(P.patient(pid), { uid: r.uid });
   await audit("إعادة تعيين كلمة مرور مريض", phone);
   return temp;
+}
+
+// تغيير رقم جوال المريض (عند إدخاله خطأً): ينتقل حسابه إلى الرقم الجديد
+export async function changePatientPhone(pid, oldPhone, newPhoneRaw) {
+  const phone = normPhone(newPhoneRaw);
+  if (phone.length < 9) throw new Error("رقم الجوال غير صحيح");
+  if (phone === oldPhone) throw new Error("الرقم الجديد مطابق للرقم الحالي");
+  const pRef = P.patient(pid);
+  const pat = (await getDoc(pRef)).data() || {};
+  const oldUid = pat.uid;
+  const newRef = P.phone(phone);
+  const nph = await getDoc(newRef);
+  let uid, temp = null, shared = false;
+  if (nph.exists() && nph.data().patientUid) {
+    uid = nph.data().patientUid;
+    const u = await getDoc(P.user(uid));
+    if (u.exists() && u.data().active !== false) { await updateDoc(P.user(uid), { patientIds: arrayUnion(pid) }); shared = true; }
+    else uid = null;
+  }
+  if (!uid) {
+    temp = genPassword();
+    const r = await createAuthAt(phone, "p", temp, (nph.exists() && nph.data().patientVer ? nph.data().patientVer + 1 : 1));
+    saveLoginIdx(phone, temp, C, "p");
+    uid = r.uid;
+    await setDoc(P.user(uid), { role: "patient", clinicId: C, phone, patientIds: [pid], active: true, mustChangePassword: true, ver: r.ver, hideSensitive: false, createdAt: serverTimestamp() });
+    await setDoc(newRef, { patientUid: uid, patientVer: r.ver }, { merge: true });
+  }
+  await updateDoc(pRef, { phone, uid });
+  if (oldUid) {
+    const ou = await getDoc(P.user(oldUid));
+    const rest = ((ou.exists() && ou.data().patientIds) || []).filter((x) => x !== pid);
+    if (rest.length) await updateDoc(P.user(oldUid), { patientIds: rest });
+    else { await updateDoc(P.user(oldUid), { patientIds: [], active: false }); await setDoc(P.phone(oldPhone), { patientUid: null }, { merge: true }); }
+  }
+  await audit("تغيير رقم جوال مريض", `${oldPhone} → ${phone}`);
+  return { phone, temp, shared };
 }
 
 // ---------- الموظفون والأطباء ----------

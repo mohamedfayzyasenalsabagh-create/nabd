@@ -483,6 +483,12 @@ export async function bookAppointment({ pid, date, time, type, note = "", doctor
   return { id: ref.id, date, time, doctorId: did };
 }
 
+// أنواع المواعيد: خدمات العيادة، ويضاف «زرع» تلقائياً لعيادات الأسنان
+function typeOptions(services) {
+  const o = services.map((s) => [s.name, s.name]);
+  if ((S.clinic?.modules || []).includes("dental") && !o.some(([v]) => /زرع/.test(v))) o.push(["زرع", "زرع"]);
+  return o;
+}
 export async function bookModal({ pid = "", date = ymd(), time = "", type = "", note = "", title = "موعد جديد", requestId = null, doctorId = null } = {}) {
   const services = S.clinic?.services || [];
   if (!type && services.length) type = services[0].name;
@@ -497,13 +503,16 @@ export async function bookModal({ pid = "", date = ymd(), time = "", type = "", 
     ${field("التاريخ", "date", { type: "date", value: date, required: true })}
     <div class="field"><span>الوقت</span><div class="slots"></div></div>
     ${field("أو أدخل وقتاً يدوياً", "manual", { type: "time", value: "" })}
-    ${select("نوع الموعد", "type", [["", "—"], ...services.map((s) => [s.name, s.name])], type)}
+    ${select("نوع الموعد", "type", [["", "—"], ...typeOptions(services), ["__other", "أخرى (اكتبها)"]], type && !typeOptions(services).some(([v]) => v === type) ? "__other" : type)}
+    <div class="type-other ${type && !typeOptions(services).some(([v]) => v === type) ? "" : "hidden"}">${field("نوع الموعد (أخرى)", "typeOther", { value: type && !typeOptions(services).some(([v]) => v === type) ? type : "", placeholder: "اكتب نوع الموعد" })}</div>
     ${field("ملاحظة", "note", { value: note })}
     <input type="hidden" name="time" value="${esc(time)}">
   </form>`;
   return modal(title, body, {
     ok: "حجز",
     onOpen: (w) => {
+      const ts = w.querySelector("[name=type]");
+      ts?.addEventListener("change", () => { w.querySelector(".type-other").classList.toggle("hidden", ts.value !== "__other"); if (ts.value === "__other") w.querySelector("[name=typeOther]").focus(); });
       const form = w.querySelector("form");
       const drawSlots = async () => {
         const d = form.date.value;
@@ -539,6 +548,7 @@ export async function bookModal({ pid = "", date = ymd(), time = "", type = "", 
     },
     onOk: async (f) => {
       const t = f.manual || f.time;
+      if (f.type === "__other") f.type = (f.typeOther || "").trim() || "أخرى";
       if (!f.pid) { toast("اختر المريض", true); return false; }
       if (!t) { toast("اختر الوقت", true); return false; }
       const r = await bookAppointment({ pid: f.pid, date: f.date, time: t, type: f.type, note: f.note, doctorId: f.doctorId || did });
@@ -807,6 +817,7 @@ function renderMore() {
     ${groups.map(([g, items]) => `<h4 class="menu-h">${g}</h4><ul class="menu">${items.map(([h, t, n]) => `<li><a href="${h}"${h.startsWith("http") ? ' target="_blank" rel="noopener"' : ""}><span>${esc(t)}</span>${n ? `<b class="badge">${n}</b>` : ""}<span class="chev">‹</span></a></li>`).join("")}</ul>`).join("")}
     ${bookLink ? `<h4 class="menu-h">صفحة الحجز</h4><div class="card stack"><code class="copy" dir="ltr">${esc(bookLink)}</code><div class="row gap"><button class="btn small cp">نسخ الرابط</button><a class="btn small" target="_blank" rel="noopener" href="${esc(waLink("", `احجز موعدك في ${S.pub.name}: ${bookLink}`))}">مشاركة</a></div></div>` : ""}
     <ul class="menu"><li><button class="theme"><span>المظهر</span><span class="muted">${{ auto: "تلقائي", light: "فاتح", dark: "داكن" }[localStorage.getItem("theme") || "auto"] || "تلقائي"}</span></button></li>
+    <li><button class="lng" onclick="window.__setLang(document.documentElement.lang==='en'?'ar':'en')"><span>اللغة</span><span class="muted">${document.documentElement.lang === "en" ? "الإنكليزية" : "العربية"} ⇄ ${document.documentElement.lang === "en" ? "العربية" : "الإنكليزية"}</span></button></li>
     <li><button class="out"><span>تسجيل الخروج</span></button></li></ul>
     <p class="muted small center">${esc(PLATFORM())}</p>
     <p class="copyright">${esc(COPYRIGHT)}</p>`;

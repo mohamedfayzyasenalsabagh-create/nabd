@@ -20,6 +20,7 @@
   "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js": "./fake-storage.js"
 } }
 </script>
+<script>try{var L=new URLSearchParams(location.search).get("lang")||localStorage.getItem("lang");if(L==="en"){document.documentElement.lang="en";document.documentElement.dir="ltr";}}catch(e){}</script>
 <script>try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
 <style>
   .demo-bar { position: sticky; top: 0; z-index: 60; background: #0A3F3E; color: #E6F4F3; padding: 8px 12px; padding-top: calc(8px + env(safe-area-inset-top, 0px));
@@ -49,6 +50,8 @@
   </span>
   <button type="button" class="rs" id="demo-reset">إعادة البيانات</button>
   <a href="../#/signup">افتح عيادتك الحقيقية</a>
+  <button type="button" class="rs" onclick="try{localStorage.setItem('lang',document.documentElement.lang==='en'?'ar':'en')}catch(e){};location.reload()">🌐 <span class="lgn">الإنكليزية</span></button>
+  <script>if(document.documentElement.lang==="en")document.querySelector(".lgn").textContent="Arabic";</script>
 </div>
 <div id="app"><div class="center-page"><div class="loading">جارٍ تجهيز العيادة التجريبية…</div></div></div>
 <script src="../qrcode.js"></script>

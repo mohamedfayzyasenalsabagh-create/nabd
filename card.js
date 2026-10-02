@@ -193,7 +193,7 @@ async function editBasic(p) {
     ${field("الاسم", "name", { value: p.name, required: true })}
     <div class="grid2">${field("العمر", "age", { type: "number", value: p.age ?? "" })}${select("فصيلة الدم", "bloodType", ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], p.bloodType)}</div>
     ${field("العنوان", "address", { value: p.address })}
-    <p class="muted small">رقم الجوال هو رقم الدخول، ولا يمكن تغييره من هنا.</p></form>`, {
+    <p class="muted small">رقم الجوال هو رقم الدخول، ويُغيَّر من تبويب «الحساب» ← «تغيير رقم الجوال».</p></form>`, {
     onOk: async (f) => {
       await updateDoc(P.patient(p.id), { name: f.name, age: f.age, bloodType: f.bloodType, address: f.address });
       await audit("تعديل بيانات مريض", f.name);
@@ -968,6 +968,7 @@ async function account(p) {
     <p>رقم الدخول: <b dir="ltr">${esc(p.phone)}</b></p>
     ${siblings.length ? `<p class="muted small">نفس الرقم مسجل لـ: ${siblings.map((s) => esc(s.name)).join("، ")}. كلمة المرور مشتركة بينهم.</p>` : ""}
     <button class="btn rp">كلمة مرور جديدة للمريض</button>
+    <button class="btn chph">تغيير رقم الجوال</button>
     <p class="muted small">عند نسيان كلمة المرور: تُمنح كلمة مرور مؤقتة جديدة وتتوقف القديمة.</p></section>
     <section class="card stack"><h3>البيانات</h3><button class="btn ed">تعديل البيانات الأساسية</button>
       ${isDoctor() ? `<button class="btn pf">طباعة / حفظ الملف كامل PDF</button>` : ""}</section>
@@ -980,6 +981,19 @@ async function account(p) {
   };
   $(".ed").onclick = () => editBasic(p);
   $(".pf")?.addEventListener("click", () => printFile(p));
+  $(".chph").onclick = async () => {
+    const r = await modal("تغيير رقم الجوال", `<form class="stack"><p class="muted small">الرقم الحالي: <b dir="ltr">${esc(p.phone)}</b>. استخدمه عند إدخال الرقم خطأً أو تغيير المريض لرقمه. يصبح الرقم الجديد هو رقم الدخول، ويتوقف الرقم القديم.</p>
+      ${field("رقم الجوال الجديد", "phone", { required: true, attrs: 'dir="ltr" inputmode="tel"', placeholder: "09xxxxxxxx" })}</form>`, { ok: "تغيير" });
+    if (!r) return;
+    try {
+      const { changePatientPhone } = await import("./fb.js");
+      const res = await changePatientPhone(p.id, p.phone, r.phone);
+      p.phone = res.phone;
+      if (res.temp) showCredentials(res.phone, res.temp, p.name);
+      else toast(res.shared ? "تم ربط المريض بحساب الرقم الجديد الموجود مسبقاً" : "تم تغيير الرقم");
+      setTimeout(refresh, 300);
+    } catch (e) { toast(errMsg(e), true); }
+  };
   $(".ar").onclick = async () => {
     await updateDoc(P.patient(p.id), { archived: !p.archived });
     await audit(p.archived ? "إرجاع مريض من الأرشيف" : "أرشفة مريض", p.name);

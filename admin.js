@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 // صفحات المسؤول: الإعدادات، الفريق، الاشتراك، والمخزون
 import { CITIES,
   P, C, list, one, setDoc, updateDoc, addDoc, query, where, serverTimestamp, arrayUnion,
@@ -32,6 +33,8 @@ export async function renderSettings() {
   const mods = new Set(c.modules || []);
   const bookLink = `${baseUrl()}#/b/${c.slug}`;
   main().innerHTML = `<h2 class="page-title">إعدادات العيادة</h2>
+  <section class="card row-between"><div><h3>اللغة</h3><p class="muted small">لغة الواجهة على هذا الجهاز</p></div>
+    <div class="seg"><button type="button" class="${document.documentElement.lang === "en" ? "" : "on"}" onclick="window.__setLang('ar')">العربية</button><button type="button" class="${document.documentElement.lang === "en" ? "on" : ""}" onclick="window.__setLang('en')">الإنكليزية</button></div></section>
   <form id="set" class="stack">
     <section class="card stack"><h3>الهوية</h3>
       <div class="logo-edit"><div class="lg">${logoHtml(c, 88)}</div>
@@ -78,7 +81,7 @@ export async function renderSettings() {
       <p class="muted small">جدول مبدئي قابل للتعديل. راجعه وطابقه مع الجدول الوطني المعتمد قبل الاستخدام.</p>
       <div class="vac-list"></div><button type="button" class="btn small add-vac">+ لقاح</button></section>` : ""}
     <section class="card stack"><h3>نصوص جاهزة</h3>
-      ${field("نص الموافقة على الإجراءات", "consentText", { type: "textarea", value: c.consentText || "أقرّ بأنني اطّلعت على طبيعة الإجراء وفوائده ومخاطره المحتملة، وأُجيب عن جميع أسئلتي، وأوافق على إجرائه بإرادتي.", attrs: "data-novoice" })}
+      ${field("نص الموافقة على الإجراءات", "consentText", { type: "textarea", value: c.consentText || t("أقرّ بأنني اطّلعت على طبيعة الإجراء وفوائده ومخاطره المحتملة، وأُجيب عن جميع أسئلتي، وأوافق على إجرائه بإرادتي."), attrs: "data-novoice" })}
       ${field("ملاحظة أسفل الوصفة", "rxFooter", { value: c.rxFooter ?? "يجب مراسلة العيادة من خلال التطبيق عند ظهور أي أعراض جانبية." })}
     </section>
     <button class="btn primary block" type="submit">حفظ الإعدادات</button>

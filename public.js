@@ -1,5 +1,6 @@
 // الصفحات العامة: الصفحة الرئيسية للمنصة، تسجيل عيادة، دخول المالك، صفحة الحجز، والتحقق من الوصفة
 import { faqHtml, GUIDE_URL } from "./faq.js";
+import { langBtn, t } from "./i18n.js";
 import { query, where, collection, db, CITIES,
   auth, P, one, list, doc, addDoc, getDoc, setClinic, signupClinic, bootstrapOwner, login, cleanSlug,
   SPECIALTIES, DEFAULT_PLANS, TRIAL_DAYS, serverTimestamp, normPhone, sendPasswordResetEmail
@@ -48,7 +49,7 @@ export function landing() {
     ]],
     ["معايير عالمية وأمان", "g4", [
       ["ترميز ICD-10", "التشخيصات بالتصنيف الدولي للأمراض الصادر عن منظمة الصحة العالمية، والأدوية بأسمائها العلمية."],
-      ["وصفة برمز QR", "وصفة مطبوعة بترويسة العيادة، يتحقق منها الصيدلاني بمسح الرمز."],
+      ["وصفة برمز QR", "وصفة مطبوعة باسم العيادة وشعارها، يتحقق منها الصيدلاني بمسح الرمز."],
       ["فريق وصلاحيات", "أطباء وممرضون وسكرتارية ومحاسب بصلاحيات دقيقة، والسكرتارية لا ترى أي تفاصيل طبية."],
     ]],
   ];
@@ -60,7 +61,7 @@ export function landing() {
         <a class="lp-brand" href="#/home">${platformMark(34)}<b>${esc(PLATFORM())}</b></a>
         <nav class="lp-nav">
           <a href="#features" class="hide-sm">الميزات</a><a href="#pricing" class="hide-sm">الأسعار</a><a href="#faq" class="hide-sm">أسئلة شائعة</a>
-          ${themeToggle()}
+          ${langBtn("btn small ghost")}${themeToggle()}
           <button class="btn small ghost enter">دخول</button>
         </nav>
       </header>
