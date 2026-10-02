@@ -83,7 +83,7 @@ export const MODULES = {
 export const DEFAULT_PLANS = [
   { id: "basic", name: "أساسي", price: 15, currency: "$", maxDoctors: 1, maxStaff: 1,
     features: { booking: false, inventory: false, qr: false, multiDoctor: false, multiSpecialty: false },
-    perks: ["طبيب واحد وسكرتيرة واحدة", "المواعيد والملفات الطبية", "تطبيق المرضى", "وحدة الاختصاص"] },
+    perks: ["طبيب واحد وسكرتيرة واحدة", "المواعيد والسجلات الطبية", "تطبيق المرضى", "وحدة الاختصاص"] },
   { id: "pro", name: "احترافي", price: 30, currency: "$", maxDoctors: 3, maxStaff: 3,
     features: { booking: true, inventory: true, qr: true, multiDoctor: true, multiSpecialty: false },
     perks: ["حتى 3 أطباء و3 موظفين", "صفحة حجز عامة", "المخزون", "وصفة برمز QR", "كل ميزات الأساسي"] },

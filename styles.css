@@ -673,3 +673,30 @@ a.stat { color: inherit; text-decoration: none; }
 .rx-ltr .rx-print { padding-left: 22px; padding-right: 0; }
 .rx-ltr .rx-how { text-align: left; color: #2F4344; }
 .rx-ltr .rx-how, .rx-ltr .muted { direction: rtl; unicode-bidi: plaintext; }
+
+/* ---------- البحث بالأمراض والتنبيهات الدوائية ---------- */
+.rx-warns { grid-column: 1 / -1; display: grid; gap: 4px; }
+.rx-warns:empty { display: none; }
+.rx-warn { font-size: .85rem; padding: 6px 10px; border-radius: 8px; font-weight: 600; }
+.rx-warn.no { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger); }
+.rx-warn.care { background: var(--warn-soft); color: var(--warn); }
+.cond-chips { margin: 6px 0; }
+.dz-box { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: var(--accent-soft); }
+.dz-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 190px; overflow: auto; }
+.dz-b { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; padding: 6px 10px; text-align: start; cursor: pointer; font: inherit; display: flex; flex-direction: column; }
+.dz-b small { color: var(--muted); font-size: .72rem; }
+.dz-b:hover { border-color: var(--accent); }
+.dz-tip { margin-top: 8px; background: var(--card); border-radius: 10px; padding: 8px 10px; border-inline-start: 4px solid var(--accent); }
+.dz-tip p { margin: 4px 0; }
+.ds-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.ds-tabs button { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 99px; padding: 6px 14px; font: inherit; cursor: pointer; }
+.ds-tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.ds-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: start; }
+.ds-row:last-child { border-bottom: 0; }
+.ds-row .nm { font-weight: 700; }
+.ds-row .nt { grid-column: 1 / -1; color: var(--muted); font-size: .88rem; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.ds-grid { display: grid; grid-template-columns: repeat(4, auto); gap: 4px; }
+.dz-card h3 { margin: 0 0 4px; }
+.dz-card ol { padding-inline-start: 20px; margin: 6px 0; }
+.dz-card li { margin: 4px 0; }

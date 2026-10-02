@@ -14,9 +14,9 @@ export const isDoctor = () => S.profile.role === "doctor";
 export const isAdmin = () => isDoctor() && !!S.profile.admin;
 export const isNurse = () => S.profile.role === "nurse";
 export const isAcct = () => S.profile.role === "accountant";
-// من يطّلع على الملف الطبي: الطبيب والممرض
+// من يطّلع على السجل الطبي: الطبيب والممرض
 export const canMed = () => isDoctor() || isNurse();
-// من يطّلع على المالية الكاملة: الطبيب والمحاسب
+// من يطّلع على الحسابات الكاملة: الطبيب والمحاسب
 export const canFin = () => isDoctor() || isAcct();
 export const ROLES = { doctor: "طبيب", secretary: "سكرتارية", nurse: "ممرض/ة", accountant: "محاسب" };
 // تعدد الاختصاصات متاح لباقة المراكز الطبية فقط
@@ -58,7 +58,7 @@ export function start() {
     ["home", "الرئيسية", "M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"],
     ["appts", "المواعيد", "M7 3v3M17 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"],
     ["patients", "المرضى", "M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM21 19v-1a4 4 0 0 0-3-3.9M15 3.1a3.5 3.5 0 0 1 0 6.8"],
-    ["money", "المالية", "M3 6h18v12H3zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"],
+    ["money", "الحسابات", "M3 6h18v12H3zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"],
     ["more", "المزيد", "M5 12h.01M12 12h.01M19 12h.01"],
   ];
   const roleName = isAdmin() ? "مسؤول العيادة" : ROLES[S.profile.role] || "السكرتارية";
@@ -133,6 +133,8 @@ async function render() {
       case "team": return isAdmin() ? (await admin()).renderTeam() : renderMore();
       case "subscription": return isAdmin() ? (await admin()).renderSubscription() : renderMore();
       case "reports": return isDoctor() ? await renderReports() : renderMore();
+      case "library": return isDoctor() ? (await import("./medref.js")).renderLibrary() : renderMore();
+      case "druged": return isDoctor() ? (await import("./medref.js")).renderDrugEd() : renderMore();
       case "expenses": return canFin() ? await renderExpenses() : renderMore();
       case "audit": return isAdmin() ? await renderAudit() : renderMore();
       case "backup": return isAdmin() ? renderBackup() : renderMore();
@@ -272,7 +274,7 @@ export async function apptActions(a) {
         ${["arrived", "in", "confirmed"].includes(a.status) ? `<button class="btn" data-act="done">انتهى</button>` : ""}
         ${a.status === "confirmed" ? `<button class="btn" data-act="noshow">لم يحضر</button>` : ""}
         ${doc_ ? `<button class="btn primary" data-act="visit">تسجيل زيارة</button>` : ""}
-        <button class="btn" data-act="card">${canMed() ? "الملف الطبي" : "بيانات المريض"}</button>
+        <button class="btn" data-act="card">${canMed() ? "السجل الطبي" : "بيانات المريض"}</button>
         <button class="btn" data-act="pay">تسجيل دفعة</button>
         <a class="btn" target="_blank" rel="noopener" href="${esc(waLink(a.phone || p.phone, reminderText(a)))}">تذكير عبر واتساب</a>
         <a class="btn" href="tel:${esc(a.phone || p.phone || "")}">اتصال</a>
@@ -744,7 +746,7 @@ async function renderMoney() {
   }
   const monthStart = ymd().slice(0, 8) + "01";
   main().innerHTML = `
-    <div class="row-between"><h2 class="page-title">المالية</h2><a class="btn small primary" href="#/closing">🧾 إغلاق الصندوق اليومي</a></div>
+    <div class="row-between"><h2 class="page-title">الحسابات</h2><a class="btn small primary" href="#/closing">🧾 إغلاق الصندوق اليومي</a></div>
     ${doc_ ? `<div class="row gap wrap">
       <a class="btn small" href="#/money">اليوم</a>
       <a class="btn small" href="#/money?from=${monthStart}&to=${ymd()}">هذا الشهر</a>
@@ -783,7 +785,8 @@ function renderMore() {
       ["#/tv", "شاشة الانتظار (للتلفاز)"],
       ...(feat("inventory") ? [["#/inventory", "المخزون"]] : []),
     ]],
-    ...(acct ? [["المالية", [["#/expenses", "مصاريف العيادة"]]]] : []),
+    ...(d ? [["المرجع الطبي", [["#/library", "وصفات جاهزة حسب المرض"], ["#/druged", "التثقيف الدوائي"]]]] : []),
+    ...(acct ? [["الحسابات", [["#/expenses", "مصاريف العيادة"]]]] : []),
     ...(d ? [["الإدارة", [
       ["#/reports", "التقارير"],
       ["#/expenses", "مصاريف العيادة"],
@@ -1245,7 +1248,7 @@ async function renderAudit() {
 function renderBackup() {
   main().innerHTML = `<h2 class="page-title">النسخة الاحتياطية</h2>
     <section class="card stack">
-      <p>يُنزَّل ملف يحتوي جميع بيانات العيادة (المرضى، الملفات الطبية، المواعيد، المالية، المخزون). احفظه في مكان آمن، مثل Google Drive.</p>
+      <p>يُنزَّل ملف يحتوي جميع بيانات العيادة (المرضى، السجلات الطبية، المواعيد، الحسابات، المخزون). احفظه في مكان آمن، مثل Google Drive.</p>
       <p class="muted small">يُنصح بنسخة أسبوعية. يحتوي الملف بيانات طبية حساسة، فلا ترسله لأحد.</p>
       <button class="btn primary go">تنزيل نسخة احتياطية الآن</button>
       <div class="prog muted"></div>

@@ -1,4 +1,4 @@
-// الملف الطبي الكامل للمريض
+// السجل الطبي الكامل للمريض
 import { addFileDoc, fileData,
   P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, arrayUnion, arrayRemove,
   audit, resetPatientPassword, randId
@@ -51,8 +51,8 @@ export async function renderCard() {
   const tabs = nurse
     ? [["summary", "الملخص"], ...modTabs.filter(([k]) => ["chronic", "peds", "dental", "preg", "eye"].includes(k)), ["visits", "الزيارات"], ["rx", "الوصفات"], ["files", "التحاليل والملفات"], ["appts", "المواعيد"], ["info", "البيانات"], ["msgs", "الرسائل"]]
     : doctor
-    ? [["summary", "الملخص"], ...modTabs, ["visits", "الزيارات"], ["rx", "الوصفات"], ["files", "التحاليل والملفات"], ["private", "ملاحظات خاصة"], ["appts", "المواعيد"], ["money", "المالية"], ["msgs", "الرسائل"], ["account", "الحساب"]]
-    : [["info", "البيانات"], ["appts", "المواعيد"], ["money", "المالية"], ["msgs", "الرسائل"], ["account", "الحساب"]];
+    ? [["summary", "الملخص"], ...modTabs, ["visits", "الزيارات"], ["rx", "الوصفات"], ["files", "التحاليل والملفات"], ["private", "ملاحظات خاصة"], ["appts", "المواعيد"], ["money", "الحسابات"], ["msgs", "الرسائل"], ["account", "الحساب"]]
+    : [["info", "البيانات"], ["appts", "المواعيد"], ["money", "الحسابات"], ["msgs", "الرسائل"], ["account", "الحساب"]];
   const tab = tabs.some(([k]) => k === tabRaw) ? tabRaw : tabs[0][0];
   main().innerHTML = `
     <div class="pt-head">
@@ -63,7 +63,7 @@ export async function renderCard() {
     </div>
     <div class="row gap wrap quick">
       <button class="btn small primary q-book">+ موعد</button>
-      ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button><button class="btn small q-doc">📄 ورقة طبية</button><button class="btn small q-lab">🧪 طلب تحاليل وأشعة</button><button class="btn small q-file">🖨 ملف المريض</button>` : ""}
+      ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button><button class="btn small q-doc">📄 ورقة طبية</button><button class="btn small q-lab">🧪 طلب تحاليل وأشعة</button><button class="btn small q-file">🖨 السجل الطبي</button>` : ""}
       <button class="btn small q-pay">دفعة</button>
       <a class="btn small" href="tel:${esc(p.phone)}">اتصال</a>
       <a class="btn small" target="_blank" rel="noopener" href="${esc(waLink(p.phone, `مرحباً ${p.name}، `))}">واتساب</a>
@@ -88,6 +88,7 @@ export async function renderCard() {
 const tabEl = () => $("#tab");
 export const refresh = () => renderCard();
 
+const condChips = (m, preg) => { const c = [(preg || m.pregnant) && "🤰 حامل", m.lactating && "🍼 مرضع", m.liver && "🟤 مرض كبدي", m.kidney && "🫘 مرض كلوي"].filter(Boolean); return c.length ? `<div class="row gap wrap cond-chips">${c.map((x) => `<span class="chip danger">${x}</span>`).join("")}</div>` : ""; };
 // ---------- الملخص (الطبيبة) ----------
 async function summary(p) {
   const [med, rxs, pregs, vis, apps] = await Promise.all([
@@ -105,6 +106,7 @@ async function summary(p) {
   const next = apps.filter((a) => a.date >= ymd() && !["cancelled", "done", "noshow"].includes(a.status)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
   tabEl().innerHTML = `
     ${m.allergies ? `<div class="alert danger">⚠️ حساسية: ${esc(m.allergies)}</div>` : ""}
+    ${condChips(m, !!g)}
     ${g ? `<section class="card preg-card ${g.highRisk ? "risk" : ""}"><div class="row-between"><h3>🤰 حامل · ${esc(gaText(gc))}</h3>${g.highRisk ? `<span class="chip danger">عالي الخطورة</span>` : ""}</div>
       <p>الولادة المتوقعة: <b>${esc(fmtDate(gc.edd, false))}</b> · ${esc(gc.tri)}</p><a href="#/p/${p.id}/preg" class="btn small">متابعة الحمل</a></section>` : ""}
     <div class="grid2">
@@ -142,12 +144,19 @@ async function summary(p) {
   if ($("#modsum")) $("#modsum").innerHTML = bits;
 }
 
+const isF = (p) => ["f", "female"].includes(p?.sex);
 async function medicalModal(p, m) {
   await modal(women() ? "التاريخ المرضي والنسائي" : "التاريخ المرضي", `<form class="stack">
     ${field("أمراض مزمنة", "chronic", { value: m.chronic })}
     ${field("حساسية", "allergies", { value: m.allergies, hint: "تظهر كتنبيه أحمر أعلى البطاقة" })}
     ${field("عمليات سابقة", "surgeries", { value: m.surgeries })}
     ${field("أدوية دائمة", "permanentMeds", { value: m.permanentMeds })}
+    <fieldset><legend>حالات تؤثر على اختيار الدواء</legend><div class="grid2">
+      ${isF(p) ? `<label class="check"><input type="checkbox" name="pregnant" ${m.pregnant ? "checked" : ""}><span>🤰 حامل</span></label>
+      <label class="check"><input type="checkbox" name="lactating" ${m.lactating ? "checked" : ""}><span>🍼 مرضع</span></label>` : ""}
+      <label class="check"><input type="checkbox" name="liver" ${m.liver ? "checked" : ""}><span>🟤 مرض كبدي</span></label>
+      <label class="check"><input type="checkbox" name="kidney" ${m.kidney ? "checked" : ""}><span>🫘 مرض كلوي</span></label>
+    </div><p class="muted small">عند كتابة دواء غير مناسب لهذه الحالات يظهر تنبيه أحمر في الوصفة.</p></fieldset>
     ${women() ? `<div class="grid4">
       ${field("عدد الحمول", "gravida", { type: "number", value: m.gravida ?? "", attrs: 'min="0"' })}
       ${field("الولادات", "para", { type: "number", value: m.para ?? "", attrs: 'min="0"' })}
@@ -247,7 +256,7 @@ export async function visitModal(pid, appt = null) {
 async function rx(p) {
   const rxs = (await list(P.sub(p.id, "prescriptions"))).sort((a, b) => b.date.localeCompare(a.date));
   tabEl().innerHTML = `<div class="row-between"><h3>الوصفات</h3><button class="btn primary small add">+ وصفة</button></div>
-    ${rxs.length ? rxs.map((r) => `<section class="card"><div class="row-between"><b>${esc(fmtDate(r.date, false))}</b><button class="icon-btn pr" data-id="${r.id}" aria-label="طباعة">🖨</button></div>
+    ${rxs.length ? rxs.map((r) => `<section class="card"><div class="row-between"><b>${esc(fmtDate(r.date, false))}${r.diagnosis ? ` · ${esc(r.diagnosis)}` : ""}</b><button class="icon-btn pr" data-id="${r.id}" aria-label="طباعة">🖨</button></div>
       <ol class="rx-items">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b> ${esc(it.dose || "")}${it.times ? ` · ${esc(freqText(it.times))}` : ""}${it.days ? ` · ${esc(daysText(it.days))}` : ""}${it.note ? `<br><small>${esc(it.note)}</small>` : ""}</li>`).join("")}</ol>
       ${r.note ? `<p class="muted">${esc(r.note)}</p>` : ""}</section>`).join("") : empty("لا توجد وصفات")}`;
   $(".add").onclick = () => rxModal(p.id);
@@ -256,7 +265,14 @@ async function rx(p) {
 
 export async function rxModal(pid) {
   const p = PC.byId[pid];
-  const { COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES } = await import("./drugs.js");
+  const [{ COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES }, { searchDiseases }, { drugWarnings }, med, pregs] = await Promise.all([
+    import("./drugs.js"), import("./diseases.js"), import("./drugsafety.js"),
+    one(P.subDoc(pid, "medical", "profile")).catch(() => null), list(P.sub(pid, "pregnancies")).catch(() => []),
+  ]);
+  const mm = med || {};
+  const flags = { preg: !!mm.pregnant || pregs.some((g) => g.status === "active"), lact: !!mm.lactating, liver: !!mm.liver, kidney: !!mm.kidney };
+  const specKeys = [...(S.clinic?.modules || []), S.clinic?.specialty || ""].filter(Boolean);
+  const warnHtml = (drug) => drugWarnings(drug, flags, mm.allergies || "").map((x) => `<div class="rx-warn ${x.level}">⚠️ ${esc(x.text)}</div>`).join("");
   const known = Object.fromEntries(COMMON_DRUGS.map((d) => [d.drug.toLowerCase(), d]));
   const drugs = [...new Set([...(S.clinic?.drugs || []), ...COMMON_DRUGS.map((d) => d.drug)])];
   const own = S.clinic?.rxTemplates || [];
@@ -270,8 +286,12 @@ export async function rxModal(pid) {
       <div class="qt">${QUICK_TIMES.map(([t, v]) => `<button type="button" class="qt-b" data-v="${v}">${t}</button>`).join("")}</div></div>
     <input type="number" placeholder="أيام" value="${esc(it.days)}" data-k="days" aria-label="المدة بالأيام" min="1">
     <input placeholder="ملاحظة (قبل الأكل…)" value="${esc(it.note)}" data-k="note" aria-label="ملاحظة">
-    <button type="button" class="icon-btn rm" aria-label="حذف">✕</button></div>`;
+    <button type="button" class="icon-btn rm" aria-label="حذف">✕</button><div class="rx-warns">${warnHtml(it.drug)}</div></div>`;
   await modal(`وصفة · ${p?.name || ""}`, `<form class="stack">
+    ${condChips(mm, flags.preg)}${mm.allergies ? `<div class="alert danger">⚠️ حساسية: ${esc(mm.allergies)}</div>` : ""}
+    <div class="dz-box"><label class="field"><span>🔎 ابحث بالمرض لتظهر وصفة جاهزة وفق التوصيات العالمية</span><input class="dz-q" placeholder="مثلاً: فطور فموية، التهاب أذن، جرثومة معدة" autocomplete="off"></label>
+      <div class="dz-res"></div><div class="dz-tip hidden"></div></div>
+    ${field("التشخيص", "diagnosis", { placeholder: "يُطبع في أعلى الوصفة" })}
     ${templates.length ? `<div class="row gap tpl-row"><label class="field grow"><span>وصفة جاهزة</span><select class="tpl"><option value="">— اختر لتعبئة الأدوية —</option>
       ${own.length ? `<optgroup label="وصفاتي المحفوظة">${own.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join("")}</optgroup>` : ""}
       <optgroup label="وصفات مقترحة">${templates.slice(own.length).map((t, i) => `<option value="${own.length + i}">${esc(t.name)}</option>`).join("")}</optgroup></select></label>
@@ -293,6 +313,7 @@ export async function rxModal(pid) {
           // عند اختيار دواء معروف: تعبئة الجرعة والأوقات والمدة المقترحة إن كانت فارغة
           const k = el.dataset.k === "drug" && known[el.value.trim().toLowerCase()];
           if (k) ["dose", "times", "days"].forEach((f) => { if (!it[f] && k[f] !== "") { it[f] = String(k[f]); const inp = row.querySelector(`[data-k="${f}"]`); if (inp) inp.value = it[f]; } });
+          if (el.dataset.k === "drug") row.querySelector(".rx-warns").innerHTML = warnHtml(el.value);
         });
         w.querySelectorAll(".qt-b").forEach((b) => b.onclick = () => {
           const row = b.closest(".rx-row"), inp = row.querySelector('[data-k="times"]');
@@ -301,6 +322,25 @@ export async function rxModal(pid) {
         w.querySelectorAll(".rx-row .rm").forEach((b) => b.onclick = () => { items.splice(b.closest(".rx-row").dataset.i, 1); if (!items.length) items.push({ drug: "", dose: "", times: "", days: "", note: "" }); draw(); });
       };
       draw();
+      // البحث بالأمراض
+      const res = w.querySelector(".dz-res"), tip = w.querySelector(".dz-tip");
+      let found = [];
+      const showRes = () => {
+        const q = w.querySelector(".dz-q").value;
+        found = searchDiseases(q, specKeys).slice(0, q.trim() ? 12 : 10);
+        res.innerHTML = found.length ? `${q.trim() ? "" : `<p class="muted small">الأكثر شيوعاً في اختصاصك:</p>`}<div class="dz-list">${found.map((d, i) => `<button type="button" class="dz-b" data-i="${i}"><b>${esc(d.n)}</b><small dir="ltr">${esc(d.en)}</small></button>`).join("")}</div>` : `<p class="muted small">لا توجد نتيجة. جرب كلمة أخرى أو اكتب الوصفة يدوياً.</p>`;
+        res.querySelectorAll(".dz-b").forEach((b) => b.onclick = () => {
+          const d = found[b.dataset.i];
+          items = d.items.map((x) => ({ drug: x.drug, dose: x.dose, times: x.times, days: x.days ?? "", note: x.note || "" }));
+          const dg = w.querySelector("[name=diagnosis]"); if (dg && !dg.value) dg.value = d.n;
+          tip.innerHTML = `<b>${esc(d.n)}</b>${d.tip ? `<p>${esc(d.tip)}</p>` : ""}<p class="muted small">وصفة مقترحة وفق البروتوكولات العالمية. راجع الجرعة حسب العمر والوزن ووظائف الكلية والكبد والحمل قبل الحفظ.</p>`;
+          tip.classList.remove("hidden");
+          draw();
+          w.querySelector(".rx-rows").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+      };
+      w.querySelector(".dz-q").oninput = showRes;
+      showRes();
       w.querySelector(".add-row").onclick = () => { items.push({ drug: "", dose: "", times: "", days: "", note: "" }); draw(); };
       const del = w.querySelector(".del-tpl");
       w.querySelector(".tpl")?.addEventListener("change", (e) => {
@@ -321,6 +361,8 @@ export async function rxModal(pid) {
         endDate: x.days ? addDays(date, Number(x.days) - 1) : null
       }));
       if (!clean.length) { toast("اكتب دواءً واحداً على الأقل", true); return false; }
+      const risky = clean.filter((x) => drugWarnings(x.drug, flags, mm.allergies || "").some((z) => z.level === "no"));
+      if (risky.length && !(await confirmBox("تنبيه دوائي", `الأدوية التالية يُتجنب استخدامها لهذا المريض: ${risky.map((x) => x.drug).join("، ")}. هل تريد حفظ الوصفة رغم ذلك؟`, "حفظ رغم التنبيه", true))) return false;
       let verify = null;
       if (feat("qr")) {
         verify = randId(16);
@@ -331,13 +373,13 @@ export async function rxModal(pid) {
           });
         } catch (e) { console.warn(e); verify = null; }
       }
-      const ref = await addDoc(P.sub(pid, "prescriptions"), { date, items: clean, note: f.note, verify, doctorName: S.profile.name || "", createdAt: serverTimestamp() });
+      const ref = await addDoc(P.sub(pid, "prescriptions"), { date, items: clean, note: f.note, diagnosis: f.diagnosis || "", verify, doctorName: S.profile.name || "", createdAt: serverTimestamp() });
       const patch = { drugs: arrayUnion(...clean.map((x) => x.drug)) };
       if (f.tplName) patch.rxTemplates = arrayUnion({ name: f.tplName, items: clean.map(({ endDate, ...r }) => r) });
       try { await updateDoc(P.clinic(), patch); } catch {}
       await audit("كتابة وصفة", p?.name);
       toast("حُفظت الوصفة وستظهر لدى المريض");
-      if (await confirmBox("طباعة", "هل تريد طباعة الوصفة؟", "طباعة")) printRx(p, { id: ref.id, date, items: clean, note: f.note, verify, doctorName: S.profile.name });
+      if (await confirmBox("طباعة", "هل تريد طباعة الوصفة؟", "طباعة")) printRx(p, { id: ref.id, date, items: clean, note: f.note, diagnosis: f.diagnosis, verify, doctorName: S.profile.name });
       if (location.hash.startsWith(`#/p/${pid}`)) refresh();
     }
   });
@@ -438,7 +480,7 @@ export async function printPatientFile(pid) {
   const { TOOTH } = await import("./mods.js");
   const teeth = Object.entries(chart?.teeth || {}).filter(([, t]) => t.status && t.status !== "sound").sort((a, b) => a[0].localeCompare(b[0]));
   const sec = (t, body) => `<div class="mr-sec"><h4>${t}</h4>${body}</div>`;
-  printDoc(S.pub, "الملف الطبي للمريض", `
+  printDoc(S.pub, "السجل الطبي للمريض", `
     <table class="kv"><tr><th>الاسم</th><td><b>${esc(p.name)}</b></td></tr>
       ${ageText(p) ? `<tr><th>العمر</th><td>${esc(ageText(p))}</td></tr>` : ""}
       <tr><th>الجوال</th><td dir="ltr">${esc(p.phone || "")}</td></tr>
@@ -453,7 +495,7 @@ export async function printPatientFile(pid) {
     ${ls.length ? sec("التحاليل", `<table class="tbl"><thead><tr><th>التاريخ</th><th>التحليل</th><th>النتيجة</th></tr></thead><tbody>${ls.map((l) => `<tr><td>${esc(l.date || "")}</td><td dir="auto">${esc(l.test || "")}</td><td dir="auto">${esc(l.value || "")} ${esc(l.unit || "")}</td></tr>`).join("")}</tbody></table>`) : ""}
     ${teeth.length ? sec("حالة الأسنان", `<table class="tbl"><tbody>${teeth.map(([n, t]) => `<tr><td>السن ${esc(n)}</td><td>${esc(TOOTH[t.status]?.[0] || t.status)}</td><td>${esc(t.note || "")}</td></tr>`).join("")}</tbody></table>`) : ""}
     <p class="muted small">ملف صادر عن العيادة بتاريخ ${esc(fmtDate(ymd(), false))}. لا يشمل الملاحظات الخاصة بالطبيب.</p>`, { signer: `د. ${S.profile.name || S.clinic?.doctorName || ""}` });
-  await audit("طباعة الملف الطبي", p.name);
+  await audit("طباعة السجل الطبي", p.name);
 }
 
 // الممرض: عرض فقط للملف الطبي، مع إمكانية تسجيل المؤشرات الحيوية
@@ -465,7 +507,7 @@ function nurseReadOnly(tab) {
     b.remove();
   });
   el.querySelectorAll(".arch .t.tap, .t-chip").forEach((x) => { x.onclick = null; x.style.pointerEvents = "none"; });
-  if (!el.querySelector(".ro-note")) el.insertAdjacentHTML("afterbegin", `<p class="muted small ro-note">👁 عرض فقط: التعديل على الملف الطبي للطبيب.</p>`);
+  if (!el.querySelector(".ro-note")) el.insertAdjacentHTML("afterbegin", `<p class="muted small ro-note">👁 عرض فقط: التعديل على السجل الطبي للطبيب.</p>`);
 }
 
 export function maskName(n) {
@@ -474,10 +516,10 @@ export function maskName(n) {
 }
 export function printRx(p, r) {
   const qr = r.verify ? qrSvg(`${location.origin}${location.pathname}#/v/${r.verify}`, 96) : "";
-  printDoc(S.pub, "وصفة طبية", `<p><b>المريض:</b> ${esc(p.name)} ${ageText(p) ? `· ${esc(ageText(p))}` : ""} · <b>التاريخ:</b> ${esc(fmtDate(r.date, false))}</p>
+  printDoc(S.pub, "وصفة طبية", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · <b>العمر:</b> ${esc(ageText(p))}` : ""}${r.diagnosis ? ` · <b>التشخيص:</b> ${esc(r.diagnosis)}` : ""}</p>
     <div class="rx-ltr" dir="ltr"><div class="rx-sign">℞</div>
     <ol class="rx-print">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b><div dir="rtl" class="rx-how">${[esc(it.dose || ""), freqText(it.times), it.days ? `لمدة ${daysText(it.days)}` : ""].filter(Boolean).join(" · ")}</div>${it.note ? `<div class="muted" dir="rtl">${esc(it.note)}</div>` : ""}</li>`).join("")}</ol></div>
-    ${r.note ? `<p>${esc(r.note)}</p>` : ""}${S.clinic?.rxFooter ? `<p class="muted">${esc(S.clinic.rxFooter)}</p>` : ""}`, { qr, signer: r.doctorName ? `د. ${r.doctorName}` : "الطبيب" });
+    ${r.note ? `<p>${esc(r.note)}</p>` : ""}${S.clinic?.rxFooter ? `<p class="muted">${esc(S.clinic.rxFooter)}</p>` : ""}`, { qr, date: r.date, signer: r.doctorName ? `د. ${r.doctorName}` : "الطبيب" });
 }
 
 // ---------- الحمل ----------
@@ -966,7 +1008,7 @@ async function printFile(p) {
   const m = med || {};
   vs.sort((a, b) => b.date.localeCompare(a.date)); rxs.sort((a, b) => b.date.localeCompare(a.date)); labs.sort((a, b) => b.date.localeCompare(a.date));
   await audit("طباعة ملف مريض", p.name);
-  printDoc(S.pub, "الملف الطبي", `
+  printDoc(S.pub, "السجل الطبي", `
     <table class="kv"><tr><th>الاسم</th><td>${esc(p.name)}</td></tr><tr><th>العمر</th><td>${esc(p.age ?? "")}</td></tr><tr><th>الجوال</th><td dir="ltr">${esc(p.phone)}</td></tr><tr><th>فصيلة الدم</th><td>${esc(p.bloodType || "")}</td></tr>
     <tr><th>أمراض مزمنة</th><td>${esc(m.chronic || "—")}</td></tr><tr><th>حساسية</th><td>${esc(m.allergies || "—")}</td></tr><tr><th>عمليات</th><td>${esc(m.surgeries || "—")}</td></tr>
     <tr><th>G / P / A / CS</th><td>${esc(m.gravida ?? "-")} / ${esc(m.para ?? "-")} / ${esc(m.abortions ?? "-")} / ${esc(m.cesareans ?? "-")}</td></tr></table>

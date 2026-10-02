@@ -242,7 +242,7 @@ export function waLink(phone, text) {
 }
 
 // ---------- طباعة ----------
-export function printDoc(pub, title, bodyHtml, { qr = "", signer = "", footer = "" } = {}) {
+export function printDoc(pub, title, bodyHtml, { qr = "", signer = "", footer = "", date = "" } = {}) {
   const w = document.createElement("div");
   w.className = "print-sheet";
   w.innerHTML = `
@@ -263,7 +263,7 @@ export function printDoc(pub, title, bodyHtml, { qr = "", signer = "", footer = 
       <h2 class="doc-title">${esc(title)}</h2>
       <div class="doc-body">${bodyHtml}</div>
       <footer class="doc-sign">
-        <div>التاريخ: ${esc(fmtDate(ymd(), false))}${footer ? `<div class="muted small">${esc(footer)}</div>` : ""}</div>
+        <div>التاريخ: ${esc(fmtDate(date || ymd(), false))}${footer ? `<div class="muted small">${esc(footer)}</div>` : ""}</div>
         ${qr ? `<div class="doc-qr">${qr}<div class="muted small">امسح الرمز للتحقق</div></div>` : ""}
         <div>توقيع ${esc(signer || "الطبيب")}: ....................</div>
       </footer>

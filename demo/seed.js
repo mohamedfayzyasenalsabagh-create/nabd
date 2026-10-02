@@ -6,7 +6,7 @@ export const DEMO = {
   secretary: { uid: "u-sec", phone: "0955000222" },
   patient: { uid: "u-pt", phone: "0944555666", pid: "p01" },
 };
-const VERSION = "6";
+const VERSION = "7";
 
 // أرقام عشوائية ثابتة حتى تبقى البيانات نفسها في كل مرة
 let seed = 20261002;
@@ -176,6 +176,8 @@ export async function ensureSeed() {
   ["pv1", "pv2", "pv3"].forEach((v, i) => C("stats", v, { date: [v1, v2, v3][i], diagnosis: ["التهاب لب سني", "التهاب لب سني", "تراكم جير"][i], patientId: pid }));
   PS(pid, "private", "n1", { type: "note", visitId: "pv1", date: v1, text: "المريض قلق من الألم، يفضّل التخدير الكافي.", createdAt: ts(v1, "16:41") });
   PS(pid, "medical", "profile", { allergies: "البنسلين", chronic: "لا يوجد", meds: "", notes: "", updatedAt: ts(v1) });
+  PS("p02", "medical", "profile", { allergies: "", chronic: "لا يوجد", pregnant: true, updatedAt: ts(v1) });
+  PS("p05", "medical", "profile", { allergies: "", chronic: "قصور كلوي مزمن", kidney: true, updatedAt: ts(v1) });
   // وصفة حالية بمواعيد جرعات (تظهر في تطبيق المريض مع التذكير)
   PS(pid, "prescriptions", "rx1", { date: v3, items: [
     { drug: "Ibuprofen 400mg", dose: "حبة بعد الطعام", times: "09:00, 21:00", days: 14, note: "عند الألم فقط", endDate: addDays(today, 7) },
