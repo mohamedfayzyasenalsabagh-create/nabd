@@ -315,6 +315,31 @@ export const DISEASES = [
   ], "", "جفاف"),
 ];
 
+
+// الترميز الدولي للأمراض ICD-10 (منظمة الصحة العالمية)
+const ICD = {
+  "Oral thrush (infants)": "B37.0", "Oral candidiasis": "B37.0", "Angular cheilitis": "K13.0", "Dental abscess": "K04.7",
+  "Pericoronitis": "K05.2", "Dry socket (alveolar osteitis)": "K10.3", "Necrotising ulcerative gingivitis": "A69.1", "Gingivitis": "K05.1",
+  "Recurrent aphthous ulcers": "K12.0", "Herpes labialis": "B00.1", "Primary herpetic gingivostomatitis": "B00.2", "Dentine hypersensitivity": "K03.8",
+  "Irreversible pulpitis (pain)": "K04.0", "Post-extraction pain": "K08.8", "Endocarditis prophylaxis": "Z29.2", "Denture stomatitis": "K12.1",
+  "Streptococcal pharyngitis": "J02.0", "Acute bacterial sinusitis": "J01.9", "Acute otitis media (adults)": "H66.9", "Otitis externa": "H60.9",
+  "Allergic rhinitis": "J30.4", "Uncomplicated cystitis": "N30.0", "GERD": "K21.9", "Helicobacter pylori": "B98.0", "Renal colic": "N23",
+  "Iron deficiency anaemia": "D50.9", "Vitamin D deficiency": "E55.9", "Hypertension (initiation)": "I10", "Type 2 diabetes (initiation)": "E11.9",
+  "Migraine attack": "G43.9", "Acute low back pain": "M54.5", "Fever (children)": "R50.9", "Acute otitis media (children)": "H66.9",
+  "Streptococcal pharyngitis (children)": "J02.0", "Acute gastroenteritis (children)": "A09", "Community-acquired pneumonia (children, mild)": "J18.9",
+  "Nappy rash": "L22", "Vulvovaginal candidiasis": "B37.3", "Bacterial vaginosis": "N76.0", "Primary dysmenorrhoea": "N94.4",
+  "Pregnancy supplements": "Z34.9", "Nausea and vomiting of pregnancy": "O21.0", "UTI in pregnancy": "O23.1", "Scabies": "B86", "Head lice": "B85.0",
+  "Tinea corporis": "B35.4", "Impetigo": "L01.0", "Mild acne": "L70.0", "Moderate acne": "L70.0", "Acute urticaria": "L50.9",
+  "Atopic dermatitis": "L20.9", "Bacterial conjunctivitis": "H10.0", "Allergic conjunctivitis": "H10.1", "Common cold": "J00", "Influenza": "J11.1",
+  "Asthma exacerbation": "J45.9", "Cellulitis": "L03.9", "Constipation": "K59.0", "Irritable bowel syndrome": "K58.9", "Haemorrhoids": "K64.9",
+  "Acute gout": "M10.9", "BPPV / vertigo": "H81.1", "Insomnia (short term)": "G47.0", "Knee osteoarthritis": "M17.9", "Plantar fasciitis": "M72.2",
+  "Ankle sprain": "S93.4", "Benign prostatic hyperplasia": "N40", "Acute pyelonephritis (outpatient)": "N10", "Croup": "J05.0", "Threadworms": "B80",
+  "Vitamin D prophylaxis (infants)": "Z29.8", "Trichomoniasis": "A59.0", "Lactational mastitis": "O91.2", "Heavy menstrual bleeding": "N92.0",
+  "Seborrhoeic dermatitis": "L21.9", "Pityriasis versicolor": "B36.0", "Common warts": "B07", "Rosacea": "L71.9", "Blepharitis": "H01.0",
+  "Stye (hordeolum)": "H00.0", "Dry eye": "H04.1",
+};
+DISEASES.forEach((d) => { d.icd = ICD[d.en] || ""; });
+
 // بحث يتجاهل الهمزات والتشكيل والتاء المربوطة
 const norm = (s) => String(s || "").toLowerCase().replace(/[ً-ْ]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[()\-،,]/g, " ").replace(/\s+/g, " ").trim();
 export function searchDiseases(q, specKeys = []) {
@@ -322,7 +347,7 @@ export function searchDiseases(q, specKeys = []) {
   const keys = new Set(specKeys.map((k) => MAP[k] || k));
   const nq = norm(q);
   const scored = DISEASES.map((d) => {
-    const hay = norm(`${d.n} ${d.en} ${d.alias}`);
+    const hay = norm(`${d.n} ${d.en} ${d.alias} ${d.icd}`);
     let sc = 0;
     if (nq) { const words = nq.split(" "); if (!words.every((w) => hay.includes(w))) return null; sc += norm(d.n).startsWith(nq) ? 3 : 1; }
     if (d.s.some((x) => keys.has(x))) sc += 2;

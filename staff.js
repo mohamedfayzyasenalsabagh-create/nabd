@@ -135,6 +135,7 @@ async function render() {
       case "reports": return isDoctor() ? await renderReports() : renderMore();
       case "library": return isDoctor() ? (await import("./medref.js")).renderLibrary() : renderMore();
       case "druged": return isDoctor() ? (await import("./medref.js")).renderDrugEd() : renderMore();
+      case "faq": return await renderFaq();
       case "expenses": return canFin() ? await renderExpenses() : renderMore();
       case "audit": return isAdmin() ? await renderAudit() : renderMore();
       case "backup": return isAdmin() ? renderBackup() : renderMore();
@@ -770,6 +771,12 @@ async function renderMoney() {
   $$(".rc").forEach((b) => b.onclick = () => printReceipt(pays.find((p) => p.id === b.dataset.id)));
 }
 
+// ---------- المساعدة ----------
+async function renderFaq() {
+  const { faqHtml, GUIDE_URL } = await import("./faq.js");
+  main().innerHTML = `<h2 class="page-title">أسئلة شائعة</h2>${faqHtml()}
+    <div class="guide-cta"><a class="btn primary" href="${esc(GUIDE_URL)}" target="_blank" rel="noopener">📘 الدليل الشامل لمنصة نبض (PDF)</a></div>`;
+}
 // ---------- المزيد ----------
 function renderMore() {
   const a = isAdmin(), d = isDoctor(), acct = isAcct();
@@ -792,11 +799,12 @@ function renderMore() {
       ["#/expenses", "مصاريف العيادة"],
       ...(a ? [["#/team", "الفريق: الأطباء والموظفون"], ["#/settings", "إعدادات العيادة"], ["#/subscription", "الاشتراك والفواتير"], ["#/audit", "سجل التعديلات"], ["#/backup", "النسخة الاحتياطية"]] : []),
     ]]] : []),
+    ["المساعدة", [["#/faq", "أسئلة شائعة"], [new URL("./guide.pdf", import.meta.url).href, "📘 الدليل الشامل لمنصة نبض (PDF)"]]],
     ["الحساب", [["#/password", "تغيير كلمة المرور"]]],
   ];
   const bookLink = S.clinic?.bookingEnabled && feat("booking") ? `${location.origin}${location.pathname}#/b/${S.clinic.slug}` : "";
   main().innerHTML = `<h2 class="page-title">المزيد</h2>
-    ${groups.map(([g, items]) => `<h4 class="menu-h">${g}</h4><ul class="menu">${items.map(([h, t, n]) => `<li><a href="${h}"><span>${esc(t)}</span>${n ? `<b class="badge">${n}</b>` : ""}<span class="chev">‹</span></a></li>`).join("")}</ul>`).join("")}
+    ${groups.map(([g, items]) => `<h4 class="menu-h">${g}</h4><ul class="menu">${items.map(([h, t, n]) => `<li><a href="${h}"${h.startsWith("http") ? ' target="_blank" rel="noopener"' : ""}><span>${esc(t)}</span>${n ? `<b class="badge">${n}</b>` : ""}<span class="chev">‹</span></a></li>`).join("")}</ul>`).join("")}
     ${bookLink ? `<h4 class="menu-h">صفحة الحجز</h4><div class="card stack"><code class="copy" dir="ltr">${esc(bookLink)}</code><div class="row gap"><button class="btn small cp">نسخ الرابط</button><a class="btn small" target="_blank" rel="noopener" href="${esc(waLink("", `احجز موعدك في ${S.pub.name}: ${bookLink}`))}">مشاركة</a></div></div>` : ""}
     <ul class="menu"><li><button class="theme"><span>المظهر</span><span class="muted">${{ auto: "تلقائي", light: "فاتح", dark: "داكن" }[localStorage.getItem("theme") || "auto"] || "تلقائي"}</span></button></li>
     <li><button class="out"><span>تسجيل الخروج</span></button></li></ul>

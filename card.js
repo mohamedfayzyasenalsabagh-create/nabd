@@ -289,7 +289,7 @@ export async function rxModal(pid) {
     <button type="button" class="icon-btn rm" aria-label="حذف">✕</button><div class="rx-warns">${warnHtml(it.drug)}</div></div>`;
   await modal(`وصفة · ${p?.name || ""}`, `<form class="stack">
     ${condChips(mm, flags.preg)}${mm.allergies ? `<div class="alert danger">⚠️ حساسية: ${esc(mm.allergies)}</div>` : ""}
-    <div class="dz-box"><label class="field"><span>🔎 ابحث بالمرض لتظهر وصفة جاهزة وفق التوصيات العالمية</span><input class="dz-q" placeholder="مثلاً: فطور فموية، التهاب أذن، جرثومة معدة" autocomplete="off"></label>
+    <div class="dz-box"><label class="field"><span>🔎 ابحث بالمرض لتظهر وصفة جاهزة وفق التوصيات العالمية</span><input class="dz-q" placeholder="اسم المرض بالعربي أو الإنكليزي أو رمز ICD-10" autocomplete="off"></label>
       <div class="dz-res"></div><div class="dz-tip hidden"></div></div>
     ${field("التشخيص", "diagnosis", { placeholder: "يُطبع في أعلى الوصفة" })}
     ${templates.length ? `<div class="row gap tpl-row"><label class="field grow"><span>وصفة جاهزة</span><select class="tpl"><option value="">— اختر لتعبئة الأدوية —</option>
@@ -328,11 +328,11 @@ export async function rxModal(pid) {
       const showRes = () => {
         const q = w.querySelector(".dz-q").value;
         found = searchDiseases(q, specKeys).slice(0, q.trim() ? 12 : 10);
-        res.innerHTML = found.length ? `${q.trim() ? "" : `<p class="muted small">الأكثر شيوعاً في اختصاصك:</p>`}<div class="dz-list">${found.map((d, i) => `<button type="button" class="dz-b" data-i="${i}"><b>${esc(d.n)}</b><small dir="ltr">${esc(d.en)}</small></button>`).join("")}</div>` : `<p class="muted small">لا توجد نتيجة. جرب كلمة أخرى أو اكتب الوصفة يدوياً.</p>`;
+        res.innerHTML = found.length ? `${q.trim() ? "" : `<p class="muted small">الأكثر شيوعاً في اختصاصك:</p>`}<div class="dz-list">${found.map((d, i) => `<button type="button" class="dz-b" data-i="${i}"><b>${esc(d.n)}</b><small dir="ltr">${esc(d.en)}${d.icd ? ` · ICD-10 ${esc(d.icd)}` : ""}</small></button>`).join("")}</div>` : `<p class="muted small">لا توجد نتيجة. جرب كلمة أخرى أو اكتب الوصفة يدوياً.</p>`;
         res.querySelectorAll(".dz-b").forEach((b) => b.onclick = () => {
           const d = found[b.dataset.i];
           items = d.items.map((x) => ({ drug: x.drug, dose: x.dose, times: x.times, days: x.days ?? "", note: x.note || "" }));
-          const dg = w.querySelector("[name=diagnosis]"); if (dg && !dg.value) dg.value = d.n;
+          const dg = w.querySelector("[name=diagnosis]"); if (dg && !dg.value) dg.value = d.icd ? `${d.n} (ICD-10: ${d.icd})` : d.n;
           tip.innerHTML = `<b>${esc(d.n)}</b>${d.tip ? `<p>${esc(d.tip)}</p>` : ""}<p class="muted small">وصفة مقترحة وفق البروتوكولات العالمية. راجع الجرعة حسب العمر والوزن ووظائف الكلية والكبد والحمل قبل الحفظ.</p>`;
           tip.classList.remove("hidden");
           draw();

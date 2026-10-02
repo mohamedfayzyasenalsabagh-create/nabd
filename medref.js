@@ -9,7 +9,7 @@ export async function renderLibrary() {
   const { DISEASES, searchDiseases } = await import("./diseases.js");
   const mine = [...(S.clinic?.modules || []), S.clinic?.specialty || ""].filter(Boolean);
   main().innerHTML = `<h2 class="page-title">وصفات جاهزة حسب المرض</h2>
-    <p class="muted">طبيب متخرج حديثاً؟ لا تقلق، يتضمن التطبيق وصفات جاهزة لأكثر الأمراض شيوعاً وفق آخر تحديثات التوصيات العالمية للبروتوكولات العلاجية والدوائية. ابحث باسم المرض، وعند كتابة الوصفة للمريض اكتب اسم المرض في خانة البحث فتُعبأ الوصفة تلقائياً.</p>
+    <p class="muted">طبيب متخرج حديثاً؟ لا تقلق، يتضمن التطبيق وصفات جاهزة لأكثر الأمراض شيوعاً وفق آخر تحديثات التوصيات العالمية للبروتوكولات العلاجية والدوائية. ابحث باسم المرض أو برمز التصنيف الدولي للأمراض ICD-10، وعند كتابة الوصفة للمريض اكتب اسم المرض في خانة البحث فتُعبأ الوصفة تلقائياً.</p>
     <div class="card stack"><input class="lq" placeholder="🔎 ابحث بالمرض: فطور فموية، التهاب أذن، جرب…" autocomplete="off">
       <div class="ds-tabs">${SPECS.map(([k, t]) => `<button data-s="${k}">${t}</button>`).join("")}</div></div>
     <div class="lib-out"></div>
@@ -20,7 +20,7 @@ export async function renderLibrary() {
     const q = $(".lq").value.trim();
     let arr = q ? searchDiseases(q, mine) : DISEASES;
     if (spec) arr = arr.filter((d) => d.s.includes(spec));
-    $(".lib-out").innerHTML = arr.length ? arr.map((d) => `<section class="card dz-card"><h3>${esc(d.n)}</h3><div class="muted small" dir="ltr">${esc(d.en)}</div>
+    $(".lib-out").innerHTML = arr.length ? arr.map((d) => `<section class="card dz-card"><h3>${esc(d.n)}</h3><div class="muted small" dir="ltr">${esc(d.en)}${d.icd ? ` · ICD-10: ${esc(d.icd)}` : ""}</div>
       <ol dir="ltr">${d.items.map((it) => `<li><b>${esc(it.drug)}</b><div dir="rtl">${[esc(it.dose), it.times ? freqText(it.times) : "", it.days ? `لمدة ${daysText(it.days)}` : ""].filter(Boolean).join(" · ")}${it.note ? `<div class="muted small">${esc(it.note)}</div>` : ""}</div></li>`).join("")}</ol>
       ${d.tip ? `<p class="small">${esc(d.tip)}</p>` : ""}</section>`).join("") : `<p class="empty">لا توجد نتيجة</p>`;
   };

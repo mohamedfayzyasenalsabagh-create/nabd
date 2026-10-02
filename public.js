@@ -1,4 +1,5 @@
 // الصفحات العامة: الصفحة الرئيسية للمنصة، تسجيل عيادة، دخول المالك، صفحة الحجز، والتحقق من الوصفة
+import { faqHtml, GUIDE_URL } from "./faq.js";
 import { query, where, collection, db, CITIES,
   auth, P, one, list, doc, addDoc, getDoc, setClinic, signupClinic, bootstrapOwner, login, cleanSlug,
   SPECIALTIES, DEFAULT_PLANS, TRIAL_DAYS, serverTimestamp, normPhone, sendPasswordResetEmail
@@ -36,7 +37,9 @@ export function landing() {
     ["تطبيق للمرضى", "يرى المريض مواعيده وأدويته مع تذكير، ويطلب موعداً، ويرفع تحاليله، ويراسل العيادة."],
     ["صفحة حجز عامة", "رابط خاص بعيادتك يحجز منه المرضى الجدد دون حساب، وتؤكده السكرتارية بضغطة."],
     ["وصفة برمز QR", "وصفة مطبوعة بترويسة العيادة، يتحقق منها الصيدلاني بمسح الرمز."],
-    ["الحسابات والمخزون", "دفعات وأقساط وديون، تقارير شهرية، ومخزون بتنبيه عند النفاد."],
+    ["وصفات جاهزة حسب المرض", "ابحث باسم المرض فتظهر وصفة جاهزة بالعيارات وفق آخر التوصيات العالمية، والطبيب يعدّلها."],
+    ["التثقيف الدوائي", "الأدوية المسموحة والممنوعة في الحمل والإرضاع ولمرضى الكبد والكلى، مع تنبيه أحمر تلقائي في الوصفة."],
+    ["الحسابات والمخزون", "دفعات وأقساط وديون ومصاريف وإغلاق صندوق، تقارير شهرية، ومخزون بتنبيه عند النفاد."],
     ["فريق وصلاحيات", "أطباء وسكرتارية بصلاحيات دقيقة، والسكرتارية لا ترى أي تفاصيل طبية."],
   ];
   const render = () => {
@@ -45,7 +48,7 @@ export function landing() {
       <header class="lp-top">
         <a class="lp-brand" href="#/home">${platformMark(34)}<b>${esc(PLATFORM())}</b></a>
         <nav class="lp-nav">
-          <a href="#features" class="hide-sm">الميزات</a><a href="#pricing" class="hide-sm">الأسعار</a>
+          <a href="#features" class="hide-sm">الميزات</a><a href="#pricing" class="hide-sm">الأسعار</a><a href="#faq" class="hide-sm">أسئلة شائعة</a>
           ${themeToggle()}
           <button class="btn small ghost enter">دخول</button>
         </nav>
@@ -113,6 +116,12 @@ export function landing() {
         </div>
       </section>
 
+      <section id="faq" class="lp-sec">
+        <h2>أسئلة شائعة</h2>
+        ${faqHtml()}
+        <div class="guide-cta"><a class="btn lg" href="${esc(GUIDE_URL)}" target="_blank" rel="noopener">📘 الدليل الشامل لمنصة نبض (PDF)</a></div>
+      </section>
+
       <footer class="lp-foot">
         <div class="lp-brand">${platformMark(26)}<b>${esc(PLATFORM())}</b></div>
         ${pay.whatsapp ? `<p>للتواصل والاستفسار: <b dir="ltr">${esc(pay.whatsapp)}</b></p>` : ""}
@@ -122,7 +131,7 @@ export function landing() {
     </div>`;
     bindTheme(render);
     $(".enter").onclick = () => { location.hash = "#/login"; };
-    $$('.lp a[href^="#features"], .lp a[href^="#pricing"]').forEach((a) => a.onclick = (e) => {
+    $$('.lp a[href^="#features"], .lp a[href^="#pricing"], .lp a[href^="#faq"]').forEach((a) => a.onclick = (e) => {
       e.preventDefault(); document.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth" });
     });
   };
