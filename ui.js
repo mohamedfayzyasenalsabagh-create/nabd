@@ -222,6 +222,9 @@ export function specialtyMark(spec, size = 48) {
 }
 
 // ---------- واتساب ----------
+// طرق قبض المريض
+export const CASH_METHODS = { cash: "نقداً", shamcash: "شام كاش", syriatel: "سيريتل كاش", mtn: "MTN كاش", bank: "تحويل بنكي", card: "بطاقة" };
+export const methodName = (m) => CASH_METHODS[m || "cash"] || m;
 export function waLink(phone, text) {
   let p = String(phone || "").replace(/\D/g, "");
   if (p.startsWith("0")) p = "963" + p.slice(1);

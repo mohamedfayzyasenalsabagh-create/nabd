@@ -151,7 +151,8 @@ export async function renderSettings() {
 // ---------- الفريق ----------
 export async function renderTeam() {
   const users = await list(query(P.users(), where("clinicId", "==", C)));
-  const staff = users.filter((u) => u.active && u.role === "secretary");
+  const staff = users.filter((u) => u.active && ["secretary", "nurse", "accountant"].includes(u.role));
+  const RN = { secretary: "سكرتارية", nurse: "ممرض/ة", accountant: "محاسب" };
   const docUsers = users.filter((u) => u.active && u.role === "doctor");
   const docs = (S.clinic?.doctors || []);
   const act = docs.filter((d) => d.active !== false);
@@ -169,12 +170,17 @@ export async function renderTeam() {
       ${!feat("multiDoctor") ? `<p class="muted small">إضافة أطباء متاحة في الباقة الاحترافية. <a href="#/subscription">الترقية</a></p>` : !canDoc ? `<p class="muted small">وصلت إلى الحد الأقصى لباقتك.</p>` : ""}
     </section>
     <section class="card">
-      <div class="row-between"><h3>السكرتارية <span class="muted small">(${staff.length} من ${maxS})</span></h3>${canStaff ? `<button class="btn primary small adds">+ حساب سكرتارية</button>` : ""}</div>
+      <div class="row-between"><h3>الموظفون <span class="muted small">(${staff.length} من ${maxS})</span></h3>${canStaff ? `<button class="btn primary small adds">+ موظف</button>` : ""}</div>
       ${staff.length ? `<ul class="plain">${staff.map((s) => `<li class="req">
-        <div><b>${esc(s.name)}</b> <span class="muted" dir="ltr">${esc(s.phone)}</span></div>
+        <div><b>${esc(s.name)}</b> <span class="chip">${esc(RN[s.role] || s.role)}</span> <span class="muted" dir="ltr">${esc(s.phone)}</span></div>
         <div class="row gap"><button class="btn small rp" data-uid="${s.id}">كلمة مرور جديدة</button><button class="btn small danger offs" data-uid="${s.id}">إيقاف الحساب</button></div></li>`).join("")}</ul>` : empty("لا يوجد موظفون")}
     </section>
-    <p class="muted small">يسري الإيقاف فوراً، ولا يمكن للحساب الدخول بعده. السكرتارية لا تطّلع على أي بيانات طبية.</p>`;
+    <p class="muted small">يسري الإيقاف فوراً، ولا يمكن للحساب الدخول بعده.</p>
+    <section class="card"><h3>صلاحيات كل دور</h3><ul class="plain small role-help">
+      <li><b>سكرتارية:</b> المواعيد والمرضى والدفعات اليومية، دون أي بيانات طبية.</li>
+      <li><b>ممرض/ة:</b> ما تفعله السكرتارية، ويطّلع على الملف الطبي للعرض فقط (دون الملاحظات الخاصة)، ويسجّل المؤشرات الحيوية.</li>
+      <li><b>محاسب:</b> ما تفعله السكرتارية، مع المالية كاملة بأي فترة، ومصاريف العيادة، دون أي بيانات طبية.</li>
+    </ul></section>`;
   $(".addd")?.addEventListener("click", async () => {
     const r = await modal("إضافة طبيب", `<form class="stack">${field("الاسم", "name", { required: true })}${field("اللقب / الاختصاص", "title")}${field("رقم الجوال (للدخول)", "phone", { required: true, attrs: 'dir="ltr" inputmode="tel"' })}</form>`, {
       ok: "إضافة",
@@ -189,8 +195,8 @@ export async function renderTeam() {
     render();
   });
   $(".adds")?.addEventListener("click", async () => {
-    const r = await modal("حساب سكرتارية جديد", `<form class="stack">${field("الاسم", "name", { required: true })}${field("رقم الجوال", "phone", { required: true, attrs: 'dir="ltr" inputmode="tel"' })}</form>`, {
-      ok: "إنشاء", onOk: async (f) => ({ ...(await createStaff(f.name, f.phone, "secretary")), name: f.name })
+    const r = await modal("موظف جديد", `<form class="stack">${field("الاسم", "name", { required: true })}${field("رقم الجوال", "phone", { required: true, attrs: 'dir="ltr" inputmode="tel"' })}${select("الدور", "role", Object.entries(RN), "secretary")}</form>`, {
+      ok: "إنشاء", onOk: async (f) => ({ ...(await createStaff(f.name, f.phone, ["secretary", "nurse", "accountant"].includes(f.role) ? f.role : "secretary")), name: f.name })
     });
     if (r) staffCred(r.phone, r.temp, r.name);
     render();
@@ -327,7 +333,7 @@ export async function renderInventory() {
       <div class="stat warn"><b>${items.filter(low).length}</b><span>عند الحد الأدنى</span></div>
       <div class="stat"><b>${items.filter(exp).length}</b><span>ينتهي خلال شهرين</span></div></div>
     <section class="card">${items.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>الصنف</th><th>الكمية</th><th>الحد الأدنى</th><th>الصلاحية</th><th></th></tr></thead><tbody>
-      ${items.map((i) => `<tr class="${low(i) ? "row-warn" : ""}"><td><b>${esc(i.name)}</b>${i.note ? `<br><small class="muted">${esc(i.note)}</small>` : ""}</td>
+      ${items.map((i) => `<tr class="${low(i) ? "row-warn" : ""}"><td><b>${esc(i.name)}</b>${i.note ? `<br><small class="muted">${esc(i.note)}</small>` : ""}${(i.uses || []).length ? `<br><small class="muted">🔗 يُخصم مع: ${esc(i.uses.map((u) => `${u.service} (${u.n})`).join("، "))}</small>` : ""}</td>
         <td><b>${esc(i.qty)}</b> ${esc(i.unit || "")}</td><td>${esc(i.min ?? "")}</td>
         <td>${i.expiry ? `<span class="${exp(i) ? "danger-t" : ""}">${esc(i.expiry)}</span>` : "—"}</td>
         <td><button class="btn small mv" data-id="${i.id}">حركة</button></td></tr>`).join("")}</tbody></table></div>` : empty("لم تُضف أصناف بعد")}</section>`;
@@ -341,8 +347,14 @@ async function itemModal(i = {}) {
     <div class="grid2">${field("الحد الأدنى للتنبيه", "min", { type: "number", value: i.min ?? 0, attrs: 'step="any"' })}${field("تاريخ الصلاحية", "expiry", { type: "date", value: i.expiry || "" })}</div>
     ${field("سعر الشراء للوحدة", "cost", { type: "number", value: i.cost ?? "", attrs: 'step="any"' })}
     ${field("ملاحظة", "note", { value: i.note || "" })}
+    ${(S.clinic?.services || []).length ? `<details ${(i.uses || []).length ? "open" : ""}><summary><b>يُخصم تلقائياً عند إنجاز الخدمات</b></summary>
+      <p class="muted small">اكتب الكمية التي تُستهلك من هذا الصنف في كل خدمة. عند تحويل الموعد إلى «انتهى» تُخصم الكمية تلقائياً.</p>
+      <div class="use-grid">${S.clinic.services.map((sv, k) => `<label class="field inline"><span>${esc(sv.name)}</span><input type="number" name="use_${k}" min="0" step="any" value="${esc((i.uses || []).find((u) => u.service === sv.name)?.n ?? "")}" placeholder="0"></label>`).join("")}</div></details>` : ""}
   </form>`, {
-    onOk: async (f) => {
+    onOk: async (f0) => {
+      const uses = [], f = {};
+      Object.entries(f0).forEach(([k, v]) => { if (k.startsWith("use_")) { const sv = S.clinic.services[Number(k.slice(4))]; if (sv && Number(v) > 0) uses.push({ service: sv.name, n: Number(v) }); } else f[k] = v; });
+      f.uses = uses;
       if (i.id) await updateDoc(P.colDoc("inventory", i.id), { ...f, updatedAt: serverTimestamp() });
       else await addDoc(P.col("inventory"), { ...f, moves: [], archived: false, createdAt: serverTimestamp() });
       await audit(i.id ? "تعديل صنف في المخزون" : "إضافة صنف للمخزون", f.name);

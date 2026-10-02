@@ -411,7 +411,7 @@ export async function createStaff(name, phoneRaw, role = "secretary", title = ""
     mustChangePassword: true, ver: r.ver, createdAt: serverTimestamp()
   });
   await setDoc(P.phone(phone), { staffUid: r.uid, staffVer: r.ver }, { merge: true });
-  await audit(role === "doctor" ? "إضافة طبيب" : "إنشاء حساب سكرتارية", name);
+  await audit(role === "doctor" ? "إضافة طبيب" : "إنشاء حساب موظف", name);
   return { temp, uid: r.uid, phone };
 }
 

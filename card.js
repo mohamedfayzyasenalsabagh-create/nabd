@@ -3,12 +3,12 @@ import { addFileDoc, fileData,
   P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, arrayUnion, arrayRemove,
   audit, resetPatientPassword, randId
 } from "./fb.js";
-import { makeThumb, tileImg, isImg, showFile,
+import { makeThumb, tileImg, isImg, showFile, CASH_METHODS,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, waLink, empty, compressImage, pickFile, printDoc, daysBetween, qrSvg
 } from "./ui.js";
 import { S } from "./app.js";
-import { PC, isDoctor, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName } from "./staff.js";
+import { PC, isDoctor, isNurse, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName } from "./staff.js";
 const mods = () => import("./mods.js");
 const women = () => hasMod("preg") || hasMod("gyn");
 
@@ -47,7 +47,10 @@ export async function renderCard() {
     ["preg", "الحمل", hasMod("preg")], ["gyn", "التاريخ النسائي والعقم", hasMod("gyn")],
     ["cosm", S.clinic?.specialty === "obgyn" ? "التجميل" : "الإجراءات والجلسات", hasMod("cosm")],
   ].filter((x) => x[2]).map(([k, t]) => [k, t]);
-  const tabs = doctor
+  const nurse = isNurse();
+  const tabs = nurse
+    ? [["summary", "الملخص"], ...modTabs.filter(([k]) => ["chronic", "peds", "dental", "preg", "eye"].includes(k)), ["visits", "الزيارات"], ["rx", "الوصفات"], ["files", "التحاليل والملفات"], ["appts", "المواعيد"], ["info", "البيانات"], ["msgs", "الرسائل"]]
+    : doctor
     ? [["summary", "الملخص"], ...modTabs, ["visits", "الزيارات"], ["rx", "الوصفات"], ["files", "التحاليل والملفات"], ["private", "ملاحظات خاصة"], ["appts", "المواعيد"], ["money", "المالية"], ["msgs", "الرسائل"], ["account", "الحساب"]]
     : [["info", "البيانات"], ["appts", "المواعيد"], ["money", "المالية"], ["msgs", "الرسائل"], ["account", "الحساب"]];
   const tab = tabs.some(([k]) => k === tabRaw) ? tabRaw : tabs[0][0];
@@ -77,8 +80,9 @@ export async function renderCard() {
   $(".q-file")?.addEventListener("click", () => printPatientFile(pid));
   const T = { summary, info: infoTab, visits, rx, preg, gyn, cosm, files, private: privateTab, appts, money: moneyTab, msgs, account };
   try {
-    if (!T[tab]) { const M = await mods(); await M[tab](p, tabEl(), refresh); return; }
+    if (!T[tab]) { const M = await mods(); await M[tab](p, tabEl(), refresh); if (nurse) nurseReadOnly(tab); return; }
     await T[tab](p);
+    if (nurse) nurseReadOnly(tab);
   } catch (e) { console.error(e); $("#tab").innerHTML = `<p class="alert">${esc(errMsg(e))}</p>`; }
 }
 const tabEl = () => $("#tab");
@@ -230,7 +234,7 @@ export async function visitModal(pid, appt = null) {
       });
       if (f.privateNote) await addDoc(P.sub(pid, "private"), { type: "note", visitId: ref.id, date: f.date, text: f.privateNote, createdAt: serverTimestamp() });
       await setDoc(P.colDoc("stats", ref.id), { date: f.date, diagnosis: f.diagnosis || "", patientId: pid });
-      if (appt && f.markDone) await updateDoc(P.colDoc("appointments", appt.id), { status: "done" });
+      if (appt && f.markDone) { await updateDoc(P.colDoc("appointments", appt.id), { status: "done" }); (await import("./staff.js")).consumeForAppt(appt); }
       await audit("تسجيل زيارة", p?.name);
       toast("حُفظت الزيارة");
       if (await confirmBox("وصفة", "هل تريد كتابة وصفة لهذه الزيارة؟", "كتابة وصفة")) await rxModal(pid);
@@ -450,6 +454,18 @@ export async function printPatientFile(pid) {
     ${teeth.length ? sec("حالة الأسنان", `<table class="tbl"><tbody>${teeth.map(([n, t]) => `<tr><td>السن ${esc(n)}</td><td>${esc(TOOTH[t.status]?.[0] || t.status)}</td><td>${esc(t.note || "")}</td></tr>`).join("")}</tbody></table>`) : ""}
     <p class="muted small">ملف صادر عن العيادة بتاريخ ${esc(fmtDate(ymd(), false))}. لا يشمل الملاحظات الخاصة بالطبيب.</p>`, { signer: `د. ${S.profile.name || S.clinic?.doctorName || ""}` });
   await audit("طباعة الملف الطبي", p.name);
+}
+
+// الممرض: عرض فقط للملف الطبي، مع إمكانية تسجيل المؤشرات الحيوية
+function nurseReadOnly(tab) {
+  if (["chronic", "appts", "info", "msgs"].includes(tab)) return;
+  const el = tabEl(); if (!el) return;
+  el.querySelectorAll("button, .btn").forEach((b) => {
+    if (b.closest(".tile, .file-tile, .arch, details > summary") || b.matches(".tile, .file-tile, .t-chip, .pf, [data-file], [data-view]")) return;
+    b.remove();
+  });
+  el.querySelectorAll(".arch .t.tap, .t-chip").forEach((x) => { x.onclick = null; x.style.pointerEvents = "none"; });
+  if (!el.querySelector(".ro-note")) el.insertAdjacentHTML("afterbegin", `<p class="muted small ro-note">👁 عرض فقط: التعديل على الملف الطبي للطبيب.</p>`);
 }
 
 export function maskName(n) {
@@ -863,9 +879,9 @@ async function moneyTab(p) {
     ${pays.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>الخدمة</th><th>المطلوب</th><th>المدفوع</th><th></th></tr></thead><tbody>${pays.map((x) => `<tr><td>${esc(x.date)}</td><td>${esc(x.service || "")}</td><td>${esc(money(x.total, cur()))}</td><td>${esc(money(x.paid, cur()))}</td><td><button class="icon-btn rc" data-id="${x.id}" aria-label="إيصال">🧾</button></td></tr>`).join("")}</tbody></table>` : empty("لا توجد دفعات")}`;
   $(".add").onclick = () => paymentModal(p.id);
   $(".settle")?.addEventListener("click", async () => {
-    const r = await modal("تسديد", `<form>${field("المبلغ", "paid", { type: "number", value: t - pd, required: true, attrs: 'min="1"' })}</form>`);
+    const r = await modal("تسديد", `<form class="stack">${field("المبلغ", "paid", { type: "number", value: t - pd, required: true, attrs: 'min="1"' })}${select("طريقة الدفع", "method", Object.entries(CASH_METHODS), "cash")}</form>`);
     if (!r) return;
-    const rec = { patientId: p.id, patientName: p.name, service: "تسديد دين", total: 0, paid: r.paid, date: ymd(), note: "", by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp() };
+    const rec = { patientId: p.id, patientName: p.name, service: "تسديد دين", total: 0, paid: r.paid, date: ymd(), method: r.method || "cash", note: "", by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp() };
     const ref = await addDoc(P.col("payments"), rec);
     await audit("تسديد دين", `${p.name} ${r.paid}`);
     refresh();

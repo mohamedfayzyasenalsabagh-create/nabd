@@ -665,3 +665,5 @@ a.stat { color: inherit; text-decoration: none; }
 .q-tot { margin-top: 10px; }
 .q-final th, .q-final td { font-weight: 800; color: var(--accent); font-size: 1.1rem; border-top: 2px solid var(--accent); padding-top: 8px; }
 .q-accept { margin-top: 28px; }
+.stats .stat .lbl { order: 2; color: var(--muted); font-size: .85rem; } .stats .stat { display: flex; flex-direction: column; } .card h4 { margin: 0 0 8px; }
+.use-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px 12px; } .use-grid input { width: 90px; }

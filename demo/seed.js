@@ -6,7 +6,7 @@ export const DEMO = {
   secretary: { uid: "u-sec", phone: "0955000222" },
   patient: { uid: "u-pt", phone: "0944555666", pid: "p01" },
 };
-const VERSION = "4";
+const VERSION = "5";
 
 // أرقام عشوائية ثابتة حتى تبقى البيانات نفسها في كل مرة
 let seed = 20261002;
@@ -73,6 +73,8 @@ export async function ensureSeed() {
   const account = (uid, email, data) => { users[email] = { uid, email, pw }; put(`users/${uid}`, { active: true, mustChangePassword: false, ver: 1, clinicId: cid, createdAt: ts(addDays(today, -100)), ...data }); };
   account(DEMO.doctor.uid, DEMO.doctor.email, { role: "doctor", admin: true, doctorId, name: "سامر الحلبي", phone: "0933000111", email: DEMO.doctor.email });
   account(DEMO.secretary.uid, `s${DEMO.secretary.phone}@clinic-${cid}.app`, { role: "secretary", admin: false, doctorId: null, name: "رنا", title: "", phone: DEMO.secretary.phone });
+  account("u-nur", `s0955000333@clinic-${cid}.app`, { role: "nurse", admin: false, doctorId: null, name: "هيا", title: "", phone: "0955000333" });
+  account("u-acc", `s0955000444@clinic-${cid}.app`, { role: "accountant", admin: false, doctorId: null, name: "ماهر", title: "", phone: "0955000444" });
   account(DEMO.patient.uid, `p${DEMO.patient.phone}@clinic-${cid}.app`, { role: "patient", phone: DEMO.patient.phone, patientIds: [DEMO.patient.pid], hideSensitive: false, consentAt: ts(addDays(today, -60)) });
   C("phones", DEMO.secretary.phone, { staffUid: DEMO.secretary.uid, staffVer: 1 });
   C("phones", DEMO.patient.phone, { patientUid: DEMO.patient.uid, patientVer: 1 });
@@ -106,7 +108,8 @@ export async function ensureSeed() {
   };
   const addPay = (date, p, svc, partial = false) => {
     const total = svc.price, paid = partial ? Math.round(total / 2 / 5000) * 5000 : total;
-    C("payments", `pay${++nPay}`, { patientId: p.id, patientName: p.name, service: svc.name, total, paid, date, note: "", planId: null, by: DEMO.secretary.uid, byName: "رنا", createdAt: ts(date, "13:00") });
+    const r = rnd(), method = r < .62 ? "cash" : r < .85 ? "shamcash" : r < .95 ? "syriatel" : "bank";
+    C("payments", `pay${++nPay}`, { patientId: p.id, patientName: p.name, service: svc.name, total, paid, date, method, note: "", planId: null, by: r < .8 ? DEMO.secretary.uid : DEMO.doctor.uid, byName: r < .8 ? "رنا" : "سامر الحلبي", createdAt: ts(date, `${10 + Math.floor(rnd() * 7)}:${pad(Math.floor(rnd() * 60))}`) });
   };
   const addVisit = (date, p, svc, apptId) => {
     const diag = SVC_DIAG[svc.name] ?? pick(DIAG);
@@ -211,7 +214,8 @@ export async function ensureSeed() {
 
   // ---------- المخزون ----------
   const inv = [["بنج موضعي (Lidocaine)", 40, 20, "علبة"], ["حشوات كومبوزيت", 6, 10, "سيرنغ"], ["قفازات طبية", 12, 5, "علبة"], ["إبر تخدير", 150, 50, "إبرة"], ["مواد تبييض", 3, 2, "عبوة"]];
-  inv.forEach(([n, qty, min, unit], i) => C("inventory", `inv${i}`, { name: n, qty, unit, min, expiry: i === 0 ? addDays(today, 25) : "", cost: null, note: "", moves: [], archived: false, createdAt: ts(addDays(today, -40)) }));
+  const USES = [[{ service: "حشوة", n: 1 }, { service: "معالجة لبية", n: 2 }, { service: "قلع", n: 1 }], [{ service: "حشوة", n: 1 }], [{ service: "معاينة", n: 1 }, { service: "تنظيف", n: 1 }], [], [{ service: "تبييض", n: 1 }]];
+  inv.forEach(([n, qty, min, unit], i) => C("inventory", `inv${i}`, { name: n, qty, unit, min, expiry: i === 0 ? addDays(today, 25) : "", cost: null, note: "", uses: USES[i] || [], moves: [], archived: false, createdAt: ts(addDays(today, -40)) }));
 
   // ---------- المصاريف (للشهرين الحالي والسابق) ----------
   const monthStart = (off) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + off); return ymd(d); };

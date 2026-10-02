@@ -260,3 +260,21 @@ test("الدعوات: مسؤول العيادة لا يعدّل بيانات ا�
   await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), { name: "A2" }));
   await assertSucceeds(updateDoc(doc(as("own1"), "clinics/A"), { referrals: 1, referralRewarded: true }));
 });
+
+test("الممرض يقرأ الملف الطبي دون الملاحظات الخاصة ويسجل المؤشرات، والمحاسب للمالية فقط", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "users/nur_A"), { active: true, role: "nurse", admin: false, clinicId: "A" });
+    await setDoc(doc(db, "users/acc_A"), { active: true, role: "accountant", admin: false, clinicId: "A" });
+    await setDoc(doc(db, "clinics/A/expenses/e1"), { amount: 1 });
+  });
+  await assertSucceeds(getDoc(doc(as("nur_A"), "clinics/A/patients/p1/visits/v1")));
+  await assertFails(getDoc(doc(as("nur_A"), "clinics/A/patients/p1/private/n1")));
+  await assertSucceeds(setDoc(doc(as("nur_A"), "clinics/A/patients/p1/vitals/x"), { sys: 120 }));
+  await assertFails(setDoc(doc(as("nur_A"), "clinics/A/patients/p1/visits/x"), { date: "2026-10-01" }));
+  await assertFails(getDoc(doc(as("nur_A"), "clinics/A/expenses/e1")));
+  await assertSucceeds(getDoc(doc(as("acc_A"), "clinics/A/expenses/e1")));
+  await assertSucceeds(getDoc(doc(as("acc_A"), "clinics/A/appointments/a1")));
+  await assertFails(getDoc(doc(as("acc_A"), "clinics/A/patients/p1/visits/v1")));
+  await assertSucceeds(setDoc(doc(as("adm_A"), "users/new_n"), { role: "nurse", admin: false, clinicId: "A", active: true }));
+});

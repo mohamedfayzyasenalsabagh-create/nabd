@@ -4,7 +4,7 @@ import { SPECIALTIES, fileData,
   serverTimestamp, runTransaction, arrayUnion, arrayRemove, orderBy, limit, registerPatient, audit,
   normPhone, clinicState, tsMs
 } from "./fb.js";
-import { APP_URL, COPYRIGHT,
+import { APP_URL, COPYRIGHT, CASH_METHODS, methodName,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, logoHtml, waLink, debounce, download, empty, DAYS, daysBetween, printDoc
 } from "./ui.js";
@@ -12,6 +12,13 @@ import { S, logout, showChangePassword, PLATFORM } from "./app.js";
 
 export const isDoctor = () => S.profile.role === "doctor";
 export const isAdmin = () => isDoctor() && !!S.profile.admin;
+export const isNurse = () => S.profile.role === "nurse";
+export const isAcct = () => S.profile.role === "accountant";
+// من يطّلع على الملف الطبي: الطبيب والممرض
+export const canMed = () => isDoctor() || isNurse();
+// من يطّلع على المالية الكاملة: الطبيب والمحاسب
+export const canFin = () => isDoctor() || isAcct();
+export const ROLES = { doctor: "طبيب", secretary: "سكرتارية", nurse: "ممرض/ة", accountant: "محاسب" };
 // تعدد الاختصاصات متاح لباقة المراكز الطبية فقط
 export const multiSpec = () => !!S.clinic?.features?.multiSpecialty || S.clinic?.plan === "center";
 export const specMods = (spec = S.clinic?.specialty) => SPECIALTIES[spec]?.modules || [];
@@ -54,7 +61,7 @@ export function start() {
     ["money", "المالية", "M3 6h18v12H3zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"],
     ["more", "المزيد", "M5 12h.01M12 12h.01M19 12h.01"],
   ];
-  const roleName = isAdmin() ? "مسؤول العيادة" : isDoctor() ? "طبيب" : "السكرتارية";
+  const roleName = isAdmin() ? "مسؤول العيادة" : ROLES[S.profile.role] || "السكرتارية";
   $("#app").innerHTML = `
     <header class="topbar">
       <a href="#/" class="tb-brand">${logoHtml(S.pub, 36)}<span>${esc(S.pub.name || "العيادة")}</span></a>
@@ -118,6 +125,7 @@ async function render() {
       case "waitlist": return await renderWaitlist();
       case "remind": return await renderRemind();
       case "debts": return await renderDebts();
+      case "closing": return await renderClosing();
       case "messages": return await renderMessages();
       case "tv": return renderTv();
       case "inventory": return feat("inventory") ? (await admin()).renderInventory() : renderMore();
@@ -125,7 +133,7 @@ async function render() {
       case "team": return isAdmin() ? (await admin()).renderTeam() : renderMore();
       case "subscription": return isAdmin() ? (await admin()).renderSubscription() : renderMore();
       case "reports": return isDoctor() ? await renderReports() : renderMore();
-      case "expenses": return isDoctor() ? await renderExpenses() : renderMore();
+      case "expenses": return canFin() ? await renderExpenses() : renderMore();
       case "audit": return isAdmin() ? await renderAudit() : renderMore();
       case "backup": return isAdmin() ? renderBackup() : renderMore();
       case "password": return showChangePassword(false);
@@ -264,7 +272,7 @@ export async function apptActions(a) {
         ${["arrived", "in", "confirmed"].includes(a.status) ? `<button class="btn" data-act="done">انتهى</button>` : ""}
         ${a.status === "confirmed" ? `<button class="btn" data-act="noshow">لم يحضر</button>` : ""}
         ${doc_ ? `<button class="btn primary" data-act="visit">تسجيل زيارة</button>` : ""}
-        <button class="btn" data-act="card">${doc_ ? "الملف الطبي" : "بيانات المريض"}</button>
+        <button class="btn" data-act="card">${canMed() ? "الملف الطبي" : "بيانات المريض"}</button>
         <button class="btn" data-act="pay">تسجيل دفعة</button>
         <a class="btn" target="_blank" rel="noopener" href="${esc(waLink(a.phone || p.phone, reminderText(a)))}">تذكير عبر واتساب</a>
         <a class="btn" href="tel:${esc(a.phone || p.phone || "")}">اتصال</a>
@@ -282,11 +290,12 @@ export async function apptActions(a) {
         await audit(`تغيير حالة موعد إلى ${STATUS[act]}`, a.patientName);
         toast("تم");
         if (act === "in") await callNumber(patch.queueNo || a.queueNo, apptDoc(a));
+        if (act === "done") consumeForAppt(a);
       } else if (act === "visit") {
         const m = await import("./card.js");
         return m.visitModal(a.patientId, a);
       } else if (act === "card") {
-        return go(`#/p/${a.patientId}/${doc_ ? "summary" : "info"}`);
+        return go(`#/p/${a.patientId}/${canMed() ? "summary" : "info"}`);
       } else if (act === "pay") {
         return paymentModal(a.patientId, a.type);
       } else if (act === "move") {
@@ -350,6 +359,59 @@ async function renderRemind() {
     updateDoc(P.colDoc("appointments", b.dataset.id), { remindedAt: serverTimestamp() }).catch(() => {});
     const n = $$(".remind-list li.done").length; const c = $(".chip"); if (c) c.textContent = `أُرسل ${n} من ${arr.length}`;
   }));
+}
+
+// ---------- خصم المواد من المخزون تلقائياً عند إنجاز الخدمة ----------
+export async function consumeForAppt(a) {
+  if (!a || a.consumed || !feat("inventory") || !a.type) return;
+  try {
+    const items = (await list(P.col("inventory"))).filter((i) => !i.archived && (i.uses || []).some((u) => u.service === a.type && Number(u.n) > 0));
+    if (!items.length) return;
+    const low = [];
+    for (const i of items) {
+      const n = Number(i.uses.find((u) => u.service === a.type).n);
+      const qty = Math.max(0, Number(i.qty || 0) - n);
+      await updateDoc(P.colDoc("inventory", i.id), { qty, moves: [...(i.moves || []).slice(-49), { date: ymd(), type: "out", n, reason: `تلقائي: ${a.type} · ${a.patientName || ""}`, by: S.profile.name || "" }], updatedAt: serverTimestamp() });
+      if (qty <= Number(i.min || 0)) low.push(`${i.name} (${qty} ${i.unit || ""})`);
+    }
+    await updateDoc(P.colDoc("appointments", a.id), { consumed: true }).catch(() => {});
+    toast(low.length ? `⚠️ المخزون منخفض: ${low.join("، ")}` : `خُصمت مواد «${a.type}» من المخزون`, !!low.length);
+  } catch (e) { console.warn("consume", e); }
+}
+
+// ---------- إغلاق الصندوق اليومي ----------
+async function renderClosing() {
+  const d = params().get("d") || ymd();
+  const pays = (await list(query(P.col("payments"), where("date", "==", d)))).sort((a, b) => tsMs(a.createdAt) - tsMs(b.createdAt));
+  const sum = (arr, k = "paid") => arr.reduce((s, p) => s + (Number(p[k]) || 0), 0);
+  const group = (key) => { const o = {}; pays.forEach((p) => { const k = key(p); (o[k] = o[k] || []).push(p); }); return Object.entries(o).sort((a, b) => sum(b[1]) - sum(a[1])); };
+  const byMethod = group((p) => methodName(p.method));
+  const byUser = group((p) => p.byName || "—");
+  const cash = sum(pays.filter((p) => (p.method || "cash") === "cash"));
+  const newDebt = pays.reduce((s, p) => s + Math.max(0, (Number(p.total) || 0) - (Number(p.paid) || 0)), 0);
+  const appts = byDoc(await list(query(P.col("appointments"), where("date", "==", d))));
+  const done = appts.filter((a) => a.status === "done").length;
+  const body = (forPrint) => `
+    <div class="${forPrint ? "mr-grid" : "stats"}">
+      <div class="${forPrint ? "mr-box main" : "stat"}"><span class="lbl">المقبوض</span><b>${esc(money(sum(pays), cur()))}</b></div>
+      <div class="${forPrint ? "mr-box" : "stat"}"><span class="lbl">نقداً في الصندوق</span><b>${esc(money(cash, cur()))}</b></div>
+      <div class="${forPrint ? "mr-box" : "stat"}"><span class="lbl">عدد الدفعات</span><b>${pays.length}</b></div>
+      <div class="${forPrint ? "mr-box" : "stat"}"><span class="lbl">ديون جديدة</span><b>${esc(money(newDebt, cur()))}</b></div>
+      <div class="${forPrint ? "mr-box" : "stat"}"><span class="lbl">زيارات منجزة</span><b>${done}</b></div>
+    </div>
+    <div class="mr-cols">
+      <div class="${forPrint ? "mr-sec" : "card"}"><h4>حسب طريقة الدفع</h4>${byMethod.length ? `<table class="tbl"><tbody>${byMethod.map(([k, a]) => `<tr><td>${esc(k)}</td><td>${a.length}</td><td><b>${esc(money(sum(a), cur()))}</b></td></tr>`).join("")}</tbody></table>` : `<p class="muted">لا يوجد</p>`}</div>
+      <div class="${forPrint ? "mr-sec" : "card"}"><h4>حسب المستلم</h4>${byUser.length ? `<table class="tbl"><tbody>${byUser.map(([k, a]) => `<tr><td>${esc(k)}</td><td>${a.length}</td><td><b>${esc(money(sum(a), cur()))}</b></td></tr>`).join("")}</tbody></table>` : `<p class="muted">لا يوجد</p>`}</div>
+    </div>
+    <div class="${forPrint ? "mr-sec" : "card"}"><h4>تفاصيل الدفعات</h4>
+      ${pays.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>الوقت</th><th>المريض</th><th>الخدمة</th><th>الطريقة</th><th>المستلم</th><th>المدفوع</th></tr></thead><tbody>
+      ${pays.map((p) => `<tr><td dir="ltr">${esc(p.createdAt ? new Date(tsMs(p.createdAt)).toTimeString().slice(0, 5) : "")}</td><td>${esc(p.patientName)}</td><td>${esc(p.service || "")}</td><td>${esc(methodName(p.method))}</td><td>${esc(p.byName || "")}</td><td><b>${esc(money(p.paid, cur()))}</b></td></tr>`).join("")}
+      </tbody></table></div>` : `<p class="muted">لا توجد دفعات في هذا اليوم</p>`}</div>`;
+  main().innerHTML = `<div class="row-between"><h2 class="page-title">إغلاق الصندوق</h2><div class="row gap"><button class="btn small primary pr">🖨 طباعة</button><input type="date" class="cd" value="${d}" aria-label="اليوم"></div></div>
+    <p class="muted">${esc(fmtDate(d))}</p>${body(false)}
+    <p class="muted small">قارن «نقداً في الصندوق» مع المبلغ الموجود فعلياً في الدرج قبل إغلاق اليوم.</p>`;
+  $(".cd").onchange = (e) => go(`#/closing?d=${e.target.value}`);
+  $(".pr").onclick = () => printDoc(S.pub, `إغلاق الصندوق · ${fmtDate(d)}`, body(true) + `<p class="q-accept">المبلغ النقدي المسلَّم: .................... &nbsp; اسم المسلِّم: ....................</p>`, { signer: "المستلم" });
 }
 
 // ---------- تحصيل الديون ----------
@@ -537,7 +599,7 @@ function renderPatients() {
   let arr = q ? PC.list.filter((p) => p.name.includes(q) || p.phone.includes(normPhone(q) || q)) : PC.list;
   arr = arr.filter((p) => !!p.archived === showArchived);
   const existing = $("#pt-q");
-  const html = `<ul class="pt-list">${arr.slice(0, 300).map((p) => `<li><a href="#/p/${p.id}/${isDoctor() ? "summary" : "info"}">
+  const html = `<ul class="pt-list">${arr.slice(0, 300).map((p) => `<li><a href="#/p/${p.id}/${canMed() ? "summary" : "info"}">
       <span class="avatar">${esc(p.name.trim()[0] || "؟")}</span>
       <span class="n">${esc(p.name)}<small dir="ltr">${esc(p.phone)}</small></span>
       ${ageText(p) ? `<span class="muted small">${esc(ageText(p))}</span>` : ""}</a></li>`).join("")}</ul>
@@ -590,7 +652,7 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
   });
   if (!r) return null;
   showCredentials(r.phone, r.tempPassword, r.name, r.shared);
-  if (!silentNav) go(`#/p/${r.pid}/${isDoctor() ? "summary" : "info"}`);
+  if (!silentNav) go(`#/p/${r.pid}/${canMed() ? "summary" : "info"}`);
   return r;
 }
 
@@ -615,7 +677,7 @@ export async function paymentModal(pid, service = "", preset = {}) {
       ${field("المبلغ المطلوب", "total", { type: "number", value: price, required: true, attrs: 'min="0" inputmode="numeric"' })}
       ${field("المدفوع", "paid", { type: "number", value: preset.paid ?? price, required: true, attrs: 'min="0" inputmode="numeric"' })}
     </div>
-    ${field("التاريخ", "date", { type: "date", value: ymd(), required: true })}
+    <div class="grid2">${field("التاريخ", "date", { type: "date", value: ymd(), required: true })}${select("طريقة الدفع", "method", Object.entries(CASH_METHODS), "cash")}</div>
     ${field("ملاحظة", "note", { value: preset.note || "" })}
   </form>`, {
     ok: "حفظ الدفعة",
@@ -629,7 +691,7 @@ export async function paymentModal(pid, service = "", preset = {}) {
     onOk: async (f) => {
       const ref = await addDoc(P.col("payments"), {
         patientId: pid, patientName: p?.name || "", service: f.service, total: f.total || 0, paid: f.paid || 0,
-        date: f.date, note: f.note, planId: preset.planId || null, by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp()
+        date: f.date, method: f.method || "cash", note: f.note, planId: preset.planId || null, by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp()
       });
       await audit("تسجيل دفعة", `${p?.name} ${f.paid}`);
       toast("حُفظت الدفعة");
@@ -659,6 +721,7 @@ export async function printReceipt(r) {
         ${settle ? "" : `<tr><th>قيمة الخدمة</th><td>${esc(money(total, cur()))}</td></tr>
         <tr><th>المتبقي من هذه الخدمة</th><td>${esc(money(Math.max(0, total - paid), cur()))}</td></tr>`}
         ${balance !== null ? `<tr class="rcpt-bal"><th>الرصيد المتبقي على المريض</th><td>${balance > 0 ? esc(money(balance, cur())) : "لا يوجد · الحساب مسدد بالكامل ✓"}</td></tr>` : ""}
+        <tr><th>طريقة الدفع</th><td>${esc(methodName(r.method))}</td></tr>
         ${r.note ? `<tr><th>ملاحظة</th><td>${esc(r.note)}</td></tr>` : ""}
       </table>
     </div>`, { signer: r.byName ? `المستلم (${r.byName})` : "المستلم" });
@@ -666,7 +729,7 @@ export async function printReceipt(r) {
 
 async function renderMoney() {
   const pr = params();
-  const doc_ = isDoctor();
+  const doc_ = canFin();
   const from = pr.get("from") || ymd(), to = pr.get("to") || ymd();
   const pays = (await list(query(P.col("payments"), where("date", ">=", doc_ ? from : ymd()), where("date", "<=", doc_ ? to : ymd()))))
     .sort((a, b) => (b.date + tsMs(b.createdAt)).localeCompare(a.date + tsMs(a.createdAt)));
@@ -681,7 +744,7 @@ async function renderMoney() {
   }
   const monthStart = ymd().slice(0, 8) + "01";
   main().innerHTML = `
-    <div class="row-between"><h2 class="page-title">المالية</h2></div>
+    <div class="row-between"><h2 class="page-title">المالية</h2><a class="btn small primary" href="#/closing">🧾 إغلاق الصندوق اليومي</a></div>
     ${doc_ ? `<div class="row gap wrap">
       <a class="btn small" href="#/money">اليوم</a>
       <a class="btn small" href="#/money?from=${monthStart}&to=${ymd()}">هذا الشهر</a>
@@ -707,18 +770,20 @@ async function renderMoney() {
 
 // ---------- المزيد ----------
 function renderMore() {
-  const a = isAdmin(), d = isDoctor();
+  const a = isAdmin(), d = isDoctor(), acct = isAcct();
   const req = (S._reqCount || 0) + (S._pubCount || 0);
   const groups = [
     ["العمل اليومي", [
       ["#/requests", "طلبات المواعيد", req],
       ["#/messages", "رسائل المرضى", S._msgCount],
       ["#/remind", "تذكير مواعيد الغد (واتساب)"],
+      ["#/closing", "إغلاق الصندوق اليومي"],
       ["#/debts", "تحصيل الديون"],
       ["#/waitlist", "قائمة الانتظار الاحتياطية"],
       ["#/tv", "شاشة الانتظار (للتلفاز)"],
       ...(feat("inventory") ? [["#/inventory", "المخزون"]] : []),
     ]],
+    ...(acct ? [["المالية", [["#/expenses", "مصاريف العيادة"]]]] : []),
     ...(d ? [["الإدارة", [
       ["#/reports", "التقارير"],
       ["#/expenses", "مصاريف العيادة"],
