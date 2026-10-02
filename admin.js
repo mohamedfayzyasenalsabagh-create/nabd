@@ -1,4 +1,4 @@
-import { t } from "./i18n.js";
+import { t as tr } from "./i18n.js";
 // صفحات المسؤول: الإعدادات، الفريق، الاشتراك، والمخزون
 import { CITIES,
   P, C, list, one, setDoc, updateDoc, addDoc, query, where, serverTimestamp, arrayUnion,
@@ -81,7 +81,7 @@ export async function renderSettings() {
       <p class="muted small">جدول مبدئي قابل للتعديل. راجعه وطابقه مع الجدول الوطني المعتمد قبل الاستخدام.</p>
       <div class="vac-list"></div><button type="button" class="btn small add-vac">+ لقاح</button></section>` : ""}
     <section class="card stack"><h3>نصوص جاهزة</h3>
-      ${field("نص الموافقة على الإجراءات", "consentText", { type: "textarea", value: c.consentText || t("أقرّ بأنني اطّلعت على طبيعة الإجراء وفوائده ومخاطره المحتملة، وأُجيب عن جميع أسئلتي، وأوافق على إجرائه بإرادتي."), attrs: "data-novoice" })}
+      ${field("نص الموافقة على الإجراءات", "consentText", { type: "textarea", value: c.consentText || tr("أقرّ بأنني اطّلعت على طبيعة الإجراء وفوائده ومخاطره المحتملة، وأُجيب عن جميع أسئلتي، وأوافق على إجرائه بإرادتي."), attrs: "data-novoice" })}
       ${field("ملاحظة أسفل الوصفة", "rxFooter", { value: c.rxFooter ?? "يجب مراسلة العيادة من خلال التطبيق عند ظهور أي أعراض جانبية." })}
     </section>
     <button class="btn primary block" type="submit">حفظ الإعدادات</button>

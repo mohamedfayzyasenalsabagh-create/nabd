@@ -1,6 +1,6 @@
 // الصفحات العامة: الصفحة الرئيسية للمنصة، تسجيل عيادة، دخول المالك، صفحة الحجز، والتحقق من الوصفة
 import { faqHtml, GUIDE_URL } from "./faq.js";
-import { langBtn, t } from "./i18n.js";
+import { langBtn } from "./i18n.js";
 import { query, where, collection, db, CITIES,
   auth, P, one, list, doc, addDoc, getDoc, setClinic, signupClinic, bootstrapOwner, login, cleanSlug,
   SPECIALTIES, DEFAULT_PLANS, TRIAL_DAYS, serverTimestamp, normPhone, sendPasswordResetEmail

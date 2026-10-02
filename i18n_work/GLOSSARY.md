@@ -1,0 +1,15 @@
+# Nabd (نبض) English glossary — use these exact terms
+- نبض → Nabd ; منصة نبض → the Nabd platform ; تطبيق نبض → the Nabd app
+- العيادة → the clinic ; المركز الطبي → medical center ; العيادة التجريبية → demo clinic
+- السجل الطبي → medical record ; بطاقة المريض → patient card ; الزيارة → visit ; الوصفة → prescription ; وصفة جاهزة / نموذج وصفة → prescription template
+- نماذج وصفات دوائية جاهزة حسب التشخيص وفق أحدث البروتوكولات والتوصيات العالمية → Ready prescription templates by diagnosis, per the latest international protocols and guidelines
+- التثقيف الدوائي → Drug safety guide ; التشخيص → diagnosis ; الحساسية → allergies ; الأمراض المزمنة → chronic conditions
+- الحسابات → Accounts ; الدفعات → payments ; الديون → debts / outstanding balances ; المصاريف → expenses ; إغلاق الصندوق → cash closing ; إيصال → receipt ; صافي الربح → net profit
+- المواعيد → Appointments ; الدور / رقم الدور → queue / queue number ; شاشة الانتظار → waiting-room screen ; الحالات الإسعافية → urgent cases ; قائمة الانتظار → waitlist
+- المرضى → Patients ; المزيد → More ; الرئيسية → Home ; الإعدادات → Settings ; الفريق → Team ; الاشتراك → Subscription ; الباقة → plan
+- الطبيب → doctor ; السكرتارية / السكرتيرة → reception / receptionist ; الممرض → nurse ; المحاسب → accountant ; صاحب المنصة → platform owner
+- المخزون → Inventory ; التقارير → Reports ; سجل التعديلات → Audit log ; النسخة الاحتياطية → Backup
+- الترويسة → letterhead ; طباعة → Print ; واتساب → WhatsApp ; ل.س → SYP
+- Syrian month names → English month names (كانون الثاني → January, شباط → February, آذار → March, نيسان → April, أيار → May, حزيران → June, تموز → July, آب → August, أيلول → September, تشرين الأول → October, تشرين الثاني → November, كانون الأول → December)
+- Arabic person/place names → standard English transliteration (أحمد سليمان → Ahmad Suleiman, دمشق → Damascus, المزة → Mezzeh)
+- Medical terms: use standard English clinical terminology (BNF/NICE style). Drug names stay as INN generic names.

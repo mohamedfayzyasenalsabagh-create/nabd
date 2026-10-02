@@ -1,4 +1,4 @@
-import { t } from "./i18n.js";
+import { t as tr } from "./i18n.js";
 // تطبيق المريض
 import { addFileDoc, fileData, P, list, one, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, audit, clinicState } from "./fb.js";
 import { makeThumb, tileImg, isImg, showFile,
@@ -319,19 +319,19 @@ async function scheduleNative() {
       todayDoses(myMeds(rxs, day)).forEach((m) => {
         const [h, mi] = m.time.split(":").map(Number);
         const at = parseYmd(day); at.setHours(h, mi, 0, 0);
-        if (+at > now) items.push({ id: `dose-${day}-${m.time}-${m.drug}`, at: +at, title: "وقت الدواء", body: hide ? "لديك جرعة دواء الآن" : `${m.drug} ${m.dose || ""}`.trim() });
+        if (+at > now) items.push({ id: `dose-${day}-${m.time}-${m.drug}`, at: +at, title: tr("وقت الدواء"), body: hide ? tr("لديك جرعة دواء الآن") : `${m.drug} ${m.dose || ""}`.trim() });
       });
     }
     upcoming(appts).forEach((a) => {
       const [h, mi] = String(a.time || "09:00").split(":").map(Number);
       const t = parseYmd(a.date); t.setHours(h, mi, 0, 0);
       const eve = parseYmd(addDays(a.date, -1)); eve.setHours(18, 0, 0, 0);
-      if (+eve > now) items.push({ id: `appt-eve-${a.id}`, at: +eve, title: "تذكير بموعدك غداً", body: `موعدك في ${clinic} غداً الساعة ${fmtTime(a.time)}` });
+      if (+eve > now) items.push({ id: `appt-eve-${a.id}`, at: +eve, title: tr("تذكير بموعدك غداً"), body: tr(`موعدك في ${clinic} غداً الساعة ${fmtTime(a.time)}`) });
       // صباح يوم الموعد (إذا كان الموعد بعد الظهر)
       const morn = parseYmd(a.date); morn.setHours(9, 0, 0, 0);
-      if (+morn > now && +t - +morn >= 3 * 3600e3) items.push({ id: `appt-am-${a.id}`, at: +morn, title: "موعدك اليوم", body: `${clinic} · الساعة ${fmtTime(a.time)}` });
+      if (+morn > now && +t - +morn >= 3 * 3600e3) items.push({ id: `appt-am-${a.id}`, at: +morn, title: tr("موعدك اليوم"), body: tr(`${clinic} · الساعة ${fmtTime(a.time)}`) });
       const b2 = +t - 2 * 3600e3;
-      if (b2 > now) items.push({ id: `appt-2h-${a.id}`, at: b2, title: "موعدك بعد ساعتين", body: `${clinic} · الساعة ${fmtTime(a.time)}` });
+      if (b2 > now) items.push({ id: `appt-2h-${a.id}`, at: b2, title: tr("موعدك بعد ساعتين"), body: tr(`${clinic} · الساعة ${fmtTime(a.time)}`) });
     });
     items.sort((a, b) => a.at - b.at);
     AndroidApp.setReminders(JSON.stringify(items.slice(0, 80)));
@@ -351,7 +351,7 @@ async function scheduleDoseReminders() {
       if (ms > 0) doseTimers.push(setTimeout(async () => {
         const reg = await navigator.serviceWorker?.getRegistration();
         const opts = { body: `${d.drug} ${d.dose || ""}`, icon: "icon-192.png", tag: d.drug + d.time };
-        if (reg) reg.showNotification("وقت الدواء", opts); else new Notification("وقت الدواء", opts);
+        if (reg) reg.showNotification(tr("وقت الدواء"), opts); else new Notification(tr("وقت الدواء"), opts);
       }, ms));
     });
   } catch {}
@@ -448,7 +448,7 @@ async function uploadLab() {
 }
 
 async function signConsent(x) {
-  const r = await modal(`موافقة: ${x.name}`, `<div class="consent-text pre">${esc(x.consentText || t("أقرّ بأنني اطّلعت على طبيعة الإجراء وأوافق على إجرائه."))}</div>
+  const r = await modal(`موافقة: ${x.name}`, `<div class="consent-text pre">${esc(x.consentText || tr("أقرّ بأنني اطّلعت على طبيعة الإجراء وأوافق على إجرائه."))}</div>
     ${x.details ? `<p class="muted">${esc(x.details)}</p>` : ""}
     <form class="stack">${field("اكتب اسمك الكامل كتوقيع", "name", { required: true, value: me().name })}${field("قرأت النص وأوافق", "ok", { type: "checkbox" })}</form>`, {
     ok: "توقيع",

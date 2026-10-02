@@ -2,4 +2,3 @@ node_modules/
 .results/
 *.keystore
 *.jks
-i18n_work/

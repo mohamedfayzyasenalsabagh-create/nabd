@@ -27,7 +27,7 @@ function buildRe() {
 const POST = [[new RegExp(`(\\d)\\s?ص(?![${LET}])`, "g"), "$1 AM"], [new RegExp(`(\\d)\\s?م(?![${LET}])`, "g"), "$1 PM"], [/(^|[\s(])د\.\s?/g, "$1Dr. "],
   [/،/g, ","], [/؛/g, ";"], [/؟/g, "?"], [/«/g, "“"], [/»/g, "”"], [/ ← /g, " → "], [/٪/g, "%"]];
 const PRE = [[/(^|[\s(])د\.\s?/g, "$1Dr. "], [/لمدة\s(\d+)\s(أيام|يوماً|يوم)/g, "for $1 days"], [/لمدة يوم واحد/g, "for 1 day"], [/(\d+)\s(أيام|يوماً)(?![\u0621-\u064A])/g, "$1 days"],
-  [/أُرسل\s(\d+)\sمن\s(\d+)/g, "Sent $1 of $2"], [/(\d+)\sمرات يومياً/g, "$1 times daily"], [/(\d+)\sسنة/g, "$1 years"], [/(\d+)\sشهر/g, "$1 months"], [/(\d+)\sمرات/g, "$1 times"]];
+  [/أُرسل\s(\d+)\sمن\s(\d+)/g, "Sent $1 of $2"], [/(\d+)\sمن\s(\d+)/g, "$1 of $2"], [/(\d+)\sمرات يومياً/g, "$1 times daily"], [/(\d+)\sسنة/g, "$1 years"], [/(\d+)\sشهر/g, "$1 months"], [/(\d+)\sمرات/g, "$1 times"]];
 const LETTER = new RegExp(`[${LET}]`);
 const POSTRE = new RegExp(`(\\d)\\s?[صم](?![${LET}])|(^|[\\s(])د\\.`, "g");
 let RE1 = null;
@@ -38,7 +38,7 @@ export function t(s) {
   const str = String(s);
   const m = str.match(CORE);
   let out;
-  if (m && EN[m[2]]) out = m[1] + EN[m[2]] + m[3];
+  if (m && EN[m[2]] && !/[A-Za-z]/.test(m[1] + m[3])) out = m[1] + EN[m[2]] + m[3];
   else {
     if (!RE) buildRe();
     out = str.replace(RE, (x) => EN[x] ?? x);

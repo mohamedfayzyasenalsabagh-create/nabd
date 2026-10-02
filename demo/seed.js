@@ -6,7 +6,7 @@ export const DEMO = {
   secretary: { uid: "u-sec", phone: "0955000222" },
   patient: { uid: "u-pt", phone: "0944555666", pid: "p01" },
 };
-import { t, LANG } from "../i18n.js";
+import { t as i18nT, LANG } from "../i18n.js";
 const VERSION = "8-" + LANG;
 
 // أرقام عشوائية ثابتة حتى تبقى البيانات نفسها في كل مرة
@@ -239,7 +239,7 @@ export async function ensureSeed() {
 
   try {
     // في الواجهة الإنكليزية تُترجم البيانات الوهمية نفسها
-    const tr = (v) => typeof v === "string" ? t(v) : Array.isArray(v) ? v.map(tr) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, tr(x)])) : v;
+    const tr = (v) => typeof v === "string" ? i18nT(v) : Array.isArray(v) ? v.map(tr) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, tr(x)])) : v;
     if (LANG === "en") for (const [k, v] of F) F.set(k, tr(v));
     localStorage.setItem("demo-fs", JSON.stringify([...F]));
     localStorage.setItem("demo-users", JSON.stringify(LANG === "en" ? tr(users) : users));

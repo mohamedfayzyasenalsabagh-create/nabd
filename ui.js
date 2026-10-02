@@ -1,3 +1,4 @@
+import { t as tr, isEn } from "./i18n.js";
 // أدوات الواجهة المشتركة
 // رابط تنزيل تطبيق أندرويد (آخر نسخة دائماً)
 // صفحة تنزيل تتعرف على نوع الجوال (أندرويد: ينزّل التطبيق، آيفون: يفتح النظام مع الشرح)
@@ -238,7 +239,7 @@ export function daysText(n) {
 export function waLink(phone, text) {
   let p = String(phone || "").replace(/\D/g, "");
   if (p.startsWith("0")) p = "963" + p.slice(1);
-  return `https://wa.me/${p}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${p}?text=${encodeURIComponent(tr(text))}`;
 }
 
 // ---------- طباعة ----------
@@ -347,7 +348,7 @@ export function attachVoice(root) {
       }
       if (rec) { rec.stop(); return; }
       rec = new SR();
-      rec.lang = "ar-SY"; rec.interimResults = false; rec.continuous = true;
+      rec.lang = isEn ? "en-US" : "ar-SY"; rec.interimResults = false; rec.continuous = true;
       rec.onresult = (e) => {
         const t = [...e.results].slice(e.resultIndex).map((r) => r[0].transcript).join(" ");
         ta.value = (ta.value ? ta.value.trimEnd() + " " : "") + t.trim();
