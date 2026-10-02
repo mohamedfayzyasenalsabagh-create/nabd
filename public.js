@@ -154,7 +154,6 @@ export function signupPage() {
       ${field("البريد الإلكتروني (للدخول)", "email", { type: "email", required: true, attrs: 'dir="ltr" autocomplete="username"' })}
       ${field("كلمة المرور", "password", { type: "password", required: true, attrs: 'minlength="6" dir="ltr" autocomplete="new-password"' })}
       ${field("تأكيد كلمة المرور", "password2", { type: "password", required: true, attrs: 'minlength="6" dir="ltr" autocomplete="new-password"' })}
-      ${field("رمز الدعوة (اختياري)", "ref", { value: new URLSearchParams(location.hash.split("?")[1] || "").get("ref") || "", attrs: 'dir="ltr" autocapitalize="off"', hint: "إذا دعاك زميل إلى نبض، تحصلان معاً على شهر مجاني عند اشتراكك." })}
       <label class="check"><input type="checkbox" name="terms" required><span>أوافق على <a href="#/terms" data-legal="terms">شروط الاستخدام</a> و<a href="#/privacy" data-legal="privacy">سياسة الخصوصية</a>، وأتحمل مسؤولية بيانات مرضاي.</span></label>
       <button class="btn primary block" type="submit">إنشاء العيادة</button>
       <p class="muted small center">لديك عيادة؟ <a href="#/home">الدخول</a></p>

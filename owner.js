@@ -130,8 +130,6 @@ async function manageClinic(c) {
       <tr><th>الجوال</th><td dir="ltr">${esc(c.ownerPhone || "")}</td></tr>
       <tr><th>رابط الدخول</th><td dir="ltr" class="small">${esc(link)}</td></tr>
       <tr><th>تاريخ التسجيل</th><td>${esc(tsDate(c.createdAt))}</td></tr>
-      ${c.referredBy ? `<tr><th>دعاه</th><td dir="ltr">${esc(c.referredBy)} ${c.referralRewarded ? "· ✓ صُرفت المكافأة" : "· تُصرف عند أول اشتراك"}</td></tr>` : ""}
-      ${c.referrals ? `<tr><th>دعوات ناجحة</th><td>${c.referrals}</td></tr>` : ""}
     </table>
     <form class="stack act">
       <h4>تفعيل أو تمديد الاشتراك</h4>
@@ -179,27 +177,10 @@ export async function activate(c, planId, months) {
   if (!p) throw new Error("باقة غير معروفة");
   const from = Math.max(Date.now(), fresh.status === "active" ? tsMs(fresh.expiresAt) : 0);
   const d = new Date(from); d.setMonth(d.getMonth() + months);
-  // مكافأة الدعوة: أول اشتراك مدفوع لعيادة مدعوة يضيف شهراً مجانياً للطرفين
-  let bonus = false;
-  if (fresh.referredBy && !fresh.referralRewarded) {
-    try {
-      const s = await one(P.slug(fresh.referredBy));
-      const ref = s?.cid && (await one(P.clinic(s.cid)));
-      if (ref) {
-        const rf = ref.plan === "gift" ? null : new Date(Math.max(Date.now(), tsMs(ref.expiresAt)));
-        if (rf) { rf.setMonth(rf.getMonth() + 1); await updateDoc(P.clinic(s.cid), { expiresAt: Timestamp.fromMillis(rf.getTime()), referrals: (ref.referrals || 0) + 1 }); }
-        else await updateDoc(P.clinic(s.cid), { referrals: (ref.referrals || 0) + 1 });
-        bonus = true;
-      }
-    } catch (e) { console.warn("referral", e); }
-  }
-  if (bonus) d.setMonth(d.getMonth() + 1);
   await updateDoc(P.clinic(c.id), {
     status: "active", plan: p.id, expiresAt: Timestamp.fromMillis(d.getTime()),
-    features: p.features || ALL_FEATURES, maxDoctors: p.maxDoctors || 1, maxStaff: p.maxStaff || 1, activatedAt: serverTimestamp(),
-    ...(bonus ? { referralRewarded: true } : {})
+    features: p.features || ALL_FEATURES, maxDoctors: p.maxDoctors || 1, maxStaff: p.maxStaff || 1, activatedAt: serverTimestamp()
   });
-  if (bonus) toast("🎁 أُضيف شهر مجاني للعيادة وللزميل الذي دعاها");
 }
 
 // ---------- الدفعات ----------

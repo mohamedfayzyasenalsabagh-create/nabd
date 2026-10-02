@@ -249,16 +249,6 @@ export async function renderSubscription() {
       <h3>${esc(p.name)}</h3><div class="price"><b>${esc(p.price)}</b><span>${esc(p.currency || "$")} / شهرياً</span></div>
       <ul class="plain checks">${(p.perks || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
       <button class="btn ${p.id === c.plan || i === 1 ? "primary" : ""} block pick" data-id="${p.id}">${p.id === c.plan ? "تجديد" : "اختيار"}</button></article>`).join("")}</div>`}
-    ${c.plan === "gift" ? "" : `<section class="card stack invite">
-      <h3>🎁 ادعُ زميلك واحصلا على شهر مجاني</h3>
-      <p>أرسل رابط الدعوة لزميل طبيب. عندما يفتح عيادته على ${esc(PLATFORM())} ويشترك بأي باقة، يُضاف <b>شهر مجاني</b> إلى اشتراكك واشتراكه.</p>
-      <div class="row gap wrap"><code class="copy" dir="ltr">${esc(inviteLink(c))}</code></div>
-      <div class="row gap wrap">
-        <a class="btn primary" target="_blank" rel="noopener" href="${esc(waLink("", inviteText(c)))}">📲 إرسال الدعوة على واتساب</a>
-        <button class="btn cp-inv">نسخ الرابط</button>
-      </div>
-      <p class="muted small">رمز الدعوة الخاص بك: <b dir="ltr">${esc(c.slug)}</b>${c.referrals ? ` · دعوات ناجحة: <b>${c.referrals}</b> (${c.referrals} شهر مجاني)` : ""}</p>
-    </section>`}
     <section class="card stack"><h3>طرق الدفع</h3>
       ${pay.shamcash || pay.shamcashQr ? `<div class="sc-box"><h4>شام كاش</h4>${pay.shamcashQr ? `<img class="sc-qr" src="${esc(pay.shamcashQr)}" alt="رمز QR للدفع عبر شام كاش">` : ""}${pay.shamcash ? `<p>الحساب: <b dir="auto">${esc(pay.shamcash)}</b></p>` : ""}<p class="muted small">امسح الرمز من تطبيق شام كاش وادفع، ثم ارفع صورة الإيصال عند اختيار الباقة.</p></div>` : ""}
       ${pay.syriatel ? `<p>سيريتل كاش: <b dir="ltr">${esc(pay.syriatel)}</b></p>` : ""}
@@ -385,13 +375,3 @@ async function moveModal(i) {
   });
 }
 
-// ---------- دعوة الزملاء ----------
-function inviteLink(c) { return `${baseUrl()}#/signup?ref=${encodeURIComponent(c.slug || "")}`; }
-function inviteText(c) {
-  return `مرحباً زميلي 👋\nأستخدم تطبيق ${PLATFORM()} لإدارة عيادتي: المواعيد، الملفات الطبية، الوصفات، المالية، وتطبيق للمرضى.\nجرّبه مجاناً ${S.platform?.trialDays || 14} يوماً من هذا الرابط، وعند اشتراكك نحصل أنا وأنت على شهر مجاني:\n${inviteLink(c)}\n\nأو جرّب عيادة تجريبية جاهزة دون تسجيل:\n${baseUrl().replace(/index\.html$/, "")}demo/`;
-}
-document.addEventListener("click", (e) => {
-  const b = e.target.closest?.(".cp-inv"); if (!b) return;
-  const c = S.clinic || {};
-  navigator.clipboard?.writeText(inviteLink(c)).then(() => toast("نُسخ رابط الدعوة")).catch(() => toast(inviteLink(c)));
-});
