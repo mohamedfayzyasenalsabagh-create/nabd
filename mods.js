@@ -376,7 +376,7 @@ export async function peds(p, el, refresh) {
       <div class="row-between"><h3>اللقاحات</h3><button class="btn small prvac">طباعة بطاقة اللقاح</button></div>
       <ul class="plain vac-list">${vs.map((v) => `<li class="vac ${v.st}">
         <div class="row-between"><div><b>${esc(v.name)}</b><div class="muted small">${v.months ? `عمر ${esc(v.months)} شهر` : "عند الولادة"}${v.due ? ` · ${esc(fmtDate(v.due, false))}` : ""}</div>
-          ${v.given ? `<div class="small">أُعطي ${esc(v.given.date)}${v.given.lot ? ` · تشغيلة ${esc(v.given.lot)}` : ""}</div>` : ""}</div>
+          ${v.given ? `<div class="small">أُعطي ${esc(v.given.date)}${v.given.lot ? ` · رقم الدفعة ${esc(v.given.lot)}` : ""}</div>` : ""}</div>
         <div class="row gap"><span class="chip ${VST[v.st][1]}">${VST[v.st][0]}</span>${v.given ? `<button class="icon-btn vundo" data-id="${v.id}" aria-label="تراجع">↺</button>` : `<button class="btn small vgive" data-id="${v.id}">تسجيل</button>`}</div></div></li>`).join("")}</ul>
     </section>`;
   $(".addg", el).onclick = async () => {
@@ -393,7 +393,7 @@ export async function peds(p, el, refresh) {
   };
   $$(".vgive", el).forEach((b) => b.onclick = async () => {
     const v = vs.find((x) => x.id === b.dataset.id);
-    const r = await modal(v.name, `<form class="stack">${field("تاريخ الإعطاء", "date", { type: "date", value: ymd(), required: true })}${field("رقم التشغيلة (اختياري)", "lot", { attrs: 'dir="ltr"' })}${field("ملاحظة", "note")}</form>`, { ok: "تسجيل" });
+    const r = await modal(v.name, `<form class="stack">${field("تاريخ الإعطاء", "date", { type: "date", value: ymd(), required: true })}${field("رقم الدفعة (اختياري)", "lot", { attrs: 'dir="ltr"' })}${field("ملاحظة", "note")}</form>`, { ok: "تسجيل" });
     if (!r) return;
     const given = { ...(rec?.given || {}), [v.id]: r };
     await setDoc(recRef, { given, updatedAt: serverTimestamp() });
@@ -408,7 +408,7 @@ export async function peds(p, el, refresh) {
     await syncNext(given); refresh();
   });
   $(".prvac", el).onclick = () => printDoc(S.pub, "بطاقة اللقاحات", `<p><b>الطفل:</b> ${esc(p.name)} · <b>تاريخ الميلاد:</b> ${esc(p.dob ? fmtDate(p.dob, false) : "—")}</p>
-    <table class="tbl"><thead><tr><th>اللقاح</th><th>الموعد</th><th>تاريخ الإعطاء</th><th>التشغيلة</th></tr></thead><tbody>
+    <table class="tbl"><thead><tr><th>اللقاح</th><th>الموعد</th><th>تاريخ الإعطاء</th><th>رقم الدفعة</th></tr></thead><tbody>
     ${vs.map((v) => `<tr><td>${esc(v.name)}</td><td>${esc(v.due || "")}</td><td>${esc(v.given?.date || "")}</td><td dir="ltr">${esc(v.given?.lot || "")}</td></tr>`).join("")}</tbody></table>`);
   if (p.dob) syncNext(rec?.given || {});
 }
