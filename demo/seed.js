@@ -6,7 +6,7 @@ export const DEMO = {
   secretary: { uid: "u-sec", phone: "0955000222" },
   patient: { uid: "u-pt", phone: "0944555666", pid: "p01" },
 };
-const VERSION = "5";
+const VERSION = "6";
 
 // أرقام عشوائية ثابتة حتى تبقى البيانات نفسها في كل مرة
 let seed = 20261002;
@@ -51,7 +51,7 @@ export async function ensureSeed() {
     specialty: "dental", modules: ["dental"], slug: "demo", currency: "ل.س", slotMinutes: 20, hours, services,
     doctors: [{ id: doctorId, uid: DEMO.doctor.uid, name: "سامر الحلبي", title: "اختصاصي تجميل وتقويم الأسنان", active: true }],
     city: "دمشق", listed: false, bookingEnabled: true, showPrices: true,
-    rxFooter: "يرجى مراجعة العيادة عند ظهور أي أعراض جانبية.",
+    rxFooter: "يجب مراسلة العيادة من خلال التطبيق عند ظهور أي أعراض جانبية.",
     drugs: ["Ibuprofen 400mg", "Chlorhexidine 0.12% mouthwash", "Amoxicillin 500mg"],
     rxTemplates: [{ name: "وصفتي بعد التنظيف", items: [{ drug: "Chlorhexidine 0.12% mouthwash", dose: "مضمضة 15 مل", times: "08:00, 20:00", days: 7, note: "" }] }],
     status: "active", plan: "pro", expiresAt: { __t: Date.now() + 365 * 864e5 },

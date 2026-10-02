@@ -779,7 +779,7 @@ function renderMore() {
       ["#/remind", "تذكير مواعيد الغد (واتساب)"],
       ["#/closing", "إغلاق الصندوق اليومي"],
       ["#/debts", "تحصيل الديون"],
-      ["#/waitlist", "قائمة الانتظار الاحتياطية"],
+      ["#/waitlist", "الحالات الإسعافية (أقرب موعد يتوفر)"],
       ["#/tv", "شاشة الانتظار (للتلفاز)"],
       ...(feat("inventory") ? [["#/inventory", "المخزون"]] : []),
     ]],
@@ -877,8 +877,8 @@ async function confirmPublic(r) {
 // ---------- قائمة الانتظار الاحتياطية ----------
 async function renderWaitlist() {
   const wl = (await list(query(P.col("waitlist"), where("status", "==", "waiting")))).sort((a, b) => tsMs(a.createdAt) - tsMs(b.createdAt));
-  main().innerHTML = `<div class="row-between"><h2 class="page-title">قائمة الانتظار الاحتياطية</h2><button class="btn primary add">+ إضافة</button></div>
-    <p class="muted">مرضى يرغبون في أقرب موعد. عند إلغاء أي موعد، اتصل بالأول في القائمة.</p>
+  main().innerHTML = `<div class="row-between"><h2 class="page-title">قائمة الانتظار والحالات الإسعافية</h2><button class="btn primary add">+ إضافة</button></div>
+    <p class="muted">مرضى إسعافيون يطلبون أقرب موعد يتوفر. عند إلغاء أي موعد أو توفر وقت، اتصل بالأول في القائمة.</p>
     <section class="card">${wl.length ? `<ol class="plain num">${wl.map((w) => `<li class="req">
       <div><b>${esc(w.patientName)}</b> <span class="muted" dir="ltr">${esc(w.phone)}</span></div>
       ${w.note ? `<div class="muted">${esc(w.note)}</div>` : ""}

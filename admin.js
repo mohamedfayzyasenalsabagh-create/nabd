@@ -79,7 +79,7 @@ export async function renderSettings() {
       <div class="vac-list"></div><button type="button" class="btn small add-vac">+ لقاح</button></section>` : ""}
     <section class="card stack"><h3>نصوص جاهزة</h3>
       ${field("نص الموافقة على الإجراءات", "consentText", { type: "textarea", value: c.consentText || "أقرّ بأنني اطّلعت على طبيعة الإجراء وفوائده ومخاطره المحتملة، وأُجيب عن جميع أسئلتي، وأوافق على إجرائه بإرادتي.", attrs: "data-novoice" })}
-      ${field("ملاحظة أسفل الوصفة", "rxFooter", { value: c.rxFooter || "" })}
+      ${field("ملاحظة أسفل الوصفة", "rxFooter", { value: c.rxFooter ?? "يجب مراسلة العيادة من خلال التطبيق عند ظهور أي أعراض جانبية." })}
     </section>
     <button class="btn primary block" type="submit">حفظ الإعدادات</button>
   </form>`;

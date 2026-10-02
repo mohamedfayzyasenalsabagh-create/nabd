@@ -305,7 +305,7 @@ export async function signupClinic(f) {
     specialty: spec, modules: SPECIALTIES[spec].modules, slug,
     currency: "ل.س", slotMinutes: 20, hours: defaultHours(), services: defaultServices(spec),
     doctors: [{ id: doctorId, uid, name: f.doctorName.trim(), title: f.title.trim(), active: true }],
-    city: CITIES.includes(f.city) ? f.city : "", listed: !!f.listed, bookingEnabled: !!f.listed, showPrices: false,
+    rxFooter: "يجب مراسلة العيادة من خلال التطبيق عند ظهور أي أعراض جانبية.", city: CITIES.includes(f.city) ? f.city : "", listed: !!f.listed, bookingEnabled: !!f.listed, showPrices: false,
     status: "trial", plan: "trial", expiresAt: expires, features: TRIAL_FEATURES, maxDoctors: 3, maxStaff: 3,
     ownerUid: uid, ownerEmail: f.email.trim(), ownerPhone: normPhone(f.phone), createdAt: serverTimestamp()
   };

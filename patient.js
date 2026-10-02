@@ -3,7 +3,7 @@ import { addFileDoc, fileData, P, list, one, updateDoc, addDoc, query, where, se
 import { makeThumb, tileImg, isImg, showFile,
   parseYmd, $, $$, esc, ymd, addDays, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info, field, select,
   logoHtml, empty, compressImage, pickFile,
-  platformMark,
+  platformMark, freqText, daysText, timesList,
 } from "./ui.js";
 import { S, logout, showChangePassword, PLATFORM } from "./app.js";
 import { pregCalc, gaText, activeMeds } from "./card.js";
@@ -115,7 +115,7 @@ async function home() {
     myAppts(), list(P.sub(T.pid, "prescriptions")), list(P.sub(T.pid, "pregnancies")), list(P.sub(T.pid, "procedures"))
   ]);
   const next = upcoming(apps)[0];
-  const doses = todayDoses(activeMeds(rxs));
+  const doses = todayDoses(myMeds(rxs));
   const nowHm = new Date().toTimeString().slice(0, 5);
   const nextDose = doses.find((d) => d.time >= nowHm);
   const g = pregs.find((x) => x.status === "active");
@@ -260,6 +260,12 @@ async function rate(id, n) {
 }
 
 // ---------- الأدوية ----------
+// أوقات الجرعات يختارها المريض حسب وجباته (تُحفظ على جهازه)، والطبيب يحدد عدد المرات فقط
+const MT_KEY = () => `medTimes:${T.pid}`;
+const medKey = (m) => `${m.rxDate || ""}|${m.drug}`;
+function myTimes() { try { return JSON.parse(localStorage.getItem(MT_KEY()) || "{}"); } catch { return {}; } }
+function saveMyTimes(o) { try { localStorage.setItem(MT_KEY(), JSON.stringify(o)); } catch {} }
+function myMeds(rxs, day) { const o = myTimes(); return activeMeds(rxs, day).map((m) => (o[medKey(m)] ? { ...m, times: o[medKey(m)], mine: true } : m)); }
 function todayDoses(meds) {
   const out = [];
   meds.forEach((m) => String(m.times || "").split(/[,،\s]+/).map((t) => t.trim()).filter((t) => /^\d{1,2}:\d{2}$/.test(t))
@@ -268,11 +274,11 @@ function todayDoses(meds) {
 }
 async function meds() {
   const rxs = (await list(P.sub(T.pid, "prescriptions"))).sort((a, b) => b.date.localeCompare(a.date));
-  const act = activeMeds(rxs);
+  const act = myMeds(rxs);
   const perm = NATIVE ? AndroidApp.notifyState() : "Notification" in window ? Notification.permission : "unsupported";
   main().innerHTML = `<h2 class="page-title">أدويتي</h2>
     <section class="card">${act.length ? `<ul class="plain">${act.map((m) => `<li class="req"><b>${esc(m.drug)}</b> ${esc(m.dose || "")}
-      ${m.times ? `<div>⏰ ${esc(m.times.split(/[,،\s]+/).filter(Boolean).map(fmtTime).join(" · "))}</div>` : ""}
+      ${m.times ? `<div class="muted small">${esc(freqText(m.times))}</div><div class="row-between"><span>⏰ ${esc(timesList(m.times).map(fmtTime).join(" · "))}</span><button class="btn small mt" data-k="${esc(medKey(m))}" data-n="${timesList(m.times).length}" data-t="${esc(m.times)}">اختر أوقاتي</button></div>` : ""}
       ${m.note ? `<div class="muted">${esc(m.note)}</div>` : ""}
       <div class="muted small">${m.endDate ? `لغاية ${esc(fmtDate(m.endDate, false))}` : "مستمر"}</div></li>`).join("")}</ul>` : empty("لا توجد أدوية حالية")}</section>
     <section class="card stack"><h3>التذكير</h3>
@@ -281,7 +287,15 @@ async function meds() {
         : perm === "unsupported" ? `<p class="muted">جهازك لا يدعم الإشعارات من المتصفح. تابع الأوقات من هنا.</p>`
         : `<button class="btn primary en">تفعيل تذكير الأدوية</button>`}
     </section>
-    <section class="card"><h3>كل الوصفات</h3>${rxs.length ? rxs.map((r) => `<details><summary>${esc(fmtDate(r.date, false))}</summary><ol class="rx-items">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b> ${esc(it.dose || "")} ${it.times ? `· ${esc(it.times)}` : ""} ${it.days ? `· ${esc(it.days)} يوم` : ""}</li>`).join("")}</ol></details>`).join("") : empty("لا توجد وصفات")}</section>`;
+    <section class="card"><h3>كل الوصفات</h3>${rxs.length ? rxs.map((r) => `<details><summary>${esc(fmtDate(r.date, false))}</summary><ol class="rx-items">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b> ${esc(it.dose || "")} ${it.times ? `· ${esc(freqText(it.times))}` : ""} ${it.days ? `· ${esc(daysText(it.days))}` : ""}</li>`).join("")}</ol></details>`).join("") : empty("لا توجد وصفات")}</section>`;
+  $$(".mt").forEach((b) => b.onclick = async () => {
+    const cur = timesList(b.dataset.t), n = Number(b.dataset.n) || cur.length;
+    const r = await modal("اختر أوقات الجرعات", `<form class="stack"><p class="muted">اختر الأوقات المناسبة لك حسب وجباتك ونومك. يصلك تذكير بكل جرعة في الوقت الذي تختاره.</p>
+      ${Array.from({ length: n }, (_, i) => field(`الجرعة ${i + 1}`, `t${i}`, { type: "time", value: (cur[i] || "08:00").padStart(5, "0"), required: true })).join("")}</form>`, { ok: "حفظ" });
+    if (!r) return;
+    const o = myTimes(); o[b.dataset.k] = Array.from({ length: n }, (_, i) => r[`t${i}`]).sort().join(", ");
+    saveMyTimes(o); scheduleDoseReminders(); toast("حُفظت أوقاتك"); meds();
+  });
   $(".en")?.addEventListener("click", async () => {
     if (NATIVE) {
       window.__notifyChanged = () => { if (AndroidApp.notifyState() === "granted") { scheduleDoseReminders(); toast("تم تفعيل التذكير"); } meds(); };
@@ -301,7 +315,7 @@ async function scheduleNative() {
     const hide = !!T.me?.hideSensitive;
     for (let d = 0; d < 7; d++) {
       const day = addDays(ymd(), d);
-      todayDoses(activeMeds(rxs, day)).forEach((m) => {
+      todayDoses(myMeds(rxs, day)).forEach((m) => {
         const [h, mi] = m.time.split(":").map(Number);
         const at = parseYmd(day); at.setHours(h, mi, 0, 0);
         if (+at > now) items.push({ id: `dose-${day}-${m.time}-${m.drug}`, at: +at, title: "وقت الدواء", body: hide ? "لديك جرعة دواء الآن" : `${m.drug} ${m.dose || ""}`.trim() });
@@ -327,7 +341,7 @@ async function scheduleDoseReminders() {
   doseTimers.forEach(clearTimeout); doseTimers = [];
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   try {
-    const doses = todayDoses(activeMeds(await list(P.sub(T.pid, "prescriptions"))));
+    const doses = todayDoses(myMeds(await list(P.sub(T.pid, "prescriptions"))));
     const now = new Date();
     doses.forEach((d) => {
       const [h, m] = d.time.split(":").map(Number);

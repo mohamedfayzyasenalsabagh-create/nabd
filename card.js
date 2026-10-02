@@ -3,7 +3,7 @@ import { addFileDoc, fileData,
   P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, arrayUnion, arrayRemove,
   audit, resetPatientPassword, randId
 } from "./fb.js";
-import { makeThumb, tileImg, isImg, showFile, CASH_METHODS,
+import { makeThumb, tileImg, isImg, showFile, CASH_METHODS, freqText, daysText,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, waLink, empty, compressImage, pickFile, printDoc, daysBetween, qrSvg
 } from "./ui.js";
@@ -112,7 +112,7 @@ async function summary(p) {
       <section class="card"><h3>آخر زيارة</h3>${last ? `<p><b>${esc(fmtDate(last.date, false))}</b><br>${esc(last.diagnosis || last.complaint || "")}</p>` : empty("لا توجد زيارات")}</section>
     </div>
     <section class="card"><div class="row-between"><h3>الأدوية الحالية</h3><button class="btn small q-rx2">+ وصفة</button></div>
-      ${meds.length ? `<ul class="plain">${meds.map((x) => `<li><b>${esc(x.drug)}</b> ${esc(x.dose || "")} ${x.times ? `· ${esc(x.times)}` : ""} ${x.endDate ? `<span class="muted small">حتى ${esc(x.endDate)}</span>` : `<span class="muted small">مستمر</span>`}</li>`).join("")}</ul>` : empty("لا توجد أدوية حالية")}</section>
+      ${meds.length ? `<ul class="plain">${meds.map((x) => `<li><b>${esc(x.drug)}</b> ${esc(x.dose || "")} ${x.times ? `· ${esc(freqText(x.times))}` : ""} ${x.endDate ? `<span class="muted small">حتى ${esc(x.endDate)}</span>` : `<span class="muted small">مستمر</span>`}</li>`).join("")}</ul>` : empty("لا توجد أدوية حالية")}</section>
     <section class="card"><div class="row-between"><h3>التاريخ المرضي</h3><button class="btn small ed">تعديل</button></div>
       <table class="kv">
         <tr><th>أمراض مزمنة</th><td>${esc(m.chronic || "—")}</td></tr>
@@ -248,7 +248,7 @@ async function rx(p) {
   const rxs = (await list(P.sub(p.id, "prescriptions"))).sort((a, b) => b.date.localeCompare(a.date));
   tabEl().innerHTML = `<div class="row-between"><h3>الوصفات</h3><button class="btn primary small add">+ وصفة</button></div>
     ${rxs.length ? rxs.map((r) => `<section class="card"><div class="row-between"><b>${esc(fmtDate(r.date, false))}</b><button class="icon-btn pr" data-id="${r.id}" aria-label="طباعة">🖨</button></div>
-      <ol class="rx-items">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b> ${esc(it.dose || "")}${it.times ? ` · ${esc(it.times)}` : ""}${it.days ? ` · ${esc(it.days)} يوم` : ""}${it.note ? `<br><small>${esc(it.note)}</small>` : ""}</li>`).join("")}</ol>
+      <ol class="rx-items">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b> ${esc(it.dose || "")}${it.times ? ` · ${esc(freqText(it.times))}` : ""}${it.days ? ` · ${esc(daysText(it.days))}` : ""}${it.note ? `<br><small>${esc(it.note)}</small>` : ""}</li>`).join("")}</ol>
       ${r.note ? `<p class="muted">${esc(r.note)}</p>` : ""}</section>`).join("") : empty("لا توجد وصفات")}`;
   $(".add").onclick = () => rxModal(p.id);
   $$(".pr").forEach((b) => b.onclick = () => printRx(p, rxs.find((x) => x.id === b.dataset.id)));
@@ -266,7 +266,7 @@ export async function rxModal(pid) {
   const rowHtml = (it, i) => `<div class="rx-row" data-i="${i}">
     <input list="druglist" placeholder="اسم الدواء (اكتب أول حرفين)" value="${esc(it.drug)}" data-k="drug" aria-label="الدواء" dir="auto">
     <input placeholder="الجرعة (حبة، 5مل…)" value="${esc(it.dose)}" data-k="dose" aria-label="الجرعة">
-    <div class="rx-times"><input placeholder="الأوقات: 8:00, 20:00" value="${esc(it.times)}" data-k="times" aria-label="الأوقات" dir="ltr">
+    <div class="rx-times"><input placeholder="عدد المرات يومياً: اختر من الأزرار" value="${esc(it.times)}" data-k="times" aria-label="عدد المرات" dir="ltr">
       <div class="qt">${QUICK_TIMES.map(([t, v]) => `<button type="button" class="qt-b" data-v="${v}">${t}</button>`).join("")}</div></div>
     <input type="number" placeholder="أيام" value="${esc(it.days)}" data-k="days" aria-label="المدة بالأيام" min="1">
     <input placeholder="ملاحظة (قبل الأكل…)" value="${esc(it.note)}" data-k="note" aria-label="ملاحظة">
@@ -281,7 +281,7 @@ export async function rxModal(pid) {
     <button type="button" class="btn small add-row">+ دواء</button>
     ${field("ملاحظة عامة", "note")}
     ${field("احفظها كوصفة جاهزة باسم (اختياري)", "tplName", { placeholder: "مثلاً: بعد القلع" })}
-    <p class="muted small">تتحول الأوقات إلى تذكير لدى المريض في التطبيق، وتحدد المدة بقاء الدواء في قائمة أدويته.</p>
+    <p class="muted small">يُطبع في الوصفة عدد المرات يومياً، ويختار المريض الأوقات المناسبة له حسب وجباته من التطبيق فيصله تذكير بكل جرعة.</p>
   </form>`, {
     ok: "حفظ", wide: true,
     onOpen: (w) => {
@@ -344,7 +344,7 @@ export async function rxModal(pid) {
 }
 // ---------- أوراق طبية جاهزة: إجازة مرضية، تقرير طبي، تحويل ----------
 const NUM_AR = ["", "يوم واحد", "يومين", "ثلاثة أيام", "أربعة أيام", "خمسة أيام", "ستة أيام", "سبعة أيام", "ثمانية أيام", "تسعة أيام", "عشرة أيام"];
-const daysText = (n) => NUM_AR[n] || `${n} يوماً`;
+const leaveDays = (n) => NUM_AR[n] || `${n} يوماً`;
 export async function medDocModal(pid) {
   const p = PC.byId[pid];
   const vs = (await list(P.sub(pid, "visits"))).sort((a, b) => b.date.localeCompare(a.date));
@@ -378,7 +378,7 @@ export async function medDocModal(pid) {
   if (r.kind === "leave") {
     const n = Math.max(1, Number(r.days) || 1), to = addDays(r.from, n - 1);
     printDoc(S.pub, "إجازة مرضية", `${r.toLeave ? `<p>${esc(r.toLeave)}</p>` : `<p>إلى من يهمه الأمر</p>`}
-      <p class="lead">نشهد بأن ${who} قد ${g("راجع", "راجعت")} العيادة بتاريخ ${esc(fmtDate(r.from, false))}، وبعد الفحص تبيّن ${g("أنه", "أنها")} بحاجة إلى راحة طبية لمدة <b>${esc(daysText(n))}</b>، اعتباراً من ${esc(fmtDate(r.from, false))} ولغاية ${esc(fmtDate(to, false))} ضمناً.</p>
+      <p class="lead">نشهد بأن ${who} قد ${g("راجع", "راجعت")} العيادة بتاريخ ${esc(fmtDate(r.from, false))}، وبعد الفحص تبيّن ${g("أنه", "أنها")} بحاجة إلى راحة طبية لمدة <b>${esc(leaveDays(n))}</b>، اعتباراً من ${esc(fmtDate(r.from, false))} ولغاية ${esc(fmtDate(to, false))} ضمناً.</p>
       ${diag}<p>أُعطيت هذه الشهادة بناءً على ${g("طلبه", "طلبها")}.</p>`, { signer });
   } else if (r.kind === "report") {
     printDoc(S.pub, "تقرير طبي", `<p>${esc(r.toReport || "إلى من يهمه الأمر")}</p>
@@ -448,7 +448,7 @@ export async function printPatientFile(pid) {
       <tr><th>أمراض مزمنة</th><td>${esc(m.chronic || "لا يوجد")}</td></tr>
       <tr><th>عمليات سابقة</th><td>${esc(m.surgeries || "لا يوجد")}</td></tr>
       <tr><th>أدوية دائمة</th><td>${esc(m.permanentMeds || "لا يوجد")}</td></tr></table>`)}
-    ${sec("الأدوية الحالية", meds.length ? `<ul>${meds.map((x) => `<li dir="auto"><b>${esc(x.drug)}</b> ${esc(x.dose || "")}${x.times ? ` · ${esc(x.times)}` : ""}</li>`).join("")}</ul>` : `<p class="muted">لا توجد</p>`)}
+    ${sec("الأدوية الحالية", meds.length ? `<ul>${meds.map((x) => `<li dir="auto"><b>${esc(x.drug)}</b> ${esc(x.dose || "")}${x.times ? ` · ${esc(freqText(x.times))}` : ""}</li>`).join("")}</ul>` : `<p class="muted">لا توجد</p>`)}
     ${sec(`الزيارات${vis.length > 15 ? " (آخر 15)" : ""}`, vs.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>الشكوى</th><th>التشخيص</th><th>العلاج</th></tr></thead><tbody>${vs.map((v) => `<tr><td>${esc(v.date)}</td><td>${esc(v.complaint || "")}</td><td>${esc(v.diagnosis || "")}</td><td>${esc(v.treatment || "")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">لا توجد زيارات</p>`)}
     ${ls.length ? sec("التحاليل", `<table class="tbl"><thead><tr><th>التاريخ</th><th>التحليل</th><th>النتيجة</th></tr></thead><tbody>${ls.map((l) => `<tr><td>${esc(l.date || "")}</td><td dir="auto">${esc(l.test || "")}</td><td dir="auto">${esc(l.value || "")} ${esc(l.unit || "")}</td></tr>`).join("")}</tbody></table>`) : ""}
     ${teeth.length ? sec("حالة الأسنان", `<table class="tbl"><tbody>${teeth.map(([n, t]) => `<tr><td>السن ${esc(n)}</td><td>${esc(TOOTH[t.status]?.[0] || t.status)}</td><td>${esc(t.note || "")}</td></tr>`).join("")}</tbody></table>`) : ""}
@@ -475,8 +475,8 @@ export function maskName(n) {
 export function printRx(p, r) {
   const qr = r.verify ? qrSvg(`${location.origin}${location.pathname}#/v/${r.verify}`, 96) : "";
   printDoc(S.pub, "وصفة طبية", `<p><b>المريض:</b> ${esc(p.name)} ${ageText(p) ? `· ${esc(ageText(p))}` : ""} · <b>التاريخ:</b> ${esc(fmtDate(r.date, false))}</p>
-    <div class="rx-sign">℞</div>
-    <ol class="rx-print">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b><div>${esc(it.dose || "")}${it.times ? ` · الأوقات: ${esc(it.times)}` : ""}${it.days ? ` · لمدة ${esc(it.days)} يوم` : ""}</div>${it.note ? `<div class="muted">${esc(it.note)}</div>` : ""}</li>`).join("")}</ol>
+    <div class="rx-ltr" dir="ltr"><div class="rx-sign">℞</div>
+    <ol class="rx-print">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b><div dir="rtl" class="rx-how">${[esc(it.dose || ""), freqText(it.times), it.days ? `لمدة ${daysText(it.days)}` : ""].filter(Boolean).join(" · ")}</div>${it.note ? `<div class="muted" dir="rtl">${esc(it.note)}</div>` : ""}</li>`).join("")}</ol></div>
     ${r.note ? `<p>${esc(r.note)}</p>` : ""}${S.clinic?.rxFooter ? `<p class="muted">${esc(S.clinic.rxFooter)}</p>` : ""}`, { qr, signer: r.doctorName ? `د. ${r.doctorName}` : "الطبيب" });
 }
 

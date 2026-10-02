@@ -225,6 +225,16 @@ export function specialtyMark(spec, size = 48) {
 // طرق قبض المريض
 export const CASH_METHODS = { cash: "نقداً", shamcash: "شام كاش", syriatel: "سيريتل كاش", mtn: "MTN كاش", bank: "تحويل بنكي", card: "بطاقة" };
 export const methodName = (m) => CASH_METHODS[m || "cash"] || m;
+// عدد مرات الدواء يومياً (تُطبع في الوصفة، والمريض يختار الأوقات المناسبة له)
+export const timesList = (t) => String(t || "").split(/[,،\s]+/).map((x) => x.trim()).filter((x) => /^\d{1,2}:\d{2}$/.test(x));
+export function freqText(t) {
+  const n = timesList(t).length;
+  return ["", "مرة واحدة يومياً", "مرتين يومياً", "3 مرات يومياً", "4 مرات يومياً"][n] || (n ? `${n} مرات يومياً` : "");
+}
+export function daysText(n) {
+  n = Number(n); if (!n) return "";
+  return n === 1 ? "يوم واحد" : n === 2 ? "يومين" : n <= 10 ? `${n} أيام` : `${n} يوماً`;
+}
 export function waLink(phone, text) {
   let p = String(phone || "").replace(/\D/g, "");
   if (p.startsWith("0")) p = "963" + p.slice(1);
