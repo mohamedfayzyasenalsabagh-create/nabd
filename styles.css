@@ -278,7 +278,8 @@ img.full { width: 100%; border-radius: 8px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-inline-end: 4px; vertical-align: middle; }
 .unit { text-align: end; }
 .bars { display: flex; flex-direction: column; gap: 8px; }
-.bar-row { display: grid; grid-template-columns: 110px 1fr 36px; align-items: center; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 8px; }
+.bar-row b { white-space: nowrap; min-width: 36px; text-align: end; font-size: .9rem; }
 .bar { height: 12px; background: var(--accent-soft); border-radius: 99px; overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--accent); }
 .req { padding: 10px 0; }
