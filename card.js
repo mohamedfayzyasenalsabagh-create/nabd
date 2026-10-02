@@ -1,6 +1,6 @@
 // الملف الطبي الكامل للمريض
 import { addFileDoc, fileData,
-  P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, arrayUnion,
+  P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, arrayUnion, arrayRemove,
   audit, resetPatientPassword, randId
 } from "./fb.js";
 import { makeThumb, tileImg, isImg, showFile,
@@ -60,7 +60,7 @@ export async function renderCard() {
     </div>
     <div class="row gap wrap quick">
       <button class="btn small primary q-book">+ موعد</button>
-      ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button>` : ""}
+      ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button><button class="btn small q-doc">📄 ورقة طبية</button>` : ""}
       <button class="btn small q-pay">دفعة</button>
       <a class="btn small" href="tel:${esc(p.phone)}">اتصال</a>
       <a class="btn small" target="_blank" rel="noopener" href="${esc(waLink(p.phone, `مرحباً ${p.name}، `))}">واتساب</a>
@@ -72,6 +72,7 @@ export async function renderCard() {
   $(".q-pay").onclick = () => paymentModal(pid);
   $(".q-visit")?.addEventListener("click", () => visitModal(pid));
   $(".q-rx")?.addEventListener("click", () => rxModal(pid));
+  $(".q-doc")?.addEventListener("click", () => medDocModal(pid));
   const T = { summary, info: infoTab, visits, rx, preg, gyn, cosm, files, private: privateTab, appts, money: moneyTab, msgs, account };
   try {
     if (!T[tab]) { const M = await mods(); await M[tab](p, tabEl(), refresh); return; }
@@ -249,35 +250,63 @@ async function rx(p) {
 
 export async function rxModal(pid) {
   const p = PC.byId[pid];
-  const drugs = S.clinic?.drugs || [];
-  const templates = S.clinic?.rxTemplates || [];
+  const { COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES } = await import("./drugs.js");
+  const known = Object.fromEntries(COMMON_DRUGS.map((d) => [d.drug.toLowerCase(), d]));
+  const drugs = [...new Set([...(S.clinic?.drugs || []), ...COMMON_DRUGS.map((d) => d.drug)])];
+  const own = S.clinic?.rxTemplates || [];
+  const builtin = builtinTemplatesFor(S.clinic?.modules || [], S.clinic?.specialty || "");
+  const templates = [...own, ...builtin.filter((b) => !own.some((o) => o.name === b.name))];
   let items = [{ drug: "", dose: "", times: "", days: "", note: "" }];
   const rowHtml = (it, i) => `<div class="rx-row" data-i="${i}">
-    <input list="druglist" placeholder="اسم الدواء" value="${esc(it.drug)}" data-k="drug" aria-label="الدواء">
+    <input list="druglist" placeholder="اسم الدواء (اكتب أول حرفين)" value="${esc(it.drug)}" data-k="drug" aria-label="الدواء" dir="auto">
     <input placeholder="الجرعة (حبة، 5مل…)" value="${esc(it.dose)}" data-k="dose" aria-label="الجرعة">
-    <input placeholder="الأوقات: 8:00, 20:00" value="${esc(it.times)}" data-k="times" aria-label="الأوقات" dir="ltr">
+    <div class="rx-times"><input placeholder="الأوقات: 8:00, 20:00" value="${esc(it.times)}" data-k="times" aria-label="الأوقات" dir="ltr">
+      <div class="qt">${QUICK_TIMES.map(([t, v]) => `<button type="button" class="qt-b" data-v="${v}">${t}</button>`).join("")}</div></div>
     <input type="number" placeholder="أيام" value="${esc(it.days)}" data-k="days" aria-label="المدة بالأيام" min="1">
     <input placeholder="ملاحظة (قبل الأكل…)" value="${esc(it.note)}" data-k="note" aria-label="ملاحظة">
     <button type="button" class="icon-btn rm" aria-label="حذف">✕</button></div>`;
   await modal(`وصفة · ${p?.name || ""}`, `<form class="stack">
-    ${templates.length ? `<label class="field"><span>قالب جاهز</span><select class="tpl"><option value="">—</option>${templates.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join("")}</select></label>` : ""}
+    ${templates.length ? `<div class="row gap tpl-row"><label class="field grow"><span>وصفة جاهزة</span><select class="tpl"><option value="">— اختر لتعبئة الأدوية —</option>
+      ${own.length ? `<optgroup label="وصفاتي المحفوظة">${own.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join("")}</optgroup>` : ""}
+      <optgroup label="وصفات مقترحة">${templates.slice(own.length).map((t, i) => `<option value="${own.length + i}">${esc(t.name)}</option>`).join("")}</optgroup></select></label>
+      <button type="button" class="btn small ghost del-tpl hidden">حذف من محفوظاتي</button></div>` : ""}
     <datalist id="druglist">${drugs.map((d) => `<option value="${esc(d)}">`).join("")}</datalist>
     <div class="rx-rows"></div>
     <button type="button" class="btn small add-row">+ دواء</button>
     ${field("ملاحظة عامة", "note")}
-    ${field("حفظ كقالب باسم (اختياري)", "tplName", { placeholder: "مثلاً: التهاب مهبلي" })}
+    ${field("احفظها كوصفة جاهزة باسم (اختياري)", "tplName", { placeholder: "مثلاً: بعد القلع" })}
     <p class="muted small">تتحول الأوقات إلى تذكير لدى المريض في التطبيق، وتحدد المدة بقاء الدواء في قائمة أدويته.</p>
   </form>`, {
     ok: "حفظ", wide: true,
     onOpen: (w) => {
       const draw = () => {
         w.querySelector(".rx-rows").innerHTML = items.map(rowHtml).join("");
-        w.querySelectorAll(".rx-row input").forEach((el) => el.oninput = () => { items[el.closest(".rx-row").dataset.i][el.dataset.k] = el.value; });
+        w.querySelectorAll(".rx-row input").forEach((el) => el.oninput = () => {
+          const row = el.closest(".rx-row"), it = items[row.dataset.i];
+          it[el.dataset.k] = el.value;
+          // عند اختيار دواء معروف: تعبئة الجرعة والأوقات والمدة المقترحة إن كانت فارغة
+          const k = el.dataset.k === "drug" && known[el.value.trim().toLowerCase()];
+          if (k) ["dose", "times", "days"].forEach((f) => { if (!it[f] && k[f] !== "") { it[f] = String(k[f]); const inp = row.querySelector(`[data-k="${f}"]`); if (inp) inp.value = it[f]; } });
+        });
+        w.querySelectorAll(".qt-b").forEach((b) => b.onclick = () => {
+          const row = b.closest(".rx-row"), inp = row.querySelector('[data-k="times"]');
+          inp.value = b.dataset.v; items[row.dataset.i].times = b.dataset.v;
+        });
         w.querySelectorAll(".rx-row .rm").forEach((b) => b.onclick = () => { items.splice(b.closest(".rx-row").dataset.i, 1); if (!items.length) items.push({ drug: "", dose: "", times: "", days: "", note: "" }); draw(); });
       };
       draw();
       w.querySelector(".add-row").onclick = () => { items.push({ drug: "", dose: "", times: "", days: "", note: "" }); draw(); };
-      w.querySelector(".tpl")?.addEventListener("change", (e) => { if (e.target.value !== "") { items = templates[e.target.value].items.map((x) => ({ ...x })); draw(); } });
+      const del = w.querySelector(".del-tpl");
+      w.querySelector(".tpl")?.addEventListener("change", (e) => {
+        const v = e.target.value;
+        del?.classList.toggle("hidden", v === "" || Number(v) >= own.length);
+        if (v !== "") { items = templates[v].items.map((x) => ({ drug: "", dose: "", times: "", days: "", note: "", ...x, days: x.days ?? "" })); draw(); }
+      });
+      del?.addEventListener("click", async () => {
+        const t = own[w.querySelector(".tpl").value]; if (!t) return;
+        try { await updateDoc(P.clinic(), { rxTemplates: arrayRemove(t) }); toast("حُذفت الوصفة من محفوظاتك"); own.splice(own.indexOf(t), 1); del.classList.add("hidden"); w.querySelector(`.tpl option[value="${templates.indexOf(t)}"]`)?.remove(); }
+        catch (err) { toast(errMsg(err), true); }
+      });
     },
     onOk: async (f) => {
       const date = ymd();
@@ -307,6 +336,58 @@ export async function rxModal(pid) {
     }
   });
 }
+// ---------- أوراق طبية جاهزة: إجازة مرضية، تقرير طبي، تحويل ----------
+const NUM_AR = ["", "يوم واحد", "يومين", "ثلاثة أيام", "أربعة أيام", "خمسة أيام", "ستة أيام", "سبعة أيام", "ثمانية أيام", "تسعة أيام", "عشرة أيام"];
+const daysText = (n) => NUM_AR[n] || `${n} يوماً`;
+export async function medDocModal(pid) {
+  const p = PC.byId[pid];
+  const vs = (await list(P.sub(pid, "visits"))).sort((a, b) => b.date.localeCompare(a.date));
+  const last = vs[0] || {};
+  const doctorName = S.profile.name || S.clinic?.doctorName || "";
+  const r = await modal(`ورقة طبية · ${p?.name || ""}`, `<form class="stack">
+    <div class="seg doc-kind" role="tablist">
+      <button type="button" class="on" data-k="leave">إجازة مرضية</button><button type="button" data-k="report">تقرير طبي</button><button type="button" data-k="ref">تحويل</button>
+    </div>
+    <input type="hidden" name="kind" value="leave">
+    ${field("التشخيص", "diagnosis", { value: last.diagnosis || "" })}
+    <div class="k k-leave grid2">${field("من تاريخ", "from", { type: "date", value: ymd() })}${field("عدد الأيام", "days", { type: "number", value: 2, attrs: 'min="1" max="60"' })}</div>
+    <div class="k k-leave">${field("الجهة (اختياري)", "toLeave", { placeholder: "مثلاً: إلى من يهمه الأمر / اسم المدرسة أو الشركة" })}</div>
+    <div class="k k-report hidden">${field("موجه إلى", "toReport", { value: "إلى من يهمه الأمر" })}${field("نص التقرير", "body", { type: "textarea", value: [last.complaint && `راجع العيادة بشكوى: ${last.complaint}.`, last.exam && `بالفحص: ${last.exam}.`, last.treatment && `العلاج: ${last.treatment}.`].filter(Boolean).join("\n") })}</div>
+    <div class="k k-ref hidden">${field("إلى الطبيب / الاختصاص", "toRef", { placeholder: "مثلاً: الزميل اختصاصي الجراحة الفكية" })}${field("سبب التحويل", "reason", { type: "textarea" })}${field("ملخص الحالة والعلاج", "summary", { type: "textarea", value: last.treatment ? `العلاج المطبق: ${last.treatment}` : "" })}</div>
+  </form>`, {
+    ok: "طباعة",
+    onOpen: (w) => {
+      w.querySelectorAll(".doc-kind button").forEach((b) => b.onclick = () => {
+        w.querySelectorAll(".doc-kind button").forEach((x) => x.classList.toggle("on", x === b));
+        w.querySelector("[name=kind]").value = b.dataset.k;
+        w.querySelectorAll(".k").forEach((el) => el.classList.toggle("hidden", !el.classList.contains("k-" + b.dataset.k)));
+      });
+    }
+  });
+  if (!r) return;
+  const who = `${["f", "female"].includes(p.sex) ? "السيدة" : "السيد"} <b>${esc(p.name)}</b>${ageText(p) ? ` (${esc(ageText(p))})` : ""}`;
+  const diag = r.diagnosis ? `<p><b>التشخيص:</b> ${esc(r.diagnosis)}</p>` : "";
+  const signer = `د. ${doctorName}`;
+  const F = ["f", "female"].includes(p.sex), g = (m, fm) => (F ? fm : m);
+  if (r.kind === "leave") {
+    const n = Math.max(1, Number(r.days) || 1), to = addDays(r.from, n - 1);
+    printDoc(S.pub, "إجازة مرضية", `${r.toLeave ? `<p>${esc(r.toLeave)}</p>` : `<p>إلى من يهمه الأمر</p>`}
+      <p class="lead">نشهد بأن ${who} قد ${g("راجع", "راجعت")} العيادة بتاريخ ${esc(fmtDate(r.from, false))}، وبعد الفحص تبيّن ${g("أنه", "أنها")} بحاجة إلى راحة طبية لمدة <b>${esc(daysText(n))}</b>، اعتباراً من ${esc(fmtDate(r.from, false))} ولغاية ${esc(fmtDate(to, false))} ضمناً.</p>
+      ${diag}<p>أُعطيت هذه الشهادة بناءً على ${g("طلبه", "طلبها")}.</p>`, { signer });
+  } else if (r.kind === "report") {
+    printDoc(S.pub, "تقرير طبي", `<p>${esc(r.toReport || "إلى من يهمه الأمر")}</p>
+      <p class="lead">نفيد بأن ${who} ${g("يراجع", "تراجع")} عيادتنا.</p>${diag}
+      ${r.body ? `<div class="pre lead">${esc(r.body)}</div>` : ""}<p>أُعطي هذا التقرير بناءً على ${g("طلبه", "طلبها")}.</p>`, { signer });
+  } else {
+    printDoc(S.pub, "رسالة تحويل", `<p>${r.toRef ? `حضرة ${esc(r.toRef)} المحترم،` : "حضرة الزميل المحترم،"}</p>
+      <p class="lead">تحية طيبة، أحوّل إليكم ${who} لإجراء التقييم والمتابعة اللازمة.</p>${diag}
+      ${r.reason ? `<p><b>سبب التحويل:</b></p><div class="pre">${esc(r.reason)}</div>` : ""}
+      ${r.summary ? `<p><b>ملخص الحالة:</b></p><div class="pre">${esc(r.summary)}</div>` : ""}
+      <p>مع الشكر والتقدير.</p>`, { signer });
+  }
+  await audit({ leave: "طباعة إجازة مرضية", report: "طباعة تقرير طبي", ref: "طباعة رسالة تحويل" }[r.kind], p.name);
+}
+
 export function maskName(n) {
   const parts = String(n).trim().split(/\s+/);
   return parts.length > 1 ? `${parts[0]} ${parts.slice(1).map((x) => x[0] + ".").join(" ")}` : parts[0] || "";

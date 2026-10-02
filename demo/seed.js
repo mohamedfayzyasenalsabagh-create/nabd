@@ -6,7 +6,7 @@ export const DEMO = {
   secretary: { uid: "u-sec", phone: "0955000222" },
   patient: { uid: "u-pt", phone: "0944555666", pid: "p01" },
 };
-const VERSION = "3";
+const VERSION = "4";
 
 // أرقام عشوائية ثابتة حتى تبقى البيانات نفسها في كل مرة
 let seed = 20261002;
@@ -52,6 +52,8 @@ export async function ensureSeed() {
     doctors: [{ id: doctorId, uid: DEMO.doctor.uid, name: "سامر الحلبي", title: "اختصاصي تجميل وتقويم الأسنان", active: true }],
     city: "دمشق", listed: false, bookingEnabled: true, showPrices: true,
     rxFooter: "يرجى مراجعة العيادة عند ظهور أي أعراض جانبية.",
+    drugs: ["Ibuprofen 400mg", "Chlorhexidine 0.12% mouthwash", "Amoxicillin 500mg"],
+    rxTemplates: [{ name: "وصفتي بعد التنظيف", items: [{ drug: "Chlorhexidine 0.12% mouthwash", dose: "مضمضة 15 مل", times: "08:00, 20:00", days: 7, note: "" }] }],
     status: "active", plan: "pro", expiresAt: { __t: Date.now() + 365 * 864e5 },
     features: { booking: true, inventory: true, qr: true, multiDoctor: true, multiSpecialty: false },
     maxDoctors: 3, maxStaff: 3, ownerUid: DEMO.doctor.uid, ownerEmail: DEMO.doctor.email, ownerPhone: "0933000111",
@@ -81,10 +83,10 @@ export async function ensureSeed() {
     "جود الرفاعي", "سامي مراد", "آية الحمصي", "كريم البيطار", "رنيم شاهين", "حسان القدسي", "تالا موسى", "وسيم عبود", "ميار الصباغ"];
   const pts = NAMES.map((n, i) => ({
     id: `p${pad(i + 1)}`, name: n, phone: i === 0 ? DEMO.patient.phone : `09${pick(["33", "44", "55", "88", "99"])}${String(100000 + Math.floor(rnd() * 899999))}`,
-    age: 18 + Math.floor(rnd() * 50), sex: i % 2 ? "female" : "male",
+    age: 18 + Math.floor(rnd() * 50), sex: i % 2 ? "f" : "m",
     created: addDays(today, -(i >= 1 && i <= 3 ? i - 1 : i < 8 ? 3 + Math.floor(rnd() * 20) : 25 + Math.floor(rnd() * 90))),
   }));
-  pts[0].age = 36; pts[0].sex = "male";
+  pts[0].age = 36; pts[0].sex = "m";
   pts.forEach((p) => {
     C("patients", p.id, { name: p.name, phone: p.phone, age: p.age, dob: null, sex: p.sex, address: "دمشق", bloodType: "", uid: p.id === DEMO.patient.pid ? DEMO.patient.uid : null, archived: false, createdAt: ts(p.created), createdBy: DEMO.doctor.uid });
     if (p.id !== DEMO.patient.pid) C("phones", p.phone, {});
@@ -152,6 +154,9 @@ export async function ensureSeed() {
     const n = 2 + Math.floor(rnd() * 3);
     [...TIMES].sort(() => rnd() - .5).slice(0, n).sort().forEach((t) => addAppt(date, t, pick(pts.slice(1)), svcPick(), "confirmed"));
   }
+  // تذكير الغد: أول موعدين أُرسل لهما تذكير
+  const tmPrefix = `clinics/${cid}/appointments/${addDays(today, 1)}_`;
+  [...F.keys()].filter((k) => k.startsWith(tmPrefix)).sort().slice(0, 2).forEach((k) => F.set(k, { ...F.get(k), remindedAt: ts(today, "09:00") }));
   Object.entries(busy).forEach(([date, slots]) => C("busy", date, { slots }));
 
   // ---------- ملف المريض التجريبي (أحمد سليمان) ----------
@@ -207,6 +212,20 @@ export async function ensureSeed() {
   // ---------- المخزون ----------
   const inv = [["بنج موضعي (Lidocaine)", 40, 20, "علبة"], ["حشوات كومبوزيت", 6, 10, "سيرنغ"], ["قفازات طبية", 12, 5, "علبة"], ["إبر تخدير", 150, 50, "إبرة"], ["مواد تبييض", 3, 2, "عبوة"]];
   inv.forEach(([n, qty, min, unit], i) => C("inventory", `inv${i}`, { name: n, qty, unit, min, expiry: i === 0 ? addDays(today, 25) : "", cost: null, note: "", moves: [], archived: false, createdAt: ts(addDays(today, -40)) }));
+
+  // ---------- المصاريف (للشهرين الحالي والسابق) ----------
+  const monthStart = (off) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + off); return ymd(d); };
+  let ne = 0;
+  [-1, 0].forEach((off) => {
+    const m1 = monthStart(off);
+    [["إيجار", 1500000, 1, "إيجار العيادة"], ["رواتب", 1200000, 1, "راتب السكرتيرة"], ["مواد ومستلزمات طبية", 650000 + off * -80000, 5, "طلبية مواد حشو وتخدير"],
+     ["كهرباء وماء وإنترنت", 180000, 10, "فاتورة الشهر"], ["صيانة وأجهزة", 250000, 18, "صيانة كرسي الأسنان"], ["تسويق وإعلان", 100000, 20, "إعلان ممول"]]
+      .forEach(([cat, amount, day, note]) => {
+        const date = addDays(m1, day - 1);
+        if (date > today) return;
+        C("expenses", `ex${++ne}`, { category: cat, amount, date, note, void: false, by: DEMO.doctor.uid, byName: "سامر الحلبي", createdAt: ts(date, "12:00") });
+      });
+  });
 
   // ---------- سجل التعديلات ----------
   [["تسجيل دخول", ""], ["تسجيل دفعة", "ليلى حسن"], ["تسجيل زيارة", "محمد الخطيب"]].forEach(([a, t], i) => C("audit", `au${i}`, { at: ts(today, `0${8 + i}:30`), by: DEMO.secretary.uid, byName: "رنا", action: a, target: t }));

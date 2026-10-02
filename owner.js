@@ -61,6 +61,17 @@ async function renderClinics() {
   const expired = st.filter((x) => !x.s.ok);
   const soon = st.filter((x) => x.s.ok && x.s.days <= 7);
   const mrr = active.reduce((sum, x) => sum + (Number(planOf(x.c.plan)?.price) || 0), 0);
+  // المقبوض من الاشتراكات: هذا الشهر والشهر السابق
+  const pays = await list(P.subPays()).catch(() => []);
+  const amt = (p) => Number(String(p.amount || "").replace(/[^\d.]/g, "")) || 0;
+  const mKey = (t) => { const d = new Date(tsMs(t)); return `${d.getFullYear()}-${d.getMonth()}`; };
+  const nowD = new Date(), thisM = `${nowD.getFullYear()}-${nowD.getMonth()}`, lastD = new Date(nowD.getFullYear(), nowD.getMonth() - 1, 1), lastM = `${lastD.getFullYear()}-${lastD.getMonth()}`;
+  const approved = pays.filter((p) => p.status === "approved");
+  const got = (k) => approved.filter((p) => mKey(p.reviewedAt || p.createdAt) === k).reduce((s, p) => s + amt(p), 0);
+  const gotThis = got(thisM), gotLast = got(lastM);
+  // عيادات تحتاج متابعة: تنتهي قريباً أو انتهت خلال آخر 30 يوماً
+  const follow = st.filter((x) => x.c.plan !== "gift" && x.c.status !== "suspended" && x.s.days <= 7 && x.s.days > -30)
+    .sort((a, b) => a.s.days - b.s.days);
   const F = { all: st, active, trial, expired, soon };
   let rows = F[filter] || st;
   if (q) rows = rows.filter((x) => [x.c.name, x.c.doctorName, x.c.slug, x.c.ownerEmail, x.c.ownerPhone].join(" ").toLowerCase().includes(q.toLowerCase()));
@@ -73,7 +84,14 @@ async function renderClinics() {
       <button class="stat f ${filter === "soon" ? "sel" : ""}" data-f="soon"><b>${soon.length}</b><span>تنتهي خلال 7 أيام</span></button>
       <button class="stat f ${filter === "expired" ? "sel" : ""}" data-f="expired"><b>${expired.length}</b><span>منتهية أو موقوفة</span></button>
       <div class="stat"><b>${mrr}$</b><span>الدخل الشهري المتوقع</span></div>
+      <div class="stat"><b>${gotThis}$</b><span>المقبوض هذا الشهر${gotLast ? ` (السابق ${gotLast}$)` : ""}</span></div>
     </div>
+    ${follow.length ? `<section class="card follow"><h3>⏰ تحتاج متابعة للتجديد</h3><p class="muted small">أرسل تذكيراً بالتجديد قبل انتهاء الاشتراك، فالعيادة المنتهية تصبح للقراءة فقط.</p>
+      <ul class="remind-list">${follow.map(({ c, s: x }) => `<li class="${c.renewRemindedAt && tsMs(c.renewRemindedAt) > Date.now() - 3 * 864e5 ? "done" : ""}">
+        <span class="t ${x.days <= 0 ? "danger-t" : ""}">${x.days > 0 ? `${x.days} يوم` : x.days === 0 ? "اليوم" : `منذ ${-x.days} يوم`}</span>
+        <span class="n">${esc(c.name)}<small>${c.status === "trial" ? "تجربة مجانية" : esc(planOf(c.plan)?.name || c.plan || "")} · <span dir="ltr">${esc(c.ownerPhone || "")}</span></small></span>
+        ${c.ownerPhone ? `<a class="btn small primary rn" data-id="${c.id}" target="_blank" rel="noopener" href="${esc(waLink(c.ownerPhone, renewText(c, x.days)))}">📲 تذكير</a>` : ""}
+      </li>`).join("")}</ul></section>` : ""}
     <input class="search" type="search" id="cq" placeholder="بحث بالاسم أو الرمز أو البريد" value="${esc(q)}" aria-label="بحث">
     <section class="card">${rows.length ? `<div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>العيادة</th><th>الاختصاص</th><th>الحالة</th><th>الباقة</th><th>ينتهي</th><th></th></tr></thead><tbody>
       ${rows.map(({ c, s }) => `<tr><td><b>${esc(c.name)}</b><br><small class="muted" dir="ltr">${esc(c.slug || c.id)}</small></td>
@@ -85,6 +103,19 @@ async function renderClinics() {
   $$(".stat.f").forEach((b) => b.onclick = () => { filter = b.dataset.f; renderClinics(); });
   $("#cq").oninput = debounce((e) => { q = e.target.value; renderClinics().then(() => { const i = $("#cq"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 250);
   $$(".man").forEach((b) => b.onclick = () => manageClinic(all.find((c) => c.id === b.dataset.id)));
+  $$(".rn").forEach((b) => b.addEventListener("click", () => {
+    b.closest("li").classList.add("done");
+    updateDoc(P.clinic(b.dataset.id), { renewRemindedAt: Timestamp.now() }).catch(() => {});
+  }));
+}
+
+function renewText(c, days) {
+  const pay = S.platform?.payment || {};
+  const ps = plans().map((p) => `• ${p.name}: ${p.price}${p.currency || "$"} شهرياً`).join("\n");
+  const tr = c.status === "trial";
+  const subj = tr ? "تجربتكم المجانية" : "اشتراككم";
+  const when = days > 0 ? `${tr ? "تنتهي" : "ينتهي"} ${subj} في منصة ${PLATFORM()} بعد ${days === 1 ? "يوم واحد" : days === 2 ? "يومين" : `${days} أيام`}` : `${tr ? "انتهت" : "انتهى"} ${subj} في منصة ${PLATFORM()}، والعيادة الآن للقراءة فقط`;
+  return `مرحباً د. ${c.doctorName || ""} 👋\n${when}.\n\nللتجديد اختر الباقة المناسبة:\n${ps}\n\nيمكنك الدفع من داخل التطبيق: المزيد ← الاشتراك والفواتير${pay.syriatel ? `\nأو عبر سيريتل كاش: ${pay.syriatel}` : ""}\n\nبياناتكم محفوظة بالكامل. لأي استفسار نحن بالخدمة.`;
 }
 
 async function manageClinic(c) {

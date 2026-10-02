@@ -242,3 +242,14 @@ test("فهرس الدخول الموحد: قراءة مستند بعينه فق�
   await assertFails(setDoc(doc(anon(), "loginIdx/h2"), { e: ["A|p"] }));
   await assertFails(setDoc(doc(as("sec_A"), "loginIdx/h3"), { e: ["A|p"], extra: 1 }));
 });
+
+test("المصاريف للأطباء فقط، والطبيب غير المسؤول يحفظ وصفاته الجاهزة فقط", async () => {
+  await assertSucceeds(setDoc(doc(as("doc_A"), "clinics/A/expenses/e1"), { category: "إيجار", amount: 100, date: "2026-10-01" }));
+  await assertSucceeds(getDoc(doc(as("adm_A"), "clinics/A/expenses/e1")));
+  await assertFails(getDoc(doc(as("sec_A"), "clinics/A/expenses/e1")));
+  await assertFails(setDoc(doc(as("sec_A"), "clinics/A/expenses/e2"), { amount: 1 }));
+  await assertFails(getDoc(doc(as("pat_A"), "clinics/A/expenses/e1")));
+  await assertSucceeds(updateDoc(doc(as("doc_A"), "clinics/A"), { rxTemplates: arrayUnion({ name: "t", items: [] }) }));
+  await assertFails(updateDoc(doc(as("doc_A"), "clinics/A"), { name: "x" }));
+  await assertFails(updateDoc(doc(as("sec_A"), "clinics/A"), { rxTemplates: [] }));
+});
