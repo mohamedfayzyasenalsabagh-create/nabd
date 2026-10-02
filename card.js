@@ -289,7 +289,7 @@ export async function rxModal(pid) {
     <button type="button" class="icon-btn rm" aria-label="حذف">✕</button><div class="rx-warns">${warnHtml(it.drug)}</div></div>`;
   await modal(`وصفة · ${p?.name || ""}`, `<form class="stack">
     ${condChips(mm, flags.preg)}${mm.allergies ? `<div class="alert danger">⚠️ حساسية: ${esc(mm.allergies)}</div>` : ""}
-    <div class="dz-box"><label class="field"><span>🔎 ابحث بالمرض لتظهر وصفة جاهزة وفق التوصيات العالمية</span><input class="dz-q" placeholder="اسم المرض بالعربي أو الإنكليزي أو رمز ICD-10" autocomplete="off"></label>
+    <div class="dz-box"><label class="field"><span>🔎 نماذج وصفات دوائية جاهزة حسب التشخيص: اكتب التشخيص واختره</span><input class="dz-q" placeholder="اسم المرض بالعربي أو الإنكليزي أو رمز ICD-10" autocomplete="off"></label>
       <div class="dz-res"></div><div class="dz-tip hidden"></div></div>
     ${field("التشخيص", "diagnosis", { placeholder: "يُطبع في أعلى الوصفة" })}
     ${templates.length ? `<div class="row gap tpl-row"><label class="field grow"><span>وصفة جاهزة</span><select class="tpl"><option value="">— اختر لتعبئة الأدوية —</option>
