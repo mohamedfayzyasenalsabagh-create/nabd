@@ -168,8 +168,11 @@ export const SAFETY = [
 ];
 
 const norm = (s) => String(s || "").toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه");
+import { BRANDS } from "./drugs.js";
 export function findSafety(drug) {
-  const d = norm(drug);
+  const raw = String(drug || "").toLowerCase();
+  const br = BRANDS.find(([b]) => raw.includes(b.toLowerCase()));
+  const d = norm(br ? `${drug} ${br[1]}` : drug);
   if (!d.trim()) return null;
   return SAFETY.find((e) => e.k.some((k) => d.includes(norm(k)))) || null;
 }

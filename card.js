@@ -265,7 +265,7 @@ async function rx(p) {
 
 export async function rxModal(pid) {
   const p = PC.byId[pid];
-  const [{ COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES }, { searchDiseases }, { drugWarnings }, med, pregs] = await Promise.all([
+  const [{ COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES, BRANDS, brandToGeneric }, { searchDiseases }, { drugWarnings }, med, pregs] = await Promise.all([
     import("./drugs.js"), import("./diseases.js"), import("./drugsafety.js"),
     one(P.subDoc(pid, "medical", "profile")).catch(() => null), list(P.sub(pid, "pregnancies")).catch(() => []),
   ]);
@@ -280,7 +280,7 @@ export async function rxModal(pid) {
   const templates = [...own, ...builtin.filter((b) => !own.some((o) => o.name === b.name))];
   let items = [{ drug: "", dose: "", times: "", days: "", note: "" }];
   const rowHtml = (it, i) => `<div class="rx-row" data-i="${i}">
-    <input list="druglist" placeholder="اسم الدواء (اكتب أول حرفين)" value="${esc(it.drug)}" data-k="drug" aria-label="الدواء" dir="auto">
+    <input list="druglist" placeholder="اسم الدواء العلمي أو التجاري" value="${esc(it.drug)}" data-k="drug" aria-label="الدواء" dir="auto">
     <input placeholder="الجرعة (حبة، 5مل…)" value="${esc(it.dose)}" data-k="dose" aria-label="الجرعة">
     <div class="rx-times"><input placeholder="عدد المرات يومياً: اختر من الأزرار" value="${esc(it.times)}" data-k="times" aria-label="عدد المرات" dir="ltr">
       <div class="qt">${QUICK_TIMES.map(([t, v]) => `<button type="button" class="qt-b" data-v="${v}">${t}</button>`).join("")}</div></div>
@@ -291,12 +291,12 @@ export async function rxModal(pid) {
     ${condChips(mm, flags.preg)}${mm.allergies ? `<div class="alert danger">⚠️ حساسية: ${esc(mm.allergies)}</div>` : ""}
     <div class="dz-box"><label class="field"><span>🔎 نماذج وصفات دوائية جاهزة حسب التشخيص: اكتب التشخيص واختره</span><input class="dz-q" placeholder="اسم المرض بالعربي أو الإنكليزي أو رمز ICD-10" autocomplete="off"></label>
       <div class="dz-res"></div><div class="dz-tip hidden"></div></div>
-    ${field("التشخيص", "diagnosis", { placeholder: "يُطبع في أعلى الوصفة" })}
+    ${field("التشخيص (يكتبه الطبيب)", "diagnosis", { placeholder: "يُطبع في أعلى الوصفة" })}<button type="button" class="btn small ghost dg-use hidden"></button>
     ${templates.length ? `<div class="row gap tpl-row"><label class="field grow"><span>وصفة جاهزة</span><select class="tpl"><option value="">— اختر لتعبئة الأدوية —</option>
       ${own.length ? `<optgroup label="وصفاتي المحفوظة">${own.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join("")}</optgroup>` : ""}
       <optgroup label="وصفات مقترحة">${templates.slice(own.length).map((t, i) => `<option value="${own.length + i}">${esc(t.name)}</option>`).join("")}</optgroup></select></label>
       <button type="button" class="btn small ghost del-tpl hidden">حذف من محفوظاتي</button></div>` : ""}
-    <datalist id="druglist">${drugs.map((d) => `<option value="${esc(d)}">`).join("")}</datalist>
+    <datalist id="druglist">${drugs.map((d) => `<option value="${esc(d)}">`).join("")}${BRANDS.map(([b, g]) => `<option value="${esc(`${b} (${g})`)}">`).join("")}</datalist>
     <div class="rx-rows"></div>
     <button type="button" class="btn small add-row">+ دواء</button>
     ${field("ملاحظة عامة", "note")}
@@ -309,6 +309,9 @@ export async function rxModal(pid) {
         w.querySelector(".rx-rows").innerHTML = items.map(rowHtml).join("");
         w.querySelectorAll(".rx-row input").forEach((el) => el.oninput = () => {
           const row = el.closest(".rx-row"), it = items[row.dataset.i];
+          // الاسم التجاري ← الاسم العلمي
+          const gen = el.dataset.k === "drug" && brandToGeneric(el.value);
+          if (gen) el.value = gen;
           it[el.dataset.k] = el.value;
           // عند اختيار دواء معروف: تعبئة الجرعة والأوقات والمدة المقترحة إن كانت فارغة
           const k = el.dataset.k === "drug" && known[el.value.trim().toLowerCase()];
@@ -332,8 +335,10 @@ export async function rxModal(pid) {
         res.querySelectorAll(".dz-b").forEach((b) => b.onclick = () => {
           const d = found[b.dataset.i];
           items = d.items.map((x) => ({ drug: x.drug, dose: x.dose, times: x.times, days: x.days ?? "", note: x.note || "" }));
-          const dg = w.querySelector("[name=diagnosis]"); if (dg && !dg.value) dg.value = d.icd ? `${d.n} (ICD-10: ${d.icd})` : d.n;
-          tip.innerHTML = `<b>${esc(d.n)}</b>${d.tip ? `<p>${esc(d.tip)}</p>` : ""}<p class="muted small">وصفة مقترحة وفق البروتوكولات العالمية. راجع الجرعة حسب العمر والوزن ووظائف الكلية والكبد والحمل قبل الحفظ.</p>`;
+          const use = w.querySelector(".dg-use"), dgTxt = d.icd ? `${d.n} (ICD-10: ${d.icd})` : d.n;
+          use.textContent = `＋ اكتب في التشخيص: ${dgTxt}`; use.classList.remove("hidden");
+          use.onclick = () => { w.querySelector("[name=diagnosis]").value = dgTxt; use.classList.add("hidden"); };
+          tip.innerHTML = `<b>${esc(d.n)}</b>${d.tip ? `<p>${esc(d.tip)}</p>` : ""}<p class="muted small">نموذج وصفة وفق أحدث البروتوكولات والتوصيات العالمية. راجع الجرعة حسب العمر والوزن ووظائف الكلية والكبد والحمل قبل الحفظ.</p>`;
           tip.classList.remove("hidden");
           draw();
           w.querySelector(".rx-rows").scrollIntoView({ behavior: "smooth", block: "nearest" });

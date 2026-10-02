@@ -131,3 +131,33 @@ export const IMAGING_GROUPS = [
   ["أشعة الأسنان", ["صورة بانوراما (OPG)", "صورة ذروية (Periapical)", "صورة مجنحة (Bitewing)", "CBCT ثلاثي الأبعاد", "صورة سيفالومترية (Ceph)"]],
   ["الأشعة العامة", ["صورة صدر (Chest X-ray)", "صورة جيوب (Sinuses)", "إيكو بطن وحوض", "إيكو غدة درقية", "إيكو ثدي", "إيكو حمل", "إيكو قلب", "طبقي محوري (CT)", "رنين مغناطيسي (MRI)", "تخطيط قلب (ECG)"]],
 ];
+
+// الأسماء التجارية الشائعة ← الاسم العلمي (لبحث الدواء بالاسم التجاري)
+export const BRANDS = [
+  ["Panadol", "Paracetamol 500mg"], ["Adol", "Paracetamol 500mg"], ["Tylenol", "Paracetamol 500mg"], ["Cetal", "Paracetamol 500mg"],
+  ["Brufen", "Ibuprofen 400mg"], ["Advil", "Ibuprofen 400mg"], ["Nurofen", "Ibuprofen 400mg"],
+  ["Voltaren", "Diclofenac 50mg"], ["Cataflam", "Diclofenac 50mg"], ["Naprosyn", "Naproxen 500mg"], ["Ponstan", "Mefenamic acid 500mg"],
+  ["Augmentin", "Amoxicillin/Clavulanate 1g (Augmentin)"], ["Amoxil", "Amoxicillin 500mg"], ["Zithromax", "Azithromycin 500mg"],
+  ["Klacid", "Clarithromycin 500mg"], ["Zinnat", "Cefuroxime 500mg"], ["Suprax", "Cefixime 400mg"], ["Ciprobay", "Ciprofloxacin 500mg"],
+  ["Cipro", "Ciprofloxacin 500mg"], ["Flagyl", "Metronidazole 500mg"], ["Dalacin", "Clindamycin 300mg"], ["Vibramycin", "Doxycycline 100mg"],
+  ["Losec", "Omeprazole 20mg"], ["Nexium", "Esomeprazole 40mg"], ["Controloc", "Pantoprazole 40mg"], ["Pantozol", "Pantoprazole 40mg"],
+  ["Motilium", "Domperidone 10mg"], ["Primperan", "Metoclopramide 10mg"], ["Buscopan", "Hyoscine butylbromide 10mg (Buscopan)"],
+  ["Claritine", "Loratadine 10mg"], ["Clarityn", "Loratadine 10mg"], ["Zyrtec", "Cetirizine 10mg"], ["Aerius", "Desloratadine 5mg"],
+  ["Glucophage", "Metformin 500mg"], ["Norvasc", "Amlodipine 5mg"], ["Cozaar", "Losartan 50mg"], ["Lipitor", "Atorvastatin 20mg"],
+  ["Aspocid", "Aspirin 81mg"], ["Ventolin", "Salbutamol inhaler"], ["Corsodyl", "Chlorhexidine 0.12% mouthwash"],
+  ["Tantum Verde", "Benzydamine mouthwash"], ["Diflucan", "Fluconazole 150mg"], ["Canesten", "Clotrimazole cream"],
+  ["Fucidin", "Fusidic acid cream"], ["Bactroban", "Mupirocin ointment"], ["Tobrex", "Tobramycin eye drops"],
+  ["Duphaston", "Dydrogesterone 10mg (Duphaston)"], ["Cyclogest", "Progesterone 200mg"], ["Utrogestan", "Progesterone 200mg"],
+  ["Daktarin oral gel", "Miconazole 2% oral gel"], ["Mycostatin", "Nystatin oral suspension 100,000 IU/mL"],
+  ["Zovirax", "Aciclovir 5% cream"], ["Tamiflu", "Oseltamivir 75mg"], ["Movicol", "Macrogol (Movicol) sachet"],
+  ["Duspatalin", "Mebeverine 135mg"], ["Colospasmin", "Mebeverine 135mg"], ["Betaserc", "Betahistine 16mg"],
+  ["Omnic", "Tamsulosin 0.4mg"], ["Euthyrox", "Levothyroxine"], ["Concor", "Bisoprolol"], ["Epiduo", "Adapalene 0.1% / Benzoyl peroxide 2.5% gel"],
+  ["Differin", "Adapalene 0.1% gel"], ["Vermox", "Mebendazole 100mg"], ["Imigran", "Sumatriptan 50mg"], ["Cyklokapron", "Tranexamic acid 500mg"],
+];
+// يحوّل الاسم التجاري (أو «Brand (Generic)» من القائمة) إلى الاسم العلمي
+export function brandToGeneric(v) {
+  const t = String(v || "").trim().toLowerCase();
+  if (!t) return null;
+  const hit = BRANDS.find(([b, g]) => t === b.toLowerCase() || t === `${b} (${g})`.toLowerCase());
+  return hit ? hit[1] : null;
+}

@@ -30,10 +30,11 @@ export async function renderLibrary() {
 }
 
 export async function renderDrugEd() {
-  const { SAFETY, CONDS, LEVEL } = await import("./drugsafety.js");
+  const { SAFETY, CONDS, LEVEL, findSafety } = await import("./drugsafety.js");
+  const { BRANDS } = await import("./drugs.js");
   main().innerHTML = `<h2 class="page-title">التثقيف الدوائي</h2>
     <p class="muted">مرجع سريع يراجعه الطبيب قبل كتابة الوصفة: الأدوية المسموحة والممنوعة في الحمل والإرضاع ولمرضى الكبد والكلى. وإذا سُجّل في السجل الطبي للمريض أنه حامل أو مرضع أو لديه مرض كبدي أو كلوي، يظهر تنبيه أحمر تلقائياً عند كتابة دواء غير مناسب.</p>
-    <div class="card stack"><input class="dq" placeholder="🔎 ابحث باسم الدواء" autocomplete="off" dir="auto">
+    <div class="card stack"><input class="dq" placeholder="🔎 ابحث باسم الدواء العلمي أو التجاري" autocomplete="off" dir="auto">
       <div class="ds-tabs">${CONDS.map(([k, t, ic]) => `<button data-c="${k}">${ic} ${t}</button>`).join("")}</div>
       <div class="ds-tabs lv">${[["", "الكل"], ["no", "يُتجنب"], ["care", "بحذر"], ["ok", "آمن عادة"]].map(([k, t]) => `<button data-l="${k}">${t}</button>`).join("")}</div></div>
     <section class="card ds-out"></section>
@@ -44,7 +45,8 @@ export async function renderDrugEd() {
     $$(".ds-tabs button[data-l]").forEach((b) => b.classList.toggle("on", b.dataset.l === lv));
     const q = $(".dq").value.trim().toLowerCase();
     const rank = { no: 0, care: 1, ok: 2 };
-    const arr = SAFETY.filter((e) => (!q || e.n.toLowerCase().includes(q) || e.k.some((k) => k.includes(q))) && (!lv || e[cond][0] === lv))
+    const viaBrand = q.length > 1 ? new Set(BRANDS.filter(([b]) => b.toLowerCase().includes(q)).map(([b, g]) => findSafety(`${b} ${g}`)).filter(Boolean)) : new Set();
+    const arr = SAFETY.filter((e) => (!q || e.n.toLowerCase().includes(q) || e.k.some((k) => k.includes(q)) || viaBrand.has(e)) && (!lv || e[cond][0] === lv))
       .sort((a, b) => rank[a[cond][0]] - rank[b[cond][0]]);
     $(".ds-out").innerHTML = arr.length ? arr.map((e) => { const [l, note] = e[cond]; return `<div class="ds-row"><span class="nm" dir="auto">${esc(e.n)}</span><span class="chip ${LEVEL[l][1]}">${LEVEL[l][0]}</span>${note ? `<span class="nt">${esc(note)}</span>` : ""}</div>`; }).join("") : `<p class="empty">لا توجد نتيجة</p>`;
   };
