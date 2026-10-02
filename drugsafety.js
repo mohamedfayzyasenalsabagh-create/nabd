@@ -17,16 +17,16 @@ export const SAFETY = [
     ["ok", "المسكن وخافض الحرارة المفضل في الحمل"], ["ok", ""], ["care", "لا تتجاوز 2 غ يومياً"], ["ok", "تباعد الجرعات عند القصور الشديد"]),
   E("مضادات الالتهاب غير الستيروئيدية (Ibuprofen، Diclofenac، Naproxen، Mefenamic acid، Meloxicam، Ketoprofen)", ["ibuprofen", "diclofenac", "naproxen", "mefenamic", "meloxicam", "ketoprofen", "celecoxib", "piroxicam", "etoricoxib", "ketorolac", "brufen", "voltaren"], "nsaid",
     ["no", "تُتجنب خاصة بعد الأسبوع 20 (انغلاق القناة الشريانية وقلة السائل الأمنيوسي)"], ["ok", "الإيبوبروفين هو المفضل"], ["care", "تُتجنب في القصور الشديد"], ["no", "تُتجنب: تسيء لوظيفة الكلية"]),
-  E("Aspirin (أسبرين بجرعة مسكنة)", ["aspirin", "acetylsalicylic", "أسبرين"], "nsaid",
-    ["no", "الجرعة المسكنة ممنوعة. الجرعة المنخفضة 75 إلى 150 ملغ فقط بوصفة لمنع الارتعاج"], ["no", "خطر متلازمة راي عند الرضيع"], ["care", "يُتجنب في القصور الشديد"], ["care", "يُتجنب في القصور الشديد"]),
+  E("Aspirin (أسبرين)", ["aspirin", "acetylsalicylic", "أسبرين"], "nsaid",
+    ["care", "الجرعة المسكنة تُتجنب. الجرعة المنخفضة 75 إلى 150 ملغ مستطبة للوقاية من الارتعاج (NICE NG133، ACOG)"], ["care", "الجرعة المنخفضة مقبولة، وتُتجنب الجرعات المسكنة المنتظمة (خطر متلازمة راي)"], ["care", "يُتجنب في القصور الشديد"], ["care", "يُتجنب في القصور الشديد"]),
   E("Tramadol / Codeine", ["tramadol", "codeine", "كودئين", "ترامادول"], "opioid",
     ["care", "لأقصر مدة. الاستخدام قرب الولادة يسبب أعراض سحب عند الوليد"], ["no", "الكودئين والترامادول ممنوعان أثناء الإرضاع"], ["care", "تخفيض الجرعة"], ["care", "تباعد الجرعات"]),
 
   // الصادات
-  E("Amoxicillin/Clavulanate (Augmentin)", ["clavulan", "augmentin", "اوغمنتين"], "penicillin",
+  E("Amoxicillin/Clavulanate (Augmentin)", ["clavulan", "amoxiclav", "augmentin", "اوغمنتين"], "penicillin",
     ["ok", "يُفضل تجنبه عند خطر الولادة المبكرة مع تمزق الأغشية"], ["ok", ""], ["care", "خطر الركودة الصفراوية: مراقبة وظائف الكبد"], ["care", "تعديل الجرعة إذا التصفية أقل من 30"]),
   E("البنسلينات (Amoxicillin، Penicillin، Ampicillin، Flucloxacillin)", ["amoxicillin", "amoxil", "penicillin", "ampicillin", "flucloxacillin", "cloxacillin", "اموكسيسيلين"], "penicillin",
-    ["ok", ""], ["ok", ""], ["ok", ""], ["care", "تعديل الجرعة إذا التصفية أقل من 30"]),
+    ["ok", ""], ["ok", ""], ["care", "الفلوكلوكساسيلين: خطر يرقان ركودي، يُتجنب مع سوابق يرقان منه"], ["care", "تعديل الجرعة إذا التصفية أقل من 30"]),
   E("السيفالوسبورينات (Cefalexin، Cefuroxime، Cefixime، Ceftriaxone)", ["cefalexin", "cephalexin", "cefuroxime", "cefixime", "ceftriaxone", "cefaclor", "cefadroxil", "cefdinir", "cefpodoxime"], "cephalosporin",
     ["ok", ""], ["ok", ""], ["ok", ""], ["care", "تعديل الجرعة في القصور المتوسط والشديد"]),
   E("Azithromycin", ["azithromycin", "zithromax", "ازيثرومايسين"], "macrolide",
@@ -36,8 +36,8 @@ export const SAFETY = [
   E("Metronidazole", ["metronidazole", "flagyl", "ميترونيدازول"], "",
     ["care", "تُتجنب الجرعة الواحدة العالية 2 غ. النظام المقسم مقبول"], ["care", "مع جرعة 2 غ الواحدة: إيقاف الإرضاع 12 إلى 24 ساعة"], ["care", "تخفيض الجرعة في القصور الشديد"], ["ok", ""]),
   E("التتراسكلينات (Doxycycline، Minocycline، Tetracycline)", ["doxycycline", "minocycline", "tetracycline", "دوكسيسيكلين"], "tetracycline",
-    ["no", "تلوّن أسنان الجنين وتؤثر على نمو العظم"], ["no", "يُتجنب الاستخدام المتكرر أو الطويل"], ["care", ""], ["care", "الدوكسيسيكلين مقبول، والتتراسكلين يُتجنب"]),
-  E("الكينولونات (Ciprofloxacin، Levofloxacin، Moxifloxacin)", ["ciprofloxacin", "levofloxacin", "moxifloxacin", "norfloxacin", "ofloxacin tab", "cipro", "سيبروفلوكساسين"], "quinolone",
+    ["no", "تلوّن أسنان الجنين وتؤثر على نمو العظم"], ["care", "الشوط القصير من الدوكسيسيكلين مقبول، ويُتجنب الاستخدام المتكرر أو الطويل"], ["care", ""], ["care", "الدوكسيسيكلين مقبول، والتتراسكلين يُتجنب"]),
+  E("الكينولونات (Ciprofloxacin، Levofloxacin، Moxifloxacin)", ["ciprofloxacin", "levofloxacin", "moxifloxacin", "norfloxacin", "ofloxacin", "ciprobay", "سيبروفلوكساسين"], "quinolone",
     ["no", "تُتجنب: تأثير على الغضاريف"], ["no", "تُتجنب ما أمكن"], ["care", ""], ["care", "تعديل الجرعة"]),
   E("Nitrofurantoin", ["nitrofurantoin", "macrobid", "نتروفورانتوين"], "",
     ["care", "يُتجنب قرب موعد الولادة (فقر دم انحلالي عند الوليد)"], ["care", "يُتجنب إذا كان الرضيع دون شهر أو لديه عوز G6PD"], ["care", ""], ["no", "يُتجنب إذا كان eGFR أقل من 45"]),
@@ -53,8 +53,10 @@ export const SAFETY = [
   // مضادات الفطور والفيروسات والطفيليات
   E("Fluconazole (فموي)", ["fluconazole", "diflucan", "فلوكونازول"], "azole",
     ["no", "يُستبدل بالعلاج الموضعي أثناء الحمل"], ["ok", ""], ["care", "مراقبة وظائف الكبد"], ["care", "نصف الجرعة إذا التصفية أقل من 50"]),
+  E("Miconazole oral gel (Daktarin جل فموي)", ["miconazole 2% oral gel", "miconazole oral", "daktarin oral"], "azole",
+    ["care", "يُمتص جزئياً: يفضل النيستاتين"], ["ok", ""], ["care", "يُتجنب في القصور الكبدي. يتداخل بشدة مع الوارفارين"], ["ok", ""]),
   E("مضادات الفطور الموضعية (Clotrimazole، Miconazole، Nystatin)", ["clotrimazole", "miconazole", "nystatin", "econazole", "daktarin", "canesten", "نيستاتين"], "",
-    ["ok", "مفضلة في الحمل"], ["ok", ""], ["ok", ""], ["ok", "جل الميكونازول الفموي يتداخل مع الوارفارين"]),
+    ["ok", "مفضلة في الحمل"], ["ok", ""], ["ok", ""], ["ok", ""]),
   E("Aciclovir / Valaciclovir", ["aciclovir", "acyclovir", "valaciclovir", "zovirax", "valtrex"], "",
     ["ok", ""], ["ok", ""], ["ok", ""], ["care", "تعديل الجرعة الفموية وشرب سوائل كافية"]),
   E("Mebendazole / Albendazole", ["mebendazole", "albendazole", "vermox", "zentel"], "",
@@ -96,11 +98,11 @@ export const SAFETY = [
 
   // القلبية والضغط والدم
   E("مثبطات ACE وحاصرات مستقبلات الأنجيوتنسين (Enalapril، Lisinopril، Captopril، Losartan، Valsartan)", ["enalapril", "lisinopril", "captopril", "ramipril", "perindopril", "losartan", "valsartan", "irbesartan", "candesartan", "telmisartan", "olmesartan"], "acei",
-    ["no", "ممنوعة: سمية كلوية للجنين خاصة في الثلثين الثاني والثالث"], ["care", "الإنالابريل والكابتوبريل مقبولان"], ["ok", ""], ["care", "مراقبة الكرياتينين والبوتاسيوم"]),
+    ["no", "ممنوعة: سمية كلوية للجنين خاصة في الثلثين الثاني والثالث"], ["care", "الإنالابريل والكابتوبريل مقبولان"], ["care", "الأدوية الطليعية (Enalapril، Ramipril، Perindopril) أقل فعالية، ويبدأ Losartan بجرعة أقل، ويُتجنب Telmisartan وOlmesartan في القصور الشديد"], ["care", "مراقبة الكرياتينين والبوتاسيوم"]),
   E("Methyldopa", ["methyldopa", "aldomet", "ميثيل دوبا"], "",
     ["ok", "من أدوية الضغط المفضلة في الحمل"], ["ok", ""], ["no", "يُتجنب في التهاب الكبد الفعال"], ["ok", ""]),
   E("Labetalol", ["labetalol"], "",
-    ["ok", "من أدوية الضغط المفضلة في الحمل"], ["ok", ""], ["care", ""], ["ok", ""]),
+    ["ok", "من أدوية الضغط المفضلة في الحمل"], ["ok", ""], ["no", "يُتجنب: أذية كبدية شديدة موصوفة"], ["ok", ""]),
   E("Nifedipine / Amlodipine", ["nifedipine", "amlodipine", "adalat", "norvasc"], "",
     ["ok", "النيفيديبين المديد مفضل في الحمل"], ["ok", ""], ["care", "تخفيض الجرعة"], ["ok", ""]),
   E("حاصرات بيتا (Atenolol، Bisoprolol، Propranolol، Metoprolol)", ["atenolol", "bisoprolol", "propranolol", "metoprolol", "carvedilol", "nebivolol"], "",
@@ -110,7 +112,7 @@ export const SAFETY = [
   E("Furosemide / Hydrochlorothiazide", ["furosemide", "lasix", "hydrochlorothiazide", "indapamide"], "",
     ["care", "لا تُستخدم لعلاج الوذمة الحملية"], ["care", "قد تقلل الحليب"], ["care", "خطر اضطراب الشوارد والسبات الكبدي"], ["care", "التيازيدات غير فعالة في القصور الشديد"]),
   E("الستاتينات (Atorvastatin، Rosuvastatin، Simvastatin)", ["atorvastatin", "rosuvastatin", "simvastatin", "pravastatin", "lipitor", "crestor"], "",
-    ["no", "تُوقف أثناء الحمل"], ["no", ""], ["no", "ممنوعة في المرض الكبدي الفعال"], ["care", "الروزوفاستاتين بجرعة منخفضة"]),
+    ["no", "تُوقف أثناء الحمل"], ["no", ""], ["care", "ممنوعة في المرض الكبدي الفعال أو ارتفاع الترانسأميناز غير المفسر، ومقبولة في المرض المزمن المستقر والكبد الدهني"], ["care", "الروزوفاستاتين بجرعة منخفضة"]),
   E("Warfarin", ["warfarin", "وارفارين"], "",
     ["no", "مشوه للجنين: يُستبدل بالهيبارين"], ["ok", ""], ["care", "زيادة خطر النزف"], ["care", "مراقبة INR بشكل أدق"]),
   E("Enoxaparin / Heparin", ["enoxaparin", "clexane", "heparin", "كليكسان"], "",
@@ -120,7 +122,7 @@ export const SAFETY = [
 
   // الغدد والسكري
   E("Metformin", ["metformin", "glucophage", "ميتفورمين"], "",
-    ["ok", "مقبول، والأنسولين هو الخيار الأول في سكري الحمل"], ["ok", ""], ["no", "خطر الحماض اللبني"], ["no", "يُوقف إذا eGFR أقل من 30، ونصف الجرعة بين 30 و45"]),
+    ["ok", "مقبول في سكري الحمل (الخيار الأول حسب NICE، والأنسولين حسب ACOG)"], ["ok", ""], ["no", "خطر الحماض اللبني"], ["care", "يُوقف إذا eGFR أقل من 30، ونصف الجرعة بين 30 و45، والحد الأقصى 2 غ بين 45 و59"]),
   E("السلفونيل يوريا (Gliclazide، Glimepiride، Glibenclamide)", ["gliclazide", "glimepiride", "glibenclamide", "glyburide", "diamicron", "amaryl"], "",
     ["no", "يُستبدل بالأنسولين"], ["care", "مراقبة سكر الرضيع"], ["care", "خطر نقص السكر"], ["care", "خطر نقص السكر"]),
   E("Insulin", ["insulin", "انسولين"], "",
@@ -128,13 +130,13 @@ export const SAFETY = [
   E("Levothyroxine", ["levothyroxine", "thyroxine", "euthyrox", "ثيروكسين"], "",
     ["ok", "غالباً تزيد الجرعة أثناء الحمل"], ["ok", ""], ["ok", ""], ["ok", ""]),
   E("Carbimazole / Methimazole", ["carbimazole", "methimazole", "thiamazole"], "",
-    ["no", "في الثلث الأول يُفضل Propylthiouracil"], ["ok", "بجرعة منخفضة"], ["care", ""], ["ok", ""]),
+    ["care", "في الثلث الأول يُفضل Propylthiouracil، ثم الكاربيمازول بعد الأسبوع 16 تقريباً (ATA 2017)"], ["ok", "بجرعة منخفضة"], ["care", ""], ["ok", ""]),
 
   // الجهاز العصبي والنفسي
   E("Valproate (Depakine)", ["valpro", "depakine", "depakote", "فالبروات"], "",
     ["no", "ممنوع: تشوهات أنبوب عصبي وتأخر نمو عصبي"], ["care", ""], ["no", ""], ["care", ""]),
   E("Carbamazepine", ["carbamazepine", "tegretol"], "",
-    ["no", "مشوه: يحتاج تقييم اختصاصي وحمض فوليك بجرعة عالية"], ["care", ""], ["care", ""], ["care", ""]),
+    ["care", "خطر تشوه: لا يُوقف فجأة، يحتاج تقييم اختصاصي وحمض فوليك 5 ملغ (MHRA 2021)"], ["care", ""], ["care", ""], ["care", ""]),
   E("مضادات الاكتئاب SSRIs (Sertraline، Fluoxetine، Escitalopram، Paroxetine)", ["sertraline", "fluoxetine", "escitalopram", "citalopram", "paroxetine", "zoloft", "prozac"], "",
     ["care", "السيرترالين مفضل، والباروكسيتين يُتجنب"], ["ok", "السيرترالين مفضل"], ["care", "تخفيض الجرعة"], ["care", ""]),
   E("البنزوديازيبينات (Diazepam، Alprazolam، Lorazepam)", ["diazepam", "alprazolam", "lorazepam", "clonazepam", "bromazepam", "xanax", "valium"], "",
@@ -149,7 +151,7 @@ export const SAFETY = [
     ["no", "تُتجنب أثناء الحمل"], ["care", "لا تُدهن على الثدي"], ["ok", ""], ["ok", ""]),
   E("Methotrexate", ["methotrexate", "ميثوتريكسات"], "",
     ["no", "ممنوع مطلقاً"], ["no", ""], ["no", ""], ["no", ""]),
-  E("موانع الحمل الفموية المركبة", ["ethinylestradiol", "levonorgestrel/ethinyl", "yasmin", "microgynon", "drospirenone"], "",
+  E("موانع الحمل الفموية المركبة", ["ethinylestradiol", "ethinyl estradiol", "ethinyl", "yasmin", "yaz", "microgynon"], "",
     ["no", "لا تُستخدم أثناء الحمل"], ["care", "تقلل الحليب: تُفضل الحبوب البروجستيرونية"], ["no", "ممنوعة في المرض الكبدي الشديد"], ["ok", ""]),
   E("Allopurinol", ["allopurinol", "zyloric"], "",
     ["no", ""], ["care", ""], ["care", ""], ["care", "تخفيض الجرعة"]),
@@ -160,50 +162,62 @@ export const SAFETY = [
   E("المخدر الموضعي السني (Lidocaine، Articaine مع الأدرينالين)", ["lidocaine", "lignocaine", "articaine", "septanest", "xylocaine", "ليدوكائين"], "",
     ["ok", "آمن بالجرعات السنية، ويُفضل تأجيل الإجراءات غير الإسعافية للثلث الثاني"], ["ok", ""], ["care", "تقليل الجرعة الكلية"], ["ok", ""]),
   E("Prilocaine مع Felypressin", ["prilocaine", "citanest", "felypressin"], "",
-    ["care", "يُتجنب: الفيليبريسين قد يحرض تقلصات الرحم"], ["ok", ""], ["care", ""], ["ok", ""]),
+    ["care", "يُفضل الليدوكائين، فالفيليبريسين بجرعات عالية قد يحرض نظرياً تقلصات الرحم"], ["ok", ""], ["care", ""], ["ok", ""]),
   E("Chlorhexidine / Benzydamine غسول", ["chlorhexidine", "benzydamine", "corsodyl", "tantum"], "",
     ["ok", ""], ["ok", ""], ["ok", ""], ["ok", ""]),
-  E("الحديد وحمض الفوليك والكالسيوم وفيتامين د", ["ferrous", "iron", "folic", "calcium", "cholecalciferol", "vitamin d", "حديد", "فوليك"], "",
+  E("الحديد وحمض الفوليك والكالسيوم وفيتامين د", ["ferrous", "ferric", "iron sucrose", "folic", "calcium +", "calcium carbonate", "cholecalciferol", "vitamin d", "حديد", "فوليك"], "",
     ["ok", ""], ["ok", ""], ["ok", ""], ["care", "مراقبة الكالسيوم وفيتامين د في القصور"]),
 ];
 
 const norm = (s) => String(s || "").toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه");
 import { BRANDS } from "./drugs.js";
-export function findSafety(drug) {
+// أدوية التحذير فيها للشكل الجهازي فقط (لا تنطبق على الكريم والقطرة والمرهم والجل)
+const SYSTEMIC = ["gentamicin", "doxycycline", "ciprofloxacin", "metronidazole", "clindamycin"];
+const TOPICAL = /(cream|drops|ointment|\bgel\b|lotion|\beye\b|\bear\b|topical|vaginal|كريم|قطر|مرهم|جل|غسول|مهبلي)/i;
+SAFETY.forEach((e) => { e.sys = SYSTEMIC.includes(e.k[0]); });
+const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const brandOf = (raw) => BRANDS.find(([b]) => new RegExp(`(^|[^a-z])${esc(b.toLowerCase())}([^a-z]|$)`).test(raw));
+// كل البنود المطابقة للدواء (الأدوية المركبة قد تطابق أكثر من بند)
+export function findAllSafety(drug) {
   const raw = String(drug || "").toLowerCase();
-  const br = BRANDS.find(([b]) => raw.includes(b.toLowerCase()));
+  if (!raw.trim()) return [];
+  const br = brandOf(raw);
   const d = norm(br ? `${drug} ${br[1]}` : drug);
-  if (!d.trim()) return null;
-  return SAFETY.find((e) => e.k.some((k) => d.includes(norm(k)))) || null;
+  const topical = TOPICAL.test(d);
+  return SAFETY.filter((e) => !(e.sys && topical) && e.k.some((k) => d.includes(norm(k))));
 }
+export function findSafety(drug) { return findAllSafety(drug)[0] || null; }
 // كلمات التحسس الشائعة لكل زمرة
 const ALLERGY_WORDS = {
   penicillin: ["بنسلين", "penicillin", "اموكس", "amoxi", "اوغمنتين", "augmentin"],
   cephalosporin: ["سيفالو", "cephalo", "سيفا"],
   nsaid: ["بروفين", "ibuprofen", "اسبرين", "aspirin", "مضادات الالتهاب", "nsaid", "ديكلوفيناك", "diclofenac"],
   sulfa: ["سلفا", "sulfa", "سبترين", "septrin"],
-  macrolide: ["ماكروليد", "macrolide", "ازيثرو", "azithro", "كلاريثرو"],
-  quinolone: ["كينولون", "quinolone", "سيبرو", "cipro"],
-  tetracycline: ["تتراسكلين", "tetracycline", "دوكسي"],
+  macrolide: ["ماكروليد", "macrolide", "ازيثرو", "azithro", "كلاريثرو", "clarithro", "اريثرو", "erythro"],
+  quinolone: ["كينولون", "quinolone", "سيبروفلوكساسين", "ciprofloxacin"],
+  tetracycline: ["تتراسكلين", "تتراسيكلين", "tetracycline", "دوكسي"],
   azole: ["فلوكونازول", "fluconazole"],
   opioid: ["كودئين", "codeine", "ترامادول", "tramadol", "مورفين"],
   acei: [],
 };
 // يعيد التنبيهات لدواء معين حسب حالات المريض
+const RANK = { ok: 0, care: 1, no: 2 };
+const PEN = ["بنسلين", "penicillin", "اموكس", "amoxi", "اوغمنتين", "augmentin"];
 export function drugWarnings(drug, flags = {}, allergies = "") {
   const out = [];
-  const e = findSafety(drug);
+  const all = findAllSafety(drug);
   const al = norm(allergies);
   if (al.trim()) {
-    const words = [...(e ? e.k : []), ...((e && ALLERGY_WORDS[e.cls]) || [])];
+    const words = all.flatMap((e) => [...e.k, ...(ALLERGY_WORDS[e.cls] || [])]);
     if (words.some((w) => w && al.includes(norm(w)))) out.push({ level: "no", text: `المريض لديه حساسية مسجلة: ${allergies}` });
+    else if (all.some((e) => e.cls === "cephalosporin") && PEN.some((w) => al.includes(norm(w)))) out.push({ level: "care", text: "تحسس من البنسلين: احتمال تحسس متصالب مع السيفالوسبورينات، ويُتجنب عند سوابق التأق" });
   }
-  if (!e) return out;
   for (const [c, label] of CONDS) {
     if (!flags[c]) continue;
-    const [lv, note] = e[c];
-    if (lv === "ok") continue;
-    out.push({ level: lv, text: `${label} (${LEVEL[lv][0]})${note ? `: ${note}` : ""}` });
+    const bad = all.filter((e) => e[c][0] !== "ok").sort((a, b) => RANK[b[c][0]] - RANK[a[c][0]]);
+    if (!bad.length) continue;
+    const lv = bad[0][c][0], notes = [...new Set(bad.map((e) => e[c][1]).filter(Boolean))].join(" · ");
+    out.push({ level: lv, text: `${label} (${LEVEL[lv][0]})${notes ? `: ${notes}` : ""}` });
   }
   return out;
 }

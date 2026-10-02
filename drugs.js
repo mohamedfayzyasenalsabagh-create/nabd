@@ -144,7 +144,7 @@ export const BRANDS = [
   ["Motilium", "Domperidone 10mg"], ["Primperan", "Metoclopramide 10mg"], ["Buscopan", "Hyoscine butylbromide 10mg (Buscopan)"],
   ["Claritine", "Loratadine 10mg"], ["Clarityn", "Loratadine 10mg"], ["Zyrtec", "Cetirizine 10mg"], ["Aerius", "Desloratadine 5mg"],
   ["Glucophage", "Metformin 500mg"], ["Norvasc", "Amlodipine 5mg"], ["Cozaar", "Losartan 50mg"], ["Lipitor", "Atorvastatin 20mg"],
-  ["Aspocid", "Aspirin 81mg"], ["Ventolin", "Salbutamol inhaler"], ["Corsodyl", "Chlorhexidine 0.12% mouthwash"],
+  ["Aspocid", "Aspirin 75mg"], ["Ventolin", "Salbutamol inhaler"], ["Corsodyl", "Chlorhexidine 0.2% mouthwash"],
   ["Tantum Verde", "Benzydamine mouthwash"], ["Diflucan", "Fluconazole 150mg"], ["Canesten", "Clotrimazole cream"],
   ["Fucidin", "Fusidic acid cream"], ["Bactroban", "Mupirocin ointment"], ["Tobrex", "Tobramycin eye drops"],
   ["Duphaston", "Dydrogesterone 10mg (Duphaston)"], ["Cyclogest", "Progesterone 200mg"], ["Utrogestan", "Progesterone 200mg"],
