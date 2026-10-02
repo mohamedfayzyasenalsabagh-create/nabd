@@ -29,10 +29,13 @@ export const readOnly = () => !clinicState(S.clinic).ok;
 // ---------- ذاكرة المرضى ----------
 export const PC = { list: [], byId: {} };
 function watchPatients() {
+  PC._ready = false;
   S.unsub.push(onSnapshot(P.patients(), (s) => {
     PC.list = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name, "ar"));
     PC.byId = Object.fromEntries(PC.list.map((p) => [p.id, p]));
     if (routeName() === "patients") renderPatients();
+    // أول تحميل لقائمة المرضى: تحديث الرئيسية حتى يظهر عدد المرضى الجدد صحيحاً
+    if (!PC._ready) { PC._ready = true; if (routeName() === "home") render(); }
   }));
 }
 
@@ -156,6 +159,7 @@ async function renderHome() {
 
   if ((S._reqCount || 0) + (S._pubCount || 0)) alerts.push(`<li><a href="#/requests">📅 ${(S._reqCount || 0) + (S._pubCount || 0)} طلب موعد بانتظار التأكيد</a></li>`);
   if (S._msgCount) alerts.push(`<li><a href="#/messages">💬 ${S._msgCount} رسالة من المرضى بانتظار الرد</a></li>`);
+  if (isDoctor() && Number(today.slice(8, 10)) <= 5) alerts.push(`<li><a href="#/reports?m=${prevMonth(today.slice(0, 7))}">📊 تقرير الشهر الماضي جاهز: افتحه واطبعه PDF</a></li>`);
   if (hasMod("peds")) {
     const due = PC.list.filter((p) => !p.archived && p.nextVaccine?.date && p.nextVaccine.date <= addDays(today, 7)).sort((a, b) => a.nextVaccine.date.localeCompare(b.nextVaccine.date));
     due.slice(0, 8).forEach((p) => alerts.push(`<li><a href="#/p/${p.id}/peds">💉 ${esc(p.name)}: ${esc(p.nextVaccine.name)} (${p.nextVaccine.date < today ? "متأخر" : esc(fmtDate(p.nextVaccine.date, false))})</a></li>`));
@@ -560,20 +564,35 @@ export async function paymentModal(pid, service = "", preset = {}) {
       });
       await audit("تسجيل دفعة", `${p?.name} ${f.paid}`);
       toast("حُفظت الدفعة");
-      if (await confirmBox("إيصال", "هل تريد طباعة إيصال؟", "طباعة")) printReceipt({ id: ref.id, ...f, patientName: p?.name });
+      if (await confirmBox("إيصال", "هل تريد طباعة إيصال؟", "طباعة")) printReceipt({ id: ref.id, ...f, patientId: pid, patientName: p?.name, byName: S.profile.name || "" });
       setTimeout(render, 100);
     }
   });
 }
-export function printReceipt(r) {
-  printDoc(S.pub, "إيصال دفع", `
-    <table class="kv"><tr><th>رقم الإيصال</th><td dir="ltr">${esc(String(r.id).slice(0, 8).toUpperCase())}</td></tr>
-    <tr><th>المريض</th><td>${esc(r.patientName)}</td></tr>
-    <tr><th>التاريخ</th><td>${esc(fmtDate(r.date, false))}</td></tr>
-    <tr><th>الخدمة</th><td>${esc(r.service || "")}</td></tr>
-    <tr><th>المبلغ المطلوب</th><td>${esc(money(r.total, cur()))}</td></tr>
-    <tr><th>المدفوع</th><td>${esc(money(r.paid, cur()))}</td></tr>
-    <tr><th>المتبقي</th><td>${esc(money((r.total || 0) - (r.paid || 0), cur()))}</td></tr></table>`, { signer: "المحاسب" });
+// إيصال الدفع: المبلغ المدفوع بوضوح، مع رصيد المريض الكلي بعد الدفعة
+export async function printReceipt(r) {
+  if (!r) return;
+  let balance = null;
+  try {
+    const all = await list(query(P.col("payments"), where("patientId", "==", r.patientId)));
+    balance = all.reduce((s, x) => s + (Number(x.total) || 0) - (Number(x.paid) || 0), 0);
+  } catch {}
+  const total = Number(r.total) || 0, paid = Number(r.paid) || 0;
+  const settle = !total;
+  const no = String(r.id || "").slice(0, 8).toUpperCase();
+  printDoc(S.pub, "إيصال استلام", `
+    <div class="rcpt">
+      <div class="rcpt-top"><span>رقم الإيصال: <b dir="ltr">${esc(no)}</b></span><span>التاريخ: <b>${esc(fmtDate(r.date, false))}</b></span></div>
+      <p class="rcpt-line">استلمنا من السيد/ة <b>${esc(r.patientName || "")}</b> مبلغاً وقدره:</p>
+      <div class="rcpt-amount">${esc(money(paid, cur()))}</div>
+      <table class="kv rcpt-kv">
+        <tr><th>${settle ? "البيان" : "الخدمة"}</th><td>${esc(settle ? "تسديد من الرصيد المستحق" : r.service || "—")}</td></tr>
+        ${settle ? "" : `<tr><th>قيمة الخدمة</th><td>${esc(money(total, cur()))}</td></tr>
+        <tr><th>المتبقي من هذه الخدمة</th><td>${esc(money(Math.max(0, total - paid), cur()))}</td></tr>`}
+        ${balance !== null ? `<tr class="rcpt-bal"><th>الرصيد المتبقي على المريض</th><td>${balance > 0 ? esc(money(balance, cur())) : "لا يوجد · الحساب مسدد بالكامل ✓"}</td></tr>` : ""}
+        ${r.note ? `<tr><th>ملاحظة</th><td>${esc(r.note)}</td></tr>` : ""}
+      </table>
+    </div>`, { signer: r.byName ? `المستلم (${r.byName})` : "المستلم" });
 }
 
 async function renderMoney() {
@@ -911,7 +930,7 @@ async function renderReports() {
   pays.forEach((p) => daily[p.date] = (daily[p.date] || 0) + (p.paid || 0));
   const { lineChart } = await import("./ui.js");
   const chart = Object.keys(daily).length > 1 ? lineChart([{ name: "المقبوض", color: "var(--accent)", points: Object.entries(daily).map(([date, v]) => ({ date, v })) }], { label: "المقبوض يومياً", unit: cur() }) : "";
-  main().innerHTML = `<div class="row-between"><h2 class="page-title">التقارير</h2><input type="month" class="mp" value="${m}" aria-label="الشهر"></div>
+  main().innerHTML = `<div class="row-between"><h2 class="page-title">التقارير</h2><div class="row gap"><button class="btn small primary pr-month">🖨 تقرير الشهر PDF</button><input type="month" class="mp" value="${m}" aria-label="الشهر"></div></div>
     <div class="stats">
       <div class="stat"><b>${cnt("done")}</b><span>زيارات منجزة</span></div>
       <div class="stat"><b>${newPts}</b><span>مرضى جدد</span></div>
@@ -932,6 +951,90 @@ async function renderReports() {
       ${rated.filter((a) => a.ratingNote).slice(0, 20).map((a) => `<p>${"★".repeat(a.rating)}${"☆".repeat(5 - a.rating)} ${esc(a.ratingNote)}</p>`).join("") || empty("لا توجد تعليقات")}
     </section>`;
   $(".mp").onchange = (e) => go(`#/reports?m=${e.target.value}`);
+  $(".pr-month").onclick = () => printMonthReport(m);
+}
+
+const MONTHS = ["كانون الثاني", "شباط", "آذار", "نيسان", "أيار", "حزيران", "تموز", "آب", "أيلول", "تشرين الأول", "تشرين الثاني", "كانون الأول"];
+const monthName = (m) => { const [y, mo] = m.split("-").map(Number); return `${MONTHS[mo - 1]} ${y}`; };
+const prevMonth = (m) => { const [y, mo] = m.split("-").map(Number); const d = new Date(y, mo - 2, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
+
+// تقرير شهري للطبيب جاهز للطباعة أو الحفظ PDF، مع مقارنة بالشهر السابق
+async function monthData(m, upToDay = 31) {
+  const from = m + "-01", to = `${m}-${String(Math.min(31, upToDay)).padStart(2, "0")}`;
+  const [appts, pays] = await Promise.all([
+    list(query(P.col("appointments"), where("date", ">=", from), where("date", "<=", to))),
+    list(query(P.col("payments"), where("date", ">=", from), where("date", "<=", to))),
+  ]);
+  // المواعيد حتى اليوم فقط (المواعيد القادمة لا تدخل في الحساب)
+  const real = appts.filter((a) => a.status !== "cancelled" && a.date <= ymd());
+  const done = real.filter((a) => a.status === "done").length;
+  const noshow = real.filter((a) => a.status === "noshow").length;
+  const [y, mo] = m.split("-").map(Number);
+  const s0 = new Date(y, mo - 1, 1).getTime(), s1 = new Date(y, mo, 1).getTime();
+  return {
+    appts, pays, real, done, noshow,
+    income: pays.reduce((s, p) => s + (Number(p.paid) || 0), 0),
+    debt: pays.reduce((s, p) => s + (Number(p.total) || 0) - (Number(p.paid) || 0), 0),
+    noshowRate: real.length ? Math.round(noshow / real.length * 100) : 0,
+    newPts: PC.list.filter((p) => tsMs(p.createdAt) >= s0 && tsMs(p.createdAt) < s1).length,
+    patients: new Set(real.map((a) => a.patientId).filter(Boolean)).size,
+  };
+}
+async function printMonthReport(m) {
+  toast("جارٍ تجهيز التقرير…");
+  // الشهر الحالي يُقارن بالفترة نفسها من الشهر السابق، لا بالشهر كاملاً
+  const partial = m === ymd().slice(0, 7);
+  const dayNo = Number(ymd().slice(8, 10));
+  const [cur_, prev] = await Promise.all([monthData(m), monthData(prevMonth(m), partial ? dayNo : 31)]);
+  const d = cur_;
+  const vs = partial ? "عن الفترة نفسها من الشهر السابق" : "عن الشهر السابق";
+  const delta = (a, b) => {
+    if (!b) return "";
+    const p = Math.round((a - b) / b * 100);
+    if (!p) return `<small class="mr-d">مثل ${partial ? "الفترة نفسها من " : ""}الشهر السابق</small>`;
+    return `<small class="mr-d ${p > 0 ? "up" : "down"}">${p > 0 ? "▲" : "▼"} ${Math.abs(p)}% ${vs}</small>`;
+  };
+  // أكثر الخدمات دخلاً
+  const bySvc = {};
+  d.pays.forEach((p) => { const k = p.service || "أخرى"; if (k === "تسديد دين") return; bySvc[k] = bySvc[k] || { n: 0, v: 0 }; bySvc[k].n++; bySvc[k].v += Number(p.paid) || 0; });
+  const svc = Object.entries(bySvc).sort((a, b) => b[1].v - a[1].v).slice(0, 6);
+  const byType = {};
+  d.real.forEach((a) => byType[a.type || "دون نوع"] = (byType[a.type || "دون نوع"] || 0) + 1);
+  const types = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const maxT = Math.max(1, ...types.map((t) => t[1]));
+  // أكثر الأيام ازدحاماً
+  const byDay = {};
+  d.real.forEach((a) => { const w = DAYS[parseYmd(a.date).getDay()]; byDay[w] = (byDay[w] || 0) + 1; });
+  const busiest = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0];
+  const perDoc = multiDoc() ? doctors().map((doc) => { const mine = d.real.filter((a) => apptDoc(a) === doc.id); return [doc.name, mine.length, mine.filter((a) => a.status === "done").length]; }) : [];
+  const daily = {};
+  d.pays.forEach((p) => daily[p.date] = (daily[p.date] || 0) + (Number(p.paid) || 0));
+  const { lineChart } = await import("./ui.js");
+  const chart = Object.keys(daily).length > 1 ? lineChart([{ name: "المقبوض", color: "var(--accent)", points: Object.entries(daily).sort().map(([date, v]) => ({ date, v })) }], { label: "المقبوض يومياً", unit: cur() }) : "";
+  printDoc(S.pub, `التقرير الشهري · ${monthName(m)}`, `
+    <div class="mr-grid">
+      <div class="mr-box main"><span>الدخل المقبوض</span><b>${esc(money(d.income, cur()))}</b>${delta(d.income, prev.income)}</div>
+      <div class="mr-box"><span>زيارات منجزة</span><b>${d.done}</b>${delta(d.done, prev.done)}</div>
+      <div class="mr-box"><span>عدد المرضى</span><b>${d.patients}</b>${delta(d.patients, prev.patients)}</div>
+      <div class="mr-box"><span>مرضى جدد</span><b>${d.newPts}</b></div>
+      <div class="mr-box"><span>نسبة الغياب</span><b>${d.noshowRate}%</b><small class="mr-d">${d.noshow} موعد من ${d.real.length}</small></div>
+      <div class="mr-box"><span>ديون هذا الشهر</span><b>${esc(money(d.debt, cur()))}</b></div>
+    </div>
+    ${chart ? `<div class="mr-sec">${chart}</div>` : ""}
+    <div class="mr-cols">
+      <div class="mr-sec"><h4>أكثر الخدمات دخلاً</h4>
+        ${svc.length ? `<table class="tbl"><tbody>${svc.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.n}</td><td><b>${esc(money(v.v, cur()))}</b></td></tr>`).join("")}</tbody></table>` : `<p class="muted">لا توجد دفعات</p>`}</div>
+      <div class="mr-sec"><h4>المواعيد حسب النوع</h4>
+        ${types.length ? `<div class="bars">${types.map(([t, n]) => `<div class="bar-row"><span>${esc(t)}</span><div class="bar"><i style="width:${n / maxT * 100}%"></i></div><b>${n}</b></div>`).join("")}</div>` : `<p class="muted">لا توجد مواعيد</p>`}</div>
+    </div>
+    ${perDoc.length ? `<div class="mr-sec"><h4>حسب الطبيب</h4><table class="tbl"><thead><tr><th>الطبيب</th><th>المواعيد</th><th>المنجزة</th></tr></thead><tbody>${perDoc.map(([n, a, x]) => `<tr><td>د. ${esc(n)}</td><td>${a}</td><td>${x}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    <div class="mr-sec mr-notes"><h4>ملخص</h4><ul>
+      ${partial ? `<li>التقرير حتى تاريخ اليوم (${dayNo} ${MONTHS[Number(m.slice(5, 7)) - 1]}).</li>` : ""}
+      <li>${d.real.length} موعداً${partial ? " حتى الآن" : " خلال الشهر"}${prev.real.length ? `، مقابل ${prev.real.length} ${partial ? "في الفترة نفسها من" : "في"} الشهر السابق` : ""}.</li>
+      ${busiest ? `<li>أكثر الأيام ازدحاماً: <b>${esc(busiest[0])}</b> (${busiest[1]} موعداً).</li>` : ""}
+      ${d.noshowRate >= 15 ? `<li>نسبة الغياب مرتفعة: يُنصح بإرسال تذكير واتساب قبل الموعد بيوم.</li>` : ""}
+      ${d.debt > 0 ? `<li>توجد ديون غير مسددة بقيمة ${esc(money(d.debt, cur()))} من هذا الشهر.</li>` : ""}
+    </ul></div>`, { signer: "الطبيب", footer: `أُعدّ بواسطة منصة ${PLATFORM()}` });
 }
 
 // ---------- سجل التعديلات ----------

@@ -83,6 +83,11 @@ function shell() {
   window.onhashchange = render;
   render();
   scheduleDoseReminders();
+  // إعادة جدولة التذكيرات تلقائياً عند حجز موعد أو تغييره أو إلغائه من العيادة
+  let rt = null;
+  S.unsub.push(onSnapshot(query(P.col("appointments"), where("patientId", "==", T.pid)), () => {
+    clearTimeout(rt); rt = setTimeout(scheduleDoseReminders, 1500);
+  }, () => {}));
 }
 function routeName() { return (location.hash.replace(/^#\/?/, "").split(/[/?]/)[0]) || "home"; }
 
@@ -128,6 +133,7 @@ async function home() {
         <div class="row gap"><button class="btn small cx" data-id="${next.id}">إلغاء الموعد</button><a class="btn small" href="#/appts">جميع المواعيد</a></div>`
       : `<p class="muted">لا يوجد لديك موعد حالياً.</p><button class="btn primary ask-appt">طلب موعد</button>`}
     </section>
+    ${NATIVE && AndroidApp.notifyState() !== "granted" && AndroidApp.notifyState() !== "denied" ? `<section class="card alert-card"><h3>🔔 فعّل التذكير</h3><p>يصلك تنبيه على جوالك قبل موعدك بيوم وقبله بساعتين، وبوقت كل جرعة دواء.</p><button class="btn primary en-home">تفعيل التذكير</button></section>` : ""}
     ${needSign.length ? needSign.map((x) => `<section class="card alert-card"><h3>موافقة بانتظار توقيعك</h3><p>${esc(x.name)}</p><button class="btn primary small sign" data-id="${x.id}">قراءة وتوقيع</button></section>`).join("") : ""}
     ${toRate ? `<section class="card"><h3>كيف كانت زيارتك يوم ${esc(fmtDate(toRate.date, false))}؟</h3><div class="stars" role="group" aria-label="التقييم">${[1, 2, 3, 4, 5].map((n) => `<button class="star" data-n="${n}" data-id="${toRate.id}" aria-label="${n} من 5">★</button>`).join("")}</div></section>` : ""}
     ${g && hasMod("preg") ? (hide ? `<section class="card"><button class="btn block show-s">إظهار متابعة الحمل</button></section>` : pregCard(g, gc)) : ""}
@@ -140,6 +146,10 @@ async function home() {
     <section class="card contact"><h3>${esc(S.pub.name || "")}</h3><p class="muted">${esc(S.pub.title || "")}</p>
       ${S.pub.address ? `<p>📍 ${esc(S.pub.address)}</p>` : ""}${S.pub.phone ? `<a class="btn" href="tel:${esc(S.pub.phone)}">📞 <span dir="ltr">${esc(S.pub.phone)}</span></a>` : ""}</section>`;
   $(".ask-appt")?.addEventListener("click", requestModal);
+  $(".en-home")?.addEventListener("click", () => {
+    window.__notifyChanged = () => { if (AndroidApp.notifyState() === "granted") { scheduleDoseReminders(); toast("تم تفعيل التذكير"); } home(); };
+    AndroidApp.requestNotify();
+  });
   $$(".cx").forEach((b) => b.onclick = () => cancelAppt(apps.find((a) => a.id === b.dataset.id)));
   $$(".sign").forEach((b) => b.onclick = () => signConsent(procs.find((x) => x.id === b.dataset.id)));
   $$(".show-s").forEach((b) => b.onclick = async () => { T.me.hideSensitive = false; await home(); T.me.hideSensitive = true; });
@@ -302,6 +312,9 @@ async function scheduleNative() {
       const t = parseYmd(a.date); t.setHours(h, mi, 0, 0);
       const eve = parseYmd(addDays(a.date, -1)); eve.setHours(18, 0, 0, 0);
       if (+eve > now) items.push({ id: `appt-eve-${a.id}`, at: +eve, title: "تذكير بموعدك غداً", body: `موعدك في ${clinic} غداً الساعة ${fmtTime(a.time)}` });
+      // صباح يوم الموعد (إذا كان الموعد بعد الظهر)
+      const morn = parseYmd(a.date); morn.setHours(9, 0, 0, 0);
+      if (+morn > now && +t - +morn >= 3 * 3600e3) items.push({ id: `appt-am-${a.id}`, at: +morn, title: "موعدك اليوم", body: `${clinic} · الساعة ${fmtTime(a.time)}` });
       const b2 = +t - 2 * 3600e3;
       if (b2 > now) items.push({ id: `appt-2h-${a.id}`, at: b2, title: "موعدك بعد ساعتين", body: `${clinic} · الساعة ${fmtTime(a.time)}` });
     });

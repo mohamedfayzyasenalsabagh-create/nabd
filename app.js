@@ -176,6 +176,7 @@ export function showLogin(msg = "") {
       ${hasClinic && pub.bookingEnabled && pub.slug ? `<a class="btn ghost" href="#/b/${esc(pub.slug)}">احجز موعداً دون حساب</a>` : ""}
       ${hasClinic ? `<p class="muted small">${esc(pub.address || "")} ${pub.phone ? `· <span dir="ltr">${esc(pub.phone)}</span>` : ""}</p>` : ""}
       <p class="small"><a href="#/home">الصفحة الرئيسية</a> · <a href="#/doctors">دليل الأطباء</a> · <a href="#/signup">سجّل عيادتك</a></p>
+      ${/\/demo\//.test(location.pathname) ? "" : `<a class="btn ghost" href="${location.pathname.replace(/index.html$/, "")}demo/">🧪 جرّب عيادة تجريبية بدون حساب</a>`}
       <div class="powered">${platformMark(18)} <span>بإدارة منصة ${esc(PLATFORM())}</span></div>
       <p class="muted small legal-links"><a href="#/privacy">سياسة الخصوصية</a> · <a href="#/terms">شروط الاستخدام</a></p>
       <p class="copyright">${esc(COPYRIGHT)}</p>

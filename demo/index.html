@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E7C7B">
+<meta name="robots" content="noindex">
+<title>نبض · عيادة تجريبية</title>
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<!-- النسخة التجريبية تستخدم ملفات التطبيق نفسها، مع قاعدة بيانات وهمية على جهاز الزائر بدل Firebase -->
+<script type="importmap">
+{ "imports": {
+  "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js": "./fake-app.js",
+  "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js": "./fake-auth.js",
+  "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js": "./fake-firestore.js",
+  "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js": "./fake-storage.js"
+} }
+</script>
+<script>try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
+<style>
+  .demo-bar { position: sticky; top: 0; z-index: 60; background: #0A3F3E; color: #E6F4F3; padding: 8px 12px; padding-top: calc(8px + env(safe-area-inset-top, 0px));
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; font: 500 13px "IBM Plex Sans Arabic", system-ui, sans-serif; }
+  .demo-bar b { font-weight: 700; }
+  .demo-bar .roles { display: inline-flex; gap: 4px; background: rgba(255,255,255,.08); border-radius: 999px; padding: 3px; }
+  .demo-bar button { border: 0; background: transparent; color: inherit; font: inherit; padding: 6px 12px; border-radius: 999px; cursor: pointer; min-height: 32px; }
+  .demo-bar button.on { background: #fff; color: #0A3F3E; font-weight: 700; }
+  .demo-bar .rs { border: 1px solid rgba(255,255,255,.3); }
+  .demo-bar a { color: #9FE3DF; }
+  body.tv-on .demo-bar, body.printing .demo-bar { display: none; }
+  .demo-start { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  .demo-start .card { max-width: 440px; text-align: center; }
+  .demo-start .stack { display: grid; gap: 10px; margin-top: 14px; }
+  .demo-start .btn small { display: block; font-weight: 400; opacity: .85; }
+</style>
+</head>
+<body>
+<div class="demo-bar" role="note">
+  <span>🧪 <b>عيادة تجريبية</b> ببيانات وهمية · جرّب كـ</span>
+  <span class="roles">
+    <button type="button" data-role="doctor">طبيب</button>
+    <button type="button" data-role="secretary">سكرتيرة</button>
+    <button type="button" data-role="patient">مريض</button>
+  </span>
+  <button type="button" class="rs" id="demo-reset">إعادة البيانات</button>
+  <a href="../#/signup">افتح عيادتك الحقيقية</a>
+</div>
+<div id="app"><div class="center-page"><div class="loading">جارٍ تجهيز العيادة التجريبية…</div></div></div>
+<script src="../qrcode.js"></script>
+<script type="module">
+  import { ensureSeed, DEMO } from "./seed.js";
+  const UID = { doctor: DEMO.doctor.uid, secretary: DEMO.secretary.uid, patient: DEMO.patient.uid };
+  const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { return null; } };
+  const as = (role) => { ls("demo-auth", JSON.stringify(UID[role])); ls("clinic", DEMO.cid); location.hash = "#/"; location.reload(); };
+  document.querySelectorAll("[data-role]").forEach((b) => b.onclick = () => as(b.dataset.role));
+  document.getElementById("demo-reset").onclick = () => {
+    if (!confirm("إعادة العيادة التجريبية إلى بياناتها الأصلية؟")) return;
+    ["demo-fs", "demo-users", "demo-seed"].forEach((k) => ls(k, null));
+    location.reload();
+  };
+  await ensureSeed();
+  // الدخول التلقائي: كطبيب في أول زيارة، أو حسب الدور المختار في الرابط (?as=patient)
+  const want = new URLSearchParams(location.search).get("as");
+  let cur = null; try { cur = JSON.parse(ls("demo-auth") || "null"); } catch {}
+  if (want && UID[want] && cur !== UID[want]) { ls("demo-auth", JSON.stringify(UID[want])); cur = UID[want]; history.replaceState(null, "", location.pathname + location.hash); }
+  if (!cur) { ls("demo-auth", JSON.stringify(UID.doctor)); cur = UID.doctor; }
+  const role = Object.keys(UID).find((k) => UID[k] === cur);
+  document.querySelector(`[data-role="${role}"]`)?.classList.add("on");
+  ls("clinic", DEMO.cid);
+  await import("../app.js");
+</script>
+</body>
+</html>

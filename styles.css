@@ -617,3 +617,25 @@ body.tv-on { overflow: hidden; }
 .paper.a5 .doc-qr svg { width: 72px; height: 72px; }
 @media print { .paper.a5 { max-width: none; min-height: auto; padding: 0; } }
 @media print { html, body.printing { background: #fff !important; } }
+/* إيصال الدفع */
+.rcpt-top { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; color: #5F6B69; font-size: .92rem; }
+.rcpt-line { margin: 18px 0 8px; font-size: 1.05rem; }
+.rcpt-amount { text-align: center; font-size: 2rem; font-weight: 800; color: var(--accent); border: 2px dashed var(--accent); border-radius: 14px; padding: 12px; margin: 6px 0 18px; }
+.rcpt-kv th { width: 45%; }
+.rcpt-bal th, .rcpt-bal td { font-weight: 700; color: #1B2221; border-top: 1px solid #E3E7E5; padding-top: 10px; }
+.paper.a5 .rcpt-amount { font-size: 1.5rem; padding: 8px; }
+/* التقرير الشهري */
+.mr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.mr-box { border: 1px solid #E3E7E5; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.mr-box span { color: #5F6B69; font-size: .85rem; }
+.mr-box b { font-size: 1.35rem; }
+.mr-box.main { background: color-mix(in srgb, var(--accent) 9%, #fff); border-color: var(--accent); }
+.mr-box.main b { color: var(--accent); }
+.mr-d { color: #5F6B69; font-size: .75rem; }
+.mr-d.up { color: #1F8A4C; } .mr-d.down { color: #B3261E; }
+.mr-sec { margin-bottom: 14px; break-inside: avoid; }
+.mr-sec h4 { margin: 0 0 6px; color: var(--accent); }
+.mr-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mr-notes ul { margin: 0; padding-inline-start: 18px; line-height: 1.9; }
+@media (max-width: 600px) { .mr-grid { grid-template-columns: 1fr 1fr; } .mr-cols { grid-template-columns: 1fr; } }
+.paper.a5 .mr-box b { font-size: 1.05rem; } .paper.a5 .mr-grid { gap: 6px; }

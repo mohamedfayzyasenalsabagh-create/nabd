@@ -63,7 +63,7 @@ export function landing() {
           <p class="lead">المواعيد والملفات الطبية والوصفات والمالية، مع تطبيق لمرضاك يتابعون منه مواعيدهم وأدويتهم. يعمل على الحاسوب والجوال، وكل شيء متزامن لحظياً.</p>
           <div class="row gap wrap">
             <a class="btn primary lg" href="#/signup">ابدأ تجربة مجانية ${TRIAL_DAYS} يوماً</a>
-            <a class="btn lg" href="#features">تعرّف على الميزات</a>
+            <a class="btn lg" href="${location.pathname.replace(/demo\/?(index.html)?$/, "").replace(/index.html$/, "")}demo/">🧪 جرّب عيادة تجريبية الآن</a>
           </div>
           <p class="muted small">دون بطاقة دفع. تُفعَّل العيادة فوراً.</p>
         </div>

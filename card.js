@@ -720,9 +720,11 @@ async function moneyTab(p) {
   $(".settle")?.addEventListener("click", async () => {
     const r = await modal("تسديد", `<form>${field("المبلغ", "paid", { type: "number", value: t - pd, required: true, attrs: 'min="1"' })}</form>`);
     if (!r) return;
-    await addDoc(P.col("payments"), { patientId: p.id, patientName: p.name, service: "تسديد دين", total: 0, paid: r.paid, date: ymd(), note: "", by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp() });
+    const rec = { patientId: p.id, patientName: p.name, service: "تسديد دين", total: 0, paid: r.paid, date: ymd(), note: "", by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp() };
+    const ref = await addDoc(P.col("payments"), rec);
     await audit("تسديد دين", `${p.name} ${r.paid}`);
     refresh();
+    if (await confirmBox("إيصال", "هل تريد طباعة إيصال؟", "طباعة")) printReceipt({ id: ref.id, ...rec });
   });
   $$(".rc").forEach((b) => b.onclick = () => printReceipt(pays.find((x) => x.id === b.dataset.id)));
 }
