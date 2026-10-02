@@ -41,6 +41,7 @@ export async function renderSettings() {
       ${field("اللقب", "title", { value: c.title })}
       ${field("العنوان", "address", { value: c.address })}
       ${field("هاتف العيادة", "phone", { value: c.phone, attrs: 'dir="ltr"' })}
+      ${field("البريد الإلكتروني (يظهر أسفل الوصفة)", "email", { value: c.email ?? (c.ownerEmail || ""), type: "email", attrs: 'dir="ltr"' })}
       ${field("رابط الموقع على الخريطة (اختياري)", "mapUrl", { value: c.mapUrl || "", attrs: 'dir="ltr"', placeholder: "https://maps.google.com/..." })}
       <div class="grid2">${field("لون الواجهة", "accent", { type: "color", value: c.accent || "#5B3FD0" })}${field("العملة", "currency", { value: c.currency || "ل.س" })}</div>
     </section>
@@ -125,7 +126,7 @@ export async function renderSettings() {
     const doctorsArr = (c.doctors || []).map((d) => (d.id === S.profile.doctorId ? { ...d, name: f.doctorName.value.trim(), title: f.title.value.trim() } : d));
     const patch = {
       name: f.name.value.trim(), doctorName: f.doctorName.value.trim(), title: f.title.value.trim(),
-      address: f.address.value.trim(), phone: f.phone.value.trim(), accent: f.accent.value, mapUrl: f.mapUrl.value.trim(),
+      address: f.address.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(), accent: f.accent.value, mapUrl: f.mapUrl.value.trim(),
       logo: newLogo === undefined ? (c.logo || null) : newLogo,
       specialty: f.specialty.value, modules: multiSpec() ? Object.keys(MODULES).filter((k) => f[`mod_${k}`].checked) : specMods(f.specialty.value),
       currency: f.currency.value.trim() || "ل.س", hours: h, slotMinutes: Number(f.slotMinutes.value),

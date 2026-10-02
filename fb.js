@@ -269,7 +269,8 @@ export const DEFAULT_VACCINES = [
 
 export function pickBrand(c = {}) {
   const { name, doctorName, title, address, phone, accent, logo, specialty, slug } = c;
-  return { name, doctorName, title, address, phone, accent, logo, specialty, slug };
+  const email = c.email ?? c.ownerEmail ?? "";
+  return { name, doctorName, title, address, phone, email, accent, logo, specialty, slug };
 }
 export function publicCopy(c) {
   return {

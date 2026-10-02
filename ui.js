@@ -242,11 +242,8 @@ export function printDoc(pub, title, bodyHtml, { qr = "", signer = "", footer = 
         <div class="lh-logo">${logoHtml(pub, 72)}</div>
         <div class="lh-text">
           <div class="lh-name">${esc(pub?.doctorName ? "د. " + pub.doctorName : pub?.name || "")}</div>
-          <div class="lh-title">${esc(pub?.title || "")}</div>
-        </div>
-        <div class="lh-contact">
-          <div>${esc(pub?.address || "")}</div>
-          <div dir="ltr">${esc(pub?.phone || "")}</div>
+          ${pub?.title ? `<div class="lh-title">${esc(pub.title)}</div>` : ""}
+          ${pub?.address ? `<div class="lh-addr">📍 ${esc(pub.address)}</div>` : ""}
         </div>
       </header>
       <h2 class="doc-title">${esc(title)}</h2>
@@ -256,6 +253,7 @@ export function printDoc(pub, title, bodyHtml, { qr = "", signer = "", footer = 
         ${qr ? `<div class="doc-qr">${qr}<div class="muted small">امسح الرمز للتحقق</div></div>` : ""}
         <div>توقيع ${esc(signer || "الطبيب")}: ....................</div>
       </footer>
+      ${pub?.phone || pub?.email ? `<div class="lh-foot">${pub?.phone ? `<span>☎ <span dir="ltr">${esc(pub.phone)}</span></span>` : ""}${pub?.email ? `<span>✉ <span dir="ltr">${esc(pub.email)}</span></span>` : ""}</div>` : ""}
     </div>`;
   document.body.appendChild(w);
   document.body.classList.add("printing");
