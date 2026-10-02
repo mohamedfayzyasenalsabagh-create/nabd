@@ -13,7 +13,7 @@ export async function renderLibrary() {
     <div class="card stack"><input class="lq" placeholder="🔎 ابحث بالمرض: فطور فموية، التهاب أذن، جرب…" autocomplete="off">
       <div class="ds-tabs">${SPECS.map(([k, t]) => `<button data-s="${k}">${t}</button>`).join("")}</div></div>
     <div class="lib-out"></div>
-    <p class="muted small">مرجع مساعد مبني على البروتوكولات العالمية الشائعة. يراجع الطبيب الجرعة حسب العمر والوزن ووظائف الكلية والكبد والحمل والتحسس، والقرار العلاجي مسؤوليته.</p>`;
+    <div class="disclaimer">⚖️ <b>إخلاء مسؤولية:</b> الوصفة النهائية تقع على مسؤولية الطبيب الشخصية، وما نقدمه من مقترحات هو مجرد مساعدة مستندة إلى الدليل العلمي والتوصيات العالمية.</div>`;
   let spec = mine.find((k) => SPECS.some(([s]) => s === k)) || "";
   const draw = () => {
     $$(".ds-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.s === spec));
@@ -38,7 +38,7 @@ export async function renderDrugEd() {
       <div class="ds-tabs">${CONDS.map(([k, t, ic]) => `<button data-c="${k}">${ic} ${t}</button>`).join("")}</div>
       <div class="ds-tabs lv">${[["", "الكل"], ["no", "يُتجنب"], ["care", "بحذر"], ["ok", "آمن عادة"]].map(([k, t]) => `<button data-l="${k}">${t}</button>`).join("")}</div></div>
     <section class="card ds-out"></section>
-    <p class="muted small">مرجع عام مختصر (BNF وLactMed وتوصيات FDA وACOG). القرار النهائي للطبيب حسب حالة المريض.</p>`;
+    <p class="muted small">مرجع عام مختصر (BNF وLactMed وتوصيات FDA وACOG).</p><div class="disclaimer">⚖️ <b>إخلاء مسؤولية:</b> الوصفة النهائية تقع على مسؤولية الطبيب الشخصية، وما نقدمه من مقترحات هو مجرد مساعدة مستندة إلى الدليل العلمي والتوصيات العالمية.</div>`;
   let cond = "preg", lv = "";
   const draw = () => {
     $$(".ds-tabs button[data-c]").forEach((b) => b.classList.toggle("on", b.dataset.c === cond));

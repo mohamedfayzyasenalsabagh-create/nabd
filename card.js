@@ -291,6 +291,7 @@ export async function rxModal(pid) {
     ${condChips(mm, flags.preg)}${mm.allergies ? `<div class="alert danger">⚠️ حساسية: ${esc(mm.allergies)}</div>` : ""}
     <div class="dz-box"><label class="field"><span>🔎 نماذج وصفات دوائية جاهزة حسب التشخيص: اكتب التشخيص واختره</span><input class="dz-q" placeholder="اسم المرض بالعربي أو الإنكليزي أو رمز ICD-10" autocomplete="off"></label>
       <div class="dz-res"></div><div class="dz-tip hidden"></div></div>
+    <div class="disclaimer">⚖️ <b>إخلاء مسؤولية:</b> الوصفة النهائية تقع على مسؤولية الطبيب الشخصية، وما نقدمه من مقترحات هو مجرد مساعدة مستندة إلى الدليل العلمي والتوصيات العالمية.</div>
     ${field("التشخيص (يكتبه الطبيب)", "diagnosis", { placeholder: "يُطبع في أعلى الوصفة" })}<button type="button" class="btn small ghost dg-use hidden"></button>
     ${templates.length ? `<div class="row gap tpl-row"><label class="field grow"><span>وصفة جاهزة</span><select class="tpl"><option value="">— اختر لتعبئة الأدوية —</option>
       ${own.length ? `<optgroup label="وصفاتي المحفوظة">${own.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join("")}</optgroup>` : ""}
@@ -338,7 +339,7 @@ export async function rxModal(pid) {
           const use = w.querySelector(".dg-use"), dgTxt = d.icd ? `${d.n} (ICD-10: ${d.icd})` : d.n;
           use.textContent = `＋ اكتب في التشخيص: ${dgTxt}`; use.classList.remove("hidden");
           use.onclick = () => { w.querySelector("[name=diagnosis]").value = dgTxt; use.classList.add("hidden"); };
-          tip.innerHTML = `<b>${esc(d.n)}</b>${d.tip ? `<p>${esc(d.tip)}</p>` : ""}<p class="muted small">نموذج وصفة وفق أحدث البروتوكولات والتوصيات العالمية. راجع الجرعة حسب العمر والوزن ووظائف الكلية والكبد والحمل قبل الحفظ.</p>`;
+          tip.innerHTML = `<b>${esc(d.n)}</b>${d.tip ? `<p>${esc(d.tip)}</p>` : ""}<p class="muted small">راجع الجرعة حسب العمر والوزن ووظائف الكلية والكبد والحمل قبل الحفظ.</p>`;
           tip.classList.remove("hidden");
           draw();
           w.querySelector(".rx-rows").scrollIntoView({ behavior: "smooth", block: "nearest" });
