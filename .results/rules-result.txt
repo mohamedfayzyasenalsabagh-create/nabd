@@ -1,0 +1,280 @@
+
+> test:rules
+> firebase emulators:exec --only firestore --project demo-nabd "node --test tests/"
+
+[33m[1m⚠  emulators:[22m[39m You are not currently authenticated so some features may not work correctly. Please run [1mfirebase login[22m to authenticate the CLI.
+[36m[1mi  emulators:[22m[39m Starting emulators: firestore
+[36m[1mi  emulators:[22m[39m Detected demo project ID "demo-nabd", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+[33m[1m⚠ [22m[39m It appears you are running in a CI environment. You can avoid downloading the Firestore Emulator repeatedly by caching the /home/runner/.cache/firebase/emulators directory.
+[36m[1mi  firestore:[22m[39m downloading cloud-firestore-emulator-v1.19.8.jar...
+
+[36m[1mi  firestore:[22m[39m Firestore Emulator logging to [1mfirestore-debug.log[22m
+[32m[1m✔  firestore:[22m[39m Firestore Emulator UI websocket is running on 9150.
+[36m[1mi [22m[39m Running script: [1mnode --test tests/[22m
+TAP version 13
+# Subtest: عزل العيادات: طبيب عيادة لا يقرأ مرضى عيادة أخرى
+ok 1 - عزل العيادات: طبيب عيادة لا يقرأ مرضى عيادة أخرى
+  ---
+  duration_ms: 2624.041478
+  ...
+# [2026-10-03T09:49:33.885Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e2fe0 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L182:28 for 'create' @ L182, evaluation error at L189:28 for 'update' @ L189, false for 'create' @ L182
+# Subtest: السكرتارية لا ترى البيانات الطبية
+ok 2 - السكرتارية لا ترى البيانات الطبية
+  ---
+  duration_ms: 318.493784
+  ...
+# Subtest: الطبيب يقرأ الملاحظات الخاصة، والمريض لا
+ok 3 - الطبيب يقرأ الملاحظات الخاصة، والمريض لا
+  ---
+  duration_ms: 150.906801
+  ...
+# Subtest: المريض يرى ملفه فقط
+ok 4 - المريض يرى ملفه فقط
+  ---
+  duration_ms: 198.824682
+  ...
+# [2026-10-03T09:49:34.380Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e2feb error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L182:28 for 'create' @ L182, evaluation error at L189:28 for 'update' @ L189, false for 'create' @ L182
+# [2026-10-03T09:49:34.409Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e2fec error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L182:28 for 'create' @ L182, evaluation error at L189:28 for 'update' @ L189, false for 'create' @ L182
+# Subtest: المريض يضيف قراءة منزلية ويوقّع الموافقة فقط
+ok 5 - المريض يضيف قراءة منزلية ويوقّع الموافقة فقط
+  ---
+  duration_ms: 229.73065
+  ...
+# Subtest: الحساب الموقوف لا يصل لشيء
+ok 6 - الحساب الموقوف لا يصل لشيء
+  ---
+  duration_ms: 123.927208
+  ...
+# [2026-10-03T09:49:34.723Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e2ff2 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L182:28 for 'create' @ L182, evaluation error at L189:28 for 'update' @ L189, false for 'create' @ L182
+# [2026-10-03T09:49:34.762Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e2ff3 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L213:26 for 'create' @ L213, evaluation error at L214:26 for 'update' @ L214, false for 'create' @ L213
+# Subtest: العيادة المنتهية: قراءة فقط
+ok 7 - العيادة المنتهية: قراءة فقط
+  ---
+  duration_ms: 172.567204
+  ...
+# [2026-10-03T09:49:34.856Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e2ff5 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L149:24 for 'update' @ L149, false for 'update' @ L149
+# [2026-10-03T09:49:34.887Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e2ff6 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L149:24 for 'update' @ L149, false for 'update' @ L149
+# [2026-10-03T09:49:34.922Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e2ff7 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L149:24 for 'update' @ L149, false for 'update' @ L149
+# [2026-10-03T09:49:34.995Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e2ff9 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L149:24 for 'update' @ L149, false for 'update' @ L149
+# Subtest: المسؤول لا يغيّر اشتراكه، والمالك يستطيع
+ok 8 - المسؤول لا يغيّر اشتراكه، والمالك يستطيع
+  ---
+  duration_ms: 263.248347
+  ...
+# Subtest: المالك لا يطّلع على بيانات المرضى
+ok 9 - المالك لا يطّلع على بيانات المرضى
+  ---
+  duration_ms: 154.92362
+  ...
+# [2026-10-03T09:49:35.312Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3001 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L109, Property patientIds is undefined on object. for 'update' @ L122, false for 'create' @ L109
+# [2026-10-03T09:49:35.341Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3002 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L109:9 for 'create' @ L109, Property patientIds is undefined on object. for 'update' @ L122, false for 'create' @ L109
+# [2026-10-03T09:49:35.379Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3003 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L109, evaluation error at L122:9 for 'update' @ L122, false for 'create' @ L109
+# [2026-10-03T09:49:35.408Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3004 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L109:9 for 'create' @ L109, Property patientIds is undefined on object. for 'update' @ L122, false for 'create' @ L109
+# [2026-10-03T09:49:35.443Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3005 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L122:9 for 'update' @ L122, false for 'update' @ L122
+# [2026-10-03T09:49:35.477Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3006 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L122:9 for 'update' @ L122, false for 'update' @ L122
+# Subtest: الصلاحيات: لا تصعيد
+ok 10 - الصلاحيات: لا تصعيد
+  ---
+  duration_ms: 320.870858
+  ...
+# [2026-10-03T09:49:35.645Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e300a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L109:9 for 'create' @ L109, Property patientIds is undefined on object. for 'update' @ L122, false for 'create' @ L142, evaluation error at L149:24 for 'update' @ L149, false for 'create' @ L142
+# [2026-10-03T09:49:35.707Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e300b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L109:9 for 'create' @ L109, Property patientIds is undefined on object. for 'update' @ L122, false for 'create' @ L142, evaluation error at L149:24 for 'update' @ L149, false for 'create' @ L109, false for 'create' @ L142
+# [2026-10-03T09:49:35.743Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e300c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L109:9 for 'create' @ L109, Property patientIds is undefined on object. for 'update' @ L122, false for 'create' @ L109
+# [2026-10-03T09:49:35.769Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e300d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L76:24 for 'create' @ L76, evaluation error at L79:32 for 'update' @ L79, false for 'create' @ L76
+# Subtest: تسجيل عيادة جديدة: تجربة فقط
+ok 11 - تسجيل عيادة جديدة: تجربة فقط
+  ---
+  duration_ms: 268.032283
+  ...
+# [2026-10-03T09:49:35.879Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e300f error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L59:24 for 'create' @ L59, false for 'update' @ L60, evaluation error at L53:24 for 'create' @ L53, false for 'update' @ L55, false for 'create' @ L59
+# [2026-10-03T09:49:35.889Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3010 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L59:24 for 'create' @ L59, false for 'update' @ L60, false for 'create' @ L59
+# Subtest: إعداد المالك مرة واحدة فقط
+ok 12 - إعداد المالك مرة واحدة فقط
+  ---
+  duration_ms: 119.703376
+  ...
+# [2026-10-03T09:49:36.017Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3013 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L232, false for 'update' @ L231
+# [2026-10-03T09:49:36.044Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3014 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L232, false for 'update' @ L231
+# [2026-10-03T09:49:36.066Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3015 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L232:26 for 'create' @ L232, false for 'update' @ L231, false for 'create' @ L232
+# [2026-10-03T09:49:36.133Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3018 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L245, false for 'update' @ L245
+# Subtest: صفحة الحجز العامة
+ok 13 - صفحة الحجز العامة
+  ---
+  duration_ms: 259.605752
+  ...
+# [2026-10-03T09:49:36.344Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e301e error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L92:24 for 'create' @ L92, false for 'update' @ L94, false for 'create' @ L92
+# [2026-10-03T09:49:36.369Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e301f error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L92:24 for 'create' @ L92, false for 'update' @ L94, false for 'create' @ L92
+# Subtest: التحقق من الوصفة
+ok 14 - التحقق من الوصفة
+  ---
+  duration_ms: 220.072551
+  ...
+# [2026-10-03T09:49:36.482Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3022 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L100, evaluation error at L101:24 for 'update' @ L101, false for 'create' @ L100
+# [2026-10-03T09:49:36.505Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3023 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L100:24 for 'create' @ L100, evaluation error at L101:24 for 'update' @ L101, false for 'create' @ L100
+# [2026-10-03T09:49:36.527Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3024 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L101:24 for 'update' @ L101, false for 'update' @ L101
+# Subtest: دفعات الاشتراك
+ok 15 - دفعات الاشتراك
+  ---
+  duration_ms: 272.775169
+  ...
+# [2026-10-03T09:49:36.728Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3029 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'delete' @ L175
+# [2026-10-03T09:49:36.742Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e302a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'delete' @ L159
+# Subtest: لا حذف لأي سجل
+ok 16 - لا حذف لأي سجل
+  ---
+  duration_ms: 100.035104
+  ...
+# [2026-10-03T09:49:36.995Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3034 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L201:30 for 'create' @ L201, false for 'update' @ L206, false for 'create' @ L201
+# [2026-10-03T09:49:37.014Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3035 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L201, false for 'update' @ L206
+# [2026-10-03T09:49:37.039Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3036 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L201:30 for 'create' @ L201, false for 'update' @ L206, false for 'create' @ L201
+# [2026-10-03T09:49:37.082Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3038 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L201:30 for 'create' @ L201, false for 'update' @ L206, false for 'update' @ L206
+# [2026-10-03T09:49:37.142Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3039 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L201, false for 'update' @ L206
+# [2026-10-03T09:49:37.195Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e303b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L189:28 for 'update' @ L189, false for 'update' @ L189
+# Subtest: الملفات الكاملة (blob): نفس صلاحيات الملف
+ok 17 - الملفات الكاملة (blob): نفس صلاحيات الملف
+  ---
+  duration_ms: 453.081207
+  ...
+# [2026-10-03T09:49:37.334Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3040 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L86:24 for 'update' @ L86, false for 'update' @ L86
+# Subtest: دليل الأطباء: العيادات الظاهرة فقط
+ok 18 - دليل الأطباء: العيادات الظاهرة فقط
+  ---
+  duration_ms: 138.48565
+  ...
+# [2026-10-03T09:49:37.444Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3045 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L68, false for 'update' @ L68
+# [2026-10-03T09:49:37.465Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3046 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# false for 'create' @ L68, false for 'update' @ L68
+# Subtest: فهرس الدخول الموحد: قراءة مستند بعينه فقط، والكتابة لمستخدم مسجّل بصيغة محددة
+ok 19 - فهرس الدخول الموحد: قراءة مستند بعينه فقط، والكتابة لمستخدم مسجّل بصيغة محددة
+  ---
+  duration_ms: 130.743395
+  ...
+# [2026-10-03T09:49:37.581Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e304b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L277:34 for 'create' @ L277, evaluation error at L277:34 for 'update' @ L277, false for 'create' @ L277
+# [2026-10-03T09:49:37.634Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e304e error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L149:24 for 'update' @ L149, false for 'update' @ L149
+# [2026-10-03T09:49:37.652Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e304f error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L149:24 for 'update' @ L149, false for 'update' @ L149
+# Subtest: المصاريف للأطباء فقط، والطبيب غير المسؤول يحفظ وصفاته الجاهزة فقط
+ok 20 - المصاريف للأطباء فقط، والطبيب غير المسؤول يحفظ وصفاته الجاهزة فقط
+  ---
+  duration_ms: 186.918753
+  ...
+# [2026-10-03T09:49:37.744Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3051 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L149:24 for 'update' @ L149, false for 'update' @ L149
+# [2026-10-03T09:49:37.761Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3052 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L149:24 for 'update' @ L149, false for 'update' @ L149
+# Subtest: الدعوات: مسؤول العيادة لا يعدّل بيانات المكافأة، والمالك يعدّلها
+ok 21 - الدعوات: مسؤول العيادة لا يعدّل بيانات المكافأة، والمالك يعدّلها
+  ---
+  duration_ms: 140.448512
+  ...
+# [2026-10-03T09:49:37.944Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e305a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L182:28 for 'create' @ L182, evaluation error at L189:28 for 'update' @ L189, false for 'create' @ L182
+# Subtest: الممرض يقرأ الملف الطبي دون الملاحظات الخاصة ويسجل المؤشرات، والمحاسب للمالية فقط
+ok 22 - الممرض يقرأ الملف الطبي دون الملاحظات الخاصة ويسجل المؤشرات، والمحاسب للمالية فقط
+  ---
+  duration_ms: 243.29752
+  ...
+# [2026-10-03T09:49:38.101Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3061 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L109:9 for 'create' @ L109, evaluation error at L122:9 for 'update' @ L122, false for 'create' @ L109
+# [2026-10-03T09:49:38.113Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3062 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L109:9 for 'create' @ L109, evaluation error at L122:9 for 'update' @ L122, Service call error. Function: [get], Argument: [path_value {
+#   segments {
+#     simple: "databases"
+#   }
+#   segments {
+#     simple: "(default)"
+#   }
+#   segments {
+#     simple: "documents"
+#   }
+#   segments {
+#     simple: "clinics"
+#   }
+#   segments {
+#     simple: "A"
+#   }
+#   segments {
+#     simple: "phones"
+#   }
+#   segments {
+#     simple: "0900"
+#   }
+# }
+# ]. for 'create' @ L109
+# [2026-10-03T09:49:38.143Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3063 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L122:9 for 'update' @ L122, false for 'update' @ L122
+# [2026-10-03T09:49:38.152Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3065 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L170:26 for 'update' @ L170, false for 'update' @ L170
+# Subtest: الموظف لا يربط حساب مريض بملفات مرضى آخرين
+ok 23 - الموظف لا يربط حساب مريض بملفات مرضى آخرين
+  ---
+  duration_ms: 115.83985
+  ...
+# [2026-10-03T09:49:38.221Z]  @firebase/firestore: Firestore (10.14.1): GrpcConnection RPC 'Write' stream 0x3e0e3067 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+# evaluation error at L149:24 for 'update' @ L149, false for 'update' @ L149
+# Subtest: تعدد الاختصاصات لباقة المراكز فقط
+ok 24 - تعدد الاختصاصات لباقة المراكز فقط
+  ---
+  duration_ms: 98.801098
+  ...
+# Subtest: مسارات حساب المريض الفعلية: إخوة على نفس الرقم، إعادة كلمة المرور، تغيير الرقم
+ok 25 - مسارات حساب المريض الفعلية: إخوة على نفس الرقم، إعادة كلمة المرور، تغيير الرقم
+  ---
+  duration_ms: 137.183808
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 25
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7763.312659
+[32m[1m✔ [22m[39m Script exited successfully (code 0)
+[36m[1mi  emulators:[22m[39m Shutting down emulators.
+[36m[1mi  firestore:[22m[39m Stopping Firestore Emulator
+[36m[1mi  hub:[22m[39m Stopping emulator hub
+[36m[1mi  logging:[22m[39m Stopping Logging Emulator
