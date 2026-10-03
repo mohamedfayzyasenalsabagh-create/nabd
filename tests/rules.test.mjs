@@ -302,3 +302,33 @@ test("تعدد الاختصاصات لباقة المراكز فقط", async () 
   await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), { modules: ["preg", "gyn", "cosm"] }));
   await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), { modules: ["dental"] }));
 });
+
+test("مسارات حساب المريض الفعلية: إخوة على نفس الرقم، إعادة كلمة المرور، تغيير الرقم", async () => {
+  const sec = as("sec_A");
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "users/pat_A"), { active: true, role: "patient", clinicId: "A", phone: "0900", patientIds: ["p1"] });
+    await setDoc(doc(db, "clinics/A/phones/0900"), { patientUid: "pat_A", patientVer: 1 });
+    await setDoc(doc(db, "clinics/A/patients/p1"), { name: "p1", phone: "0900", uid: "pat_A" });
+  });
+  // أخ جديد على نفس الرقم (ملف جديد + إضافته للحساب نفسه في دفعة واحدة)
+  let b = writeBatch(sec);
+  b.update(doc(sec, "users/pat_A"), { patientIds: arrayUnion("p5"), lastPid: "p5" });
+  b.set(doc(sec, "clinics/A/patients/p5"), { name: "p5", phone: "0900", uid: "pat_A" });
+  await assertSucceeds(b.commit());
+  // إعادة كلمة المرور: حساب جديد يرث الملفين
+  await assertSucceeds(setDoc(doc(sec, "users/pat_A2"), { role: "patient", clinicId: "A", phone: "0900", patientIds: ["p1", "p5"], active: true }));
+  await assertSucceeds(updateDoc(doc(sec, "users/pat_A"), { active: false }));
+  await assertSucceeds(setDoc(doc(sec, "clinics/A/phones/0900"), { patientUid: "pat_A2", patientVer: 2 }, { merge: true }));
+  await assertSucceeds(updateDoc(doc(sec, "clinics/A/patients/p1"), { uid: "pat_A2" }));
+  // تغيير رقم الملف p5 إلى رقم جديد بحساب جديد
+  b = writeBatch(sec);
+  b.set(doc(sec, "users/pat_new"), { role: "patient", clinicId: "A", phone: "0955", patientIds: ["p5"], active: true });
+  b.set(doc(sec, "clinics/A/phones/0955"), { patientUid: "pat_new", patientVer: 1 }, { merge: true });
+  b.update(doc(sec, "clinics/A/patients/p5"), { phone: "0955", uid: "pat_new" });
+  await assertSucceeds(b.commit());
+  // إزالة p5 من الحساب القديم
+  await assertSucceeds(updateDoc(doc(sec, "users/pat_A2"), { patientIds: ["p1"] }));
+  // تعديل بيانات عادية للملف دون تغيير الرقم
+  await assertSucceeds(updateDoc(doc(sec, "clinics/A/patients/p1"), { address: "دمشق" }));
+});
