@@ -33,6 +33,9 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/clinics/$(c)).data.ownerUid == request.auth.uid;
     }
     // الأقسام الطبية: الطبيب يكتب، والمريض يقرأ ملفه فقط
+    // حساب المريض لا يُربط إلا بملف مريض له رقم الجوال نفسه (يمنع الموظف من ربط حساب بملفات مرضى آخرين)
+    function patAfter(c, pid) { return getAfter(/databases/$(database)/documents/clinics/$(c)/patients/$(pid)).data; }
+    function patPhoneOK(c, pid, phone) { return patAfter(c, pid).phone == phone; }
     function medSub(s) {
       return s in ['medical', 'visits', 'prescriptions', 'pregnancies', 'fertility', 'labs',
                    'dental', 'growth', 'vaccines', 'eye', 'physio', 'vitals', 'plans'];
@@ -109,14 +112,27 @@ service cloud.firestore {
             && request.resource.data.role in ['secretary', 'doctor', 'nurse', 'accountant'] && request.resource.data.admin == false)
         || (isStaff(request.resource.data.clinicId) && clinicOK(request.resource.data.clinicId)
             && request.resource.data.role == 'patient' && request.resource.data.get('admin', false) == false
-            && request.resource.data.active == true);
+            && request.resource.data.active == true
+            && request.resource.data.patientIds is list && request.resource.data.patientIds.size() >= 1
+            && patPhoneOK(request.resource.data.clinicId, request.resource.data.patientIds[0], request.resource.data.phone)
+            && (request.resource.data.patientIds.size() == 1
+                // إعادة تعيين كلمة المرور: الحساب الجديد يرث ملفات الحساب السابق للرقم نفسه فقط
+                || request.resource.data.patientIds == get(/databases/$(database)/documents/users/$(get(/databases/$(database)/documents/clinics/$(request.resource.data.clinicId)/phones/$(request.resource.data.phone)).data.patientUid)).data.patientIds));
       allow update: if
         (request.auth.uid == uid && onlyChanged(['mustChangePassword', 'consentAt', 'hideSensitive', 'fcmTokens', 'theme']))
         || (isAdmin(resource.data.clinicId) && resource.data.role in ['secretary', 'doctor', 'nurse', 'accountant']
             && resource.data.get('admin', false) == false
             && onlyChanged(['active', 'name', 'title', 'mustChangePassword']))
         || (isStaff(resource.data.clinicId) && resource.data.role == 'patient'
-            && onlyChanged(['patientIds', 'active', 'mustChangePassword']));
+            && onlyChanged(['patientIds', 'active', 'mustChangePassword', 'lastPid'])
+            && (request.resource.data.patientIds == resource.data.patientIds
+                // إزالة ملفات فقط
+                || resource.data.patientIds.toSet().hasAll(request.resource.data.patientIds.toSet())
+                // إضافة ملف واحد فقط، رقم جواله مطابق لرقم الحساب
+                || (request.resource.data.patientIds.size() == resource.data.patientIds.size() + 1
+                    && request.resource.data.patientIds.toSet().hasAll(resource.data.patientIds.toSet())
+                    && request.resource.data.patientIds.hasAny([request.resource.data.lastPid])
+                    && patPhoneOK(resource.data.clinicId, request.resource.data.lastPid, resource.data.phone))));
       allow delete: if false;
     }
 
@@ -133,7 +149,11 @@ service cloud.firestore {
       allow update: if isOwner()
         || (isAdmin(c) && clinicOK(c)
             && !request.resource.data.diff(resource.data).affectedKeys()
-                 .hasAny(['status', 'plan', 'expiresAt', 'features', 'maxDoctors', 'maxStaff', 'ownerUid', 'slug', 'referredBy', 'referralRewarded', 'referrals']))
+                 .hasAny(['status', 'plan', 'expiresAt', 'features', 'maxDoctors', 'maxStaff', 'ownerUid', 'slug', 'referredBy', 'referralRewarded', 'referrals'])
+            // تعدد الاختصاصات لباقة المراكز فقط
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['modules'])
+                || feature(c, 'multiSpecialty') || request.resource.data.modules.size() <= 1
+                || request.resource.data.modules.toSet().difference(['preg', 'gyn', 'cosm'].toSet()).size() == 0))
         // أي طبيب في العيادة يحفظ وصفاته الجاهزة وأسماء الأدوية
         || (isDoctor(c) && clinicOK(c) && onlyChanged(['drugs', 'rxTemplates']));
       allow delete: if false;
@@ -147,7 +167,10 @@ service cloud.firestore {
       match /patients/{pid} {
         allow read: if isStaff(c) || isPatient(c, pid);
         allow create: if isStaff(c) && clinicOK(c);
-        allow update: if clinicOK(c) && (isStaff(c)
+        allow update: if clinicOK(c) && ((isStaff(c)
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'phone'])
+                || (getAfter(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.phone == request.resource.data.phone
+                    && getAfter(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.patientIds.hasAny([pid]))))
           || (isPatient(c, pid) && onlyChanged(['lastMsgAt', 'lastMsgFrom'])));
         allow delete: if false;
 

@@ -111,7 +111,7 @@ test("الصلاحيات: لا تصعيد", async () => {
   await assertSucceeds(setDoc(doc(as("adm_A"), "users/n1"), { role: "secretary", admin: false, clinicId: "A", active: true }));
   await assertFails(setDoc(doc(as("adm_A"), "users/n2"), { role: "doctor", admin: true, clinicId: "A", active: true }));
   await assertFails(setDoc(doc(as("sec_A"), "users/n3"), { role: "doctor", admin: false, clinicId: "A", active: true }));
-  await assertSucceeds(setDoc(doc(as("sec_A"), "users/n4"), { role: "patient", clinicId: "A", active: true, patientIds: [] }));
+  await assertFails(setDoc(doc(as("sec_A"), "users/n4"), { role: "patient", clinicId: "A", active: true, patientIds: [] }));
   await assertFails(setDoc(doc(as("adm_A"), "users/n5"), { role: "secretary", admin: false, clinicId: "B", active: true }));
   await assertFails(updateDoc(doc(as("pat_A"), "users/pat_A"), { patientIds: ["p1", "p2"] }));
   await assertFails(updateDoc(doc(as("sec_A"), "users/sec_A"), { role: "doctor" }));
@@ -277,4 +277,28 @@ test("الممرض يقرأ الملف الطبي دون الملاحظات ال
   await assertSucceeds(getDoc(doc(as("acc_A"), "clinics/A/appointments/a1")));
   await assertFails(getDoc(doc(as("acc_A"), "clinics/A/patients/p1/visits/v1")));
   await assertSucceeds(setDoc(doc(as("adm_A"), "users/new_n"), { role: "nurse", admin: false, clinicId: "A", active: true }));
+});
+
+test("الموظف لا يربط حساب مريض بملفات مرضى آخرين", async () => {
+  const sec = as("sec_A");
+  // ربط حساب برقم مختلف عن رقم الملف: مرفوض
+  await assertFails(setDoc(doc(sec, "users/evil"), { role: "patient", clinicId: "A", phone: "0999", patientIds: ["p1"], active: true }));
+  // ربط حساب بعدة ملفات دفعة واحدة: مرفوض
+  await assertFails(setDoc(doc(sec, "users/evil2"), { role: "patient", clinicId: "A", phone: "0900", patientIds: ["p1", "p2"], active: true }));
+  // ملف جديد وحسابه معاً بنفس الرقم: مسموح
+  const b = writeBatch(sec);
+  b.set(doc(sec, "clinics/A/patients/p9"), { name: "p9", phone: "0933", uid: "u9" });
+  b.set(doc(sec, "users/u9"), { role: "patient", clinicId: "A", phone: "0933", patientIds: ["p9"], active: true });
+  await assertSucceeds(b.commit());
+  // إضافة ملف برقم آخر إلى حساب موجود: مرفوضة
+  await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), "users/pat_A"), { phone: "0900" }); });
+  await assertFails(updateDoc(doc(sec, "users/pat_A"), { patientIds: ["p1", "p2"], lastPid: "p2" }));
+  // تحويل ملف مريض إلى حساب آخر برقم مختلف: مرفوض
+  await assertFails(updateDoc(doc(sec, "clinics/A/patients/p2"), { uid: "pat_A" }));
+});
+
+test("تعدد الاختصاصات لباقة المراكز فقط", async () => {
+  await assertFails(updateDoc(doc(as("adm_A"), "clinics/A"), { modules: ["dental", "peds", "eye"] }));
+  await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), { modules: ["preg", "gyn", "cosm"] }));
+  await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), { modules: ["dental"] }));
 });

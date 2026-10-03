@@ -347,26 +347,29 @@ export async function registerPatient(data) {
   const phRef = P.phone(phone);
   const ph = await getDoc(phRef);
   let tempPassword = null, uid, shared = false;
+  const b = writeBatch(db);
   if (ph.exists() && ph.data().patientUid) {
     uid = ph.data().patientUid;
-    await updateDoc(P.user(uid), { patientIds: arrayUnion(pid) });
+    b.update(P.user(uid), { patientIds: arrayUnion(pid), lastPid: pid });
     shared = true;
   } else {
     tempPassword = genPassword();
-    const r = await createAuthAt(phone, "p", tempPassword, 1);
+    const r = await createAuthAt(phone, "p", tempPassword, (ph.exists() && ph.data().patientVer ? ph.data().patientVer + 1 : 1));
     saveLoginIdx(phone, tempPassword, C, "p");
     uid = r.uid;
-    await setDoc(P.user(uid), {
+    b.set(P.user(uid), {
       role: "patient", clinicId: C, phone, patientIds: [pid], active: true,
       mustChangePassword: true, ver: r.ver, hideSensitive: false, createdAt: serverTimestamp()
     });
-    await setDoc(phRef, { patientUid: uid, patientVer: r.ver }, { merge: true });
+    b.set(phRef, { patientUid: uid, patientVer: r.ver }, { merge: true });
   }
-  await setDoc(pRef, {
+  // الحساب والملف يُكتبان معاً لتتحقق القواعد من تطابق رقم الجوال
+  b.set(pRef, {
     name: data.name.trim(), phone, age: data.age ? Number(data.age) : null, dob: data.dob || null,
     sex: data.sex || "", address: data.address || "", bloodType: data.bloodType || "", guardian: !!data.guardian, uid,
     archived: false, createdAt: serverTimestamp(), createdBy: currentActor.uid
   });
+  await b.commit();
   await audit("تسجيل مريض جديد", data.name);
   return { pid, tempPassword, shared, phone };
 }
@@ -403,10 +406,11 @@ export async function changePatientPhone(pid, oldPhone, newPhoneRaw) {
   const newRef = P.phone(phone);
   const nph = await getDoc(newRef);
   let uid, temp = null, shared = false;
+  const b = writeBatch(db);
   if (nph.exists() && nph.data().patientUid) {
     uid = nph.data().patientUid;
     const u = await getDoc(P.user(uid));
-    if (u.exists() && u.data().active !== false) { await updateDoc(P.user(uid), { patientIds: arrayUnion(pid) }); shared = true; }
+    if (u.exists() && u.data().active !== false) { b.update(P.user(uid), { patientIds: arrayUnion(pid), lastPid: pid }); shared = true; }
     else uid = null;
   }
   if (!uid) {
@@ -414,10 +418,11 @@ export async function changePatientPhone(pid, oldPhone, newPhoneRaw) {
     const r = await createAuthAt(phone, "p", temp, (nph.exists() && nph.data().patientVer ? nph.data().patientVer + 1 : 1));
     saveLoginIdx(phone, temp, C, "p");
     uid = r.uid;
-    await setDoc(P.user(uid), { role: "patient", clinicId: C, phone, patientIds: [pid], active: true, mustChangePassword: true, ver: r.ver, hideSensitive: false, createdAt: serverTimestamp() });
-    await setDoc(newRef, { patientUid: uid, patientVer: r.ver }, { merge: true });
+    b.set(P.user(uid), { role: "patient", clinicId: C, phone, patientIds: [pid], active: true, mustChangePassword: true, ver: r.ver, hideSensitive: false, createdAt: serverTimestamp() });
+    b.set(newRef, { patientUid: uid, patientVer: r.ver }, { merge: true });
   }
-  await updateDoc(pRef, { phone, uid });
+  b.update(pRef, { phone, uid });
+  await b.commit();
   if (oldUid) {
     const ou = await getDoc(P.user(oldUid));
     const rest = ((ou.exists() && ou.data().patientIds) || []).filter((x) => x !== pid);
