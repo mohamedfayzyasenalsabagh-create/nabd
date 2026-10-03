@@ -38,7 +38,7 @@ export function t(s) {
   const str = String(s);
   const m = str.match(CORE);
   let out;
-  if (m && EN[m[2]] && !/[A-Za-z]/.test(m[1] + m[3])) out = m[1] + EN[m[2]] + m[3];
+  if (m && EN[m[2]] && !/[A-Za-z]/.test(m[1] + m[3]) && !(/\d\s*$/.test(m[1]) && !/\s/.test(m[2]))) out = m[1] + EN[m[2]] + m[3];
   else {
     if (!RE) buildRe();
     out = str.replace(RE, (x) => EN[x] ?? x);
