@@ -181,6 +181,20 @@ export async function makeThumb(dataUrl, side = 320, q = 0.6) {
 export function isImg(f) { return f.mime ? f.mime.startsWith("image") : (f.thumb || f.data?.startsWith("data:image") || false); }
 export function tileImg(f) { const src = f.thumb || (f.data?.startsWith("data:image") ? f.data : ""); return src ? `<img src="${src}" alt="" loading="lazy">` : `<span class="pdf">PDF</span>`; }
 
+// مشاركة صورة أو أكثر عبر تطبيقات الجوال (واتساب...)، أو تنزيلها إن لم يدعم الجهاز المشاركة
+export async function dataUrlToFile(src, name) {
+  const b = await (await fetch(src)).blob();
+  return new File([b], name, { type: b.type || "image/jpeg" });
+}
+export async function shareImages(srcs, text = "") {
+  try {
+    const files = await Promise.all(srcs.map((s, i) => dataUrlToFile(s, `photo-${i + 1}.jpg`)));
+    if (navigator.canShare && navigator.canShare({ files })) { await navigator.share({ files, text }); return true; }
+  } catch (e) { if (e?.name === "AbortError") return false; }
+  srcs.forEach((s, i) => { const a = document.createElement("a"); a.href = s; a.download = `photo-${i + 1}.jpg`; document.body.appendChild(a); a.click(); a.remove(); });
+  toast("تم تنزيل الصور، أرسلها من معرض الصور");
+  return false;
+}
 export function showFile(title, note, loader, image, fname = "file.pdf") {
   return modal(title, `${note ? `<p>${esc(note)}</p>` : ""}<div class="file-full"><p class="muted center">جارٍ التحميل…</p></div>`, {
     ok: "حسناً", cancel: null, wide: true,
@@ -189,6 +203,7 @@ export function showFile(title, note, loader, image, fname = "file.pdf") {
       try {
         const src = await loader();
         if (!src) { box.innerHTML = `<p class="alert">تعذّر تحميل الملف</p>`; return; }
+        if (image) { box.innerHTML = `<img src="${esc(src)}" alt="" class="full"><button type="button" class="btn block share-img">📤 مشاركة الصورة (واتساب أو غيره)</button>`; box.querySelector(".share-img").onclick = () => shareImages([src], title); return; }
         box.innerHTML = image ? `<img src="${esc(src)}" alt="" class="full">` : `<a class="btn primary" href="${esc(src)}" download="${esc(fname)}" target="_blank" rel="noopener">تنزيل PDF</a>`;
       } catch (e) { box.innerHTML = `<p class="alert">تعذّر تحميل الملف. تحقق من الاتصال.</p>`; }
     }

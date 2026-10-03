@@ -161,3 +161,33 @@ export function brandToGeneric(v) {
   const hit = BRANDS.find(([b, g]) => t === b.toLowerCase() || t === `${b} (${g})`.toLowerCase());
   return hit ? hit[1] : null;
 }
+
+// الشكل الصيدلاني والعدد المطلوب صرفه (مثل: Cap. N. 20)
+const AR_NUM = { "حبة": 1, "حبتان": 2, "حبتين": 2, "كبسولة": 1, "كبسولتان": 2, "كبسولتين": 2, "كيس": 1, "كيسان": 2, "تحميلة": 1 };
+export function dispenseText(it) {
+  const name = `${it.drug || ""} ${it.dose || ""}`.toLowerCase();
+  if (!it.drug) return "";
+  const pack = (f) => `${f} N. 1`;
+  if (/syrup|susp|شراب|معلق|solution|محلول|ors/.test(name)) return pack(/susp|معلق/.test(name) ? "Susp." : "Syr.");
+  if (/mouthwash|غسول|مضمضة/.test(name)) return pack("Mouthwash");
+  if (/drops|قطرة|قطرات|نقط/.test(name)) return pack("Drops");
+  if (/cream|كريم/.test(name)) return pack("Cream");
+  if (/ointment|مرهم/.test(name)) return pack("Oint.");
+  if (/gel|جل/.test(name)) return pack("Gel");
+  if (/inhaler|بخاخ|spray/.test(name)) return pack(/spray/.test(name) ? "Spray" : "Inhaler");
+  if (/lotion|shampoo|شامبو/.test(name)) return pack(/shampoo|شامبو/.test(name) ? "Shampoo" : "Lotion");
+  let f = "Tab.";
+  if (/cap|كبسول/.test(name)) f = "Cap.";
+  else if (/sachet|كيس/.test(name)) f = "Sachet";
+  else if (/supp|تحميل/.test(name)) f = "Supp.";
+  else if (/inj|amp|حقن|أمبول/.test(name)) f = "Amp.";
+  const n = (String(it.times || "").match(/\d{1,2}:\d{2}/g) || []).length;
+  const days = Number(it.days) || 0;
+  const d = String(it.dose || "");
+  let per = 1;
+  const m = d.match(/^\s*(\d+)\s*(حب|كبسول|tab|cap|كيس|تحميل)/i);
+  if (m) per = Number(m[1]);
+  else for (const [w, v] of Object.entries(AR_NUM)) if (d.trim().startsWith(w)) { per = v; break; }
+  if (!n || !days) return !n && days === 1 ? `${f} N. ${per}` : f;
+  return `${f} N. ${per * n * days}`;
+}

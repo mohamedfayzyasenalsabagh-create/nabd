@@ -399,7 +399,7 @@ async function renderClosing() {
       <div class="${forPrint ? "mr-box main" : "stat"}"><span class="lbl">المقبوض</span><b>${esc(money(sum(pays), cur()))}</b></div>
       <div class="${forPrint ? "mr-box" : "stat"}"><span class="lbl">نقداً في الصندوق</span><b>${esc(money(cash, cur()))}</b></div>
       <div class="${forPrint ? "mr-box" : "stat"}"><span class="lbl">عدد الدفعات</span><b>${pays.length}</b></div>
-      <div class="${forPrint ? "mr-box" : "stat"}"><span class="lbl">ديون جديدة</span><b>${esc(money(newDebt, cur()))}</b></div>
+      <div class="${forPrint ? "mr-box" : "stat"}"><span class="lbl">دفعات مستحقة جديدة</span><b>${esc(money(newDebt, cur()))}</b></div>
       <div class="${forPrint ? "mr-box" : "stat"}"><span class="lbl">زيارات منجزة</span><b>${done}</b></div>
     </div>
     <div class="mr-cols">
@@ -417,7 +417,7 @@ async function renderClosing() {
   $(".pr").onclick = () => printDoc(S.pub, `إغلاق الصندوق · ${fmtDate(d)}`, body(true) + `<p class="q-accept">المبلغ النقدي المسلَّم: .................... &nbsp; اسم المسلِّم: ....................</p>`, { signer: "المستلم" });
 }
 
-// ---------- تحصيل الديون ----------
+// ---------- تحصيل الدفعات المستحقة ----------
 async function renderDebts() {
   const all = await list(P.col("payments"));
   const per = {};
@@ -430,9 +430,9 @@ async function renderDebts() {
   const total = rows.reduce((s, x) => s + x.d, 0);
   const txt = (x) => `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${x.name}، نود تذكيرك بلطف بوجود مبلغ متبقٍ قدره ${money(x.d, cur())} لدى ${S.pub.name}.\nيمكنك تسديده في زيارتك القادمة أو التواصل معنا لترتيب طريقة مناسبة.\nشكراً لثقتك بنا.`;
   const recent = (x) => { const t = tsMs(PC.byId[x.id]?.debtRemindedAt); return t && Date.now() - t < 7 * 864e5; };
-  main().innerHTML = `<h2 class="page-title">تحصيل الديون</h2>
+  main().innerHTML = `<h2 class="page-title">تحصيل الدفعات المستحقة</h2>
     <div class="stats">
-      <div class="stat warn"><b>${esc(money(total, cur()))}</b><span>مجموع الديون</span></div>
+      <div class="stat warn"><b>${esc(money(total, cur()))}</b><span>مجموع الدفعات المستحقة</span></div>
       <div class="stat"><b>${rows.length}</b><span>مريض عليه مبلغ</span></div>
     </div>
     <section class="card">
@@ -441,7 +441,7 @@ async function renderDebts() {
         <span class="t debt">${esc(money(x.d, cur()))}</span>
         <span class="n"><a href="#/p/${x.id}/money">${esc(x.name)}</a><small>آخر دفعة: ${esc(x.last)}</small></span>
         ${PC.byId[x.id]?.phone ? `<a class="btn small ${recent(x) ? "" : "primary"} wa" data-id="${x.id}" target="_blank" rel="noopener" href="${esc(waLink(PC.byId[x.id].phone, txt(x)))}">${recent(x) ? "✓ ذُكّر" : "📲 تذكير"}</a>` : ""}
-      </li>`).join("")}</ul>` : empty("لا توجد ديون، كل الحسابات مسددة ✓")}
+      </li>`).join("")}</ul>` : empty("لا توجد دفعات مستحقة، كل الحسابات مسددة ✓")}
     </section>`;
   $$(".wa").forEach((b) => b.addEventListener("click", () => {
     b.closest("li").classList.add("done"); b.classList.remove("primary"); b.textContent = "✓ ذُكّر";
@@ -486,7 +486,7 @@ export async function bookAppointment({ pid, date, time, type, note = "", doctor
 // أنواع المواعيد: خدمات العيادة، ويضاف «زرع» تلقائياً لعيادات الأسنان
 function typeOptions(services) {
   const o = services.map((s) => [s.name, s.name]);
-  if ((S.clinic?.modules || []).includes("dental") && !o.some(([v]) => /زرع/.test(v))) o.push(["زرع", "زرع"]);
+  if ((S.clinic?.modules || []).includes("dental")) for (const x of ["تتويج", "زرع"]) if (!o.some(([v]) => v.includes(x))) o.push([x, x]);
   return o;
 }
 export async function bookModal({ pid = "", date = ymd(), time = "", type = "", note = "", title = "موعد جديد", requestId = null, doctorId = null } = {}) {
@@ -643,13 +643,14 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
   const r = await modal(kids ? "طفل جديد" : "مريض جديد", `<form class="stack">
     ${field(kids ? "اسم الطفل الكامل" : "الاسم الكامل", "name", { required: true, value: name })}
     ${field(kids ? "رقم جوال ولي الأمر" : "رقم الجوال", "phone", { required: true, value: phone, attrs: 'dir="ltr" inputmode="tel"', placeholder: "09xxxxxxxx" })}
+    <label class="check"><input type="checkbox" name="guardian" ${kids ? "checked" : ""}><span>الجوال لولي أمر المريض</span></label>
     <div class="grid2">
       ${field("تاريخ الميلاد", "dob", { type: "date", required: kids })}
       ${select("الجنس", "sex", [["", "—"], ["f", "أنثى"], ["m", "ذكر"]], hasMod("preg") ? "f" : "")}
     </div>
     <div class="grid2">
       ${field("العمر (إن لم يُعرف تاريخ الميلاد)", "age", { type: "number", attrs: 'min="0" max="120"' })}
-      ${select("فصيلة الدم", "bloodType", ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])}
+      ${select("زمرة الدم", "bloodType", ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])}
     </div>
     ${field("العنوان", "address")}
     <p class="muted small">${kids ? "يُنشأ لولي الأمر حساب برقم جواله، ويمكنه متابعة أكثر من طفل من الحساب نفسه." : "يُنشأ للمريض حساب تلقائياً برقم جواله."}</p>
@@ -660,19 +661,20 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
       if (dup && !(await confirmBox("يوجد مريض بالاسم والرقم نفسيهما", "هل تريد تسجيله مرة أخرى؟", "تسجيل"))) return false;
       if (f.dob && !f.age) f.age = Math.floor(daysBetween(f.dob, ymd()) / 365.25);
       const res = await registerPatient(f);
-      return { ...res, name: f.name };
+      return { ...res, name: f.name, guardian: !!f.guardian };
     }
   });
   if (!r) return null;
-  showCredentials(r.phone, r.tempPassword, r.name, r.shared);
+  showCredentials(r.phone, r.tempPassword, r.name, r.shared, r.guardian);
   if (!silentNav) go(`#/p/${r.pid}/${canMed() ? "summary" : "info"}`);
   return r;
 }
 
-export function showCredentials(phone, temp, name, shared = false) {
+export function showCredentials(phone, temp, name, shared = false, guardian = false) {
   const url = `${location.origin}${location.pathname}#/c/${S.clinic?.slug || ""}`;
   if (shared) return info("تم التسجيل", `<p>لهذا الرقم حساب سابق. أُضيف الملف الجديد إلى الحساب نفسه، ويُختار الملف عند الدخول.</p>`);
-  const text = `أهلاً ${name}، أهلاً بك في تطبيق ${PLATFORM()} 👋\nهذا حسابك لدى ${S.pub.name}:\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب:\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\nسيُطلب منك تغييرها عند أول دخول.`;
+  const from = `\n\nمن ${S.pub.name}${S.pub.doctorName && !S.pub.name.includes(S.pub.doctorName) ? ` · د. ${S.pub.doctorName}` : ""}\nنتمنى لكم الشفاء العاجل 🌿`;
+  const text = `${guardian ? `أهلاً بولي أمر المريض ${name}، أهلاً بكم في تطبيق ${PLATFORM()} 👋\nهذا حساب ${name} لدى ${S.pub.name}:` : `أهلاً ${name}، أهلاً بك في تطبيق ${PLATFORM()} 👋\nهذا حسابك لدى ${S.pub.name}:`}\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب:\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\n${guardian ? "سيُطلب منكم تغييرها عند أول دخول." : "سيُطلب منك تغييرها عند أول دخول."}${from}`;
   info("حساب المريض جاهز", `
     <div class="cred"><div>رقم الدخول: <b dir="ltr">${esc(phone)}</b></div><div>كلمة المرور المؤقتة: <b class="big" dir="ltr">${esc(temp)}</b></div></div>
     <p class="muted small">سلّمها للمريض، وسيُطلب منه تغييرها عند أول دخول. لن تظهر مرة أخرى.</p>
@@ -753,7 +755,7 @@ async function renderMoney() {
     const per = {};
     all.forEach((p) => { per[p.patientId] = per[p.patientId] || { name: p.patientName, d: 0 }; per[p.patientId].d += (p.total || 0) - (p.paid || 0); });
     const owing = Object.entries(per).filter(([, v]) => v.d > 0).sort((a, b) => b[1].d - a[1].d);
-    debts = `<section class="card"><h3>الديون المستحقة</h3>${owing.length ? `<ul class="plain">${owing.map(([id, v]) => `<li class="row-between"><a href="#/p/${id}/money">${esc(v.name)}</a><b>${esc(money(v.d, cur()))}</b></li>`).join("")}</ul>` : empty("لا توجد ديون")}</section>`;
+    debts = `<section class="card"><h3>الدفعات المستحقة</h3>${owing.length ? `<ul class="plain">${owing.map(([id, v]) => `<li class="row-between"><a href="#/p/${id}/money">${esc(v.name)}</a><b>${esc(money(v.d, cur()))}</b></li>`).join("")}</ul>` : empty("لا توجد ديون")}</section>`;
   }
   const monthStart = ymd().slice(0, 8) + "01";
   main().innerHTML = `
@@ -797,7 +799,7 @@ function renderMore() {
       ["#/messages", "رسائل المرضى", S._msgCount],
       ["#/remind", "تذكير مواعيد الغد (واتساب)"],
       ["#/closing", "إغلاق الصندوق اليومي"],
-      ["#/debts", "تحصيل الديون"],
+      ["#/debts", "تحصيل الدفعات المستحقة"],
       ["#/waitlist", "الحالات الإسعافية (أقرب موعد يتوفر)"],
       ["#/tv", "شاشة الانتظار (للتلفاز)"],
       ...(feat("inventory") ? [["#/inventory", "المخزون"]] : []),
@@ -1069,7 +1071,7 @@ async function renderReports() {
   const appts = await list(query(P.col("appointments"), where("date", ">=", from), where("date", "<=", to)));
   const pays = await list(query(P.col("payments"), where("date", ">=", from), where("date", "<=", to)));
   const stats = await list(query(P.col("stats"), where("date", ">=", from), where("date", "<=", to)));
-  const expTotal = (await list(query(P.col("expenses"), where("date", ">=", from), where("date", "<=", to))).catch(() => [])).filter((e) => !e.void).reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const expTotal = (await list(query(P.col("expenses"), where("date", ">=", from), where("date", "<=", to))).catch(() => [])).filter((e) => !e.void && !e.unpaid).reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const incTotal = pays.reduce((s, p) => s + (p.paid || 0), 0);
   const cnt = (s, arr = appts) => arr.filter((a) => a.status === s).length;
   const real = appts.filter((a) => a.status !== "cancelled");
@@ -1097,7 +1099,7 @@ async function renderReports() {
       <div class="stat"><b>${newPts}</b><span>مرضى جدد</span></div>
       <div class="stat"><b>${noshowRate}%</b><span>نسبة الغياب</span></div>
       <div class="stat"><b>${esc(money(pays.reduce((s, p) => s + (p.paid || 0), 0), cur()))}</b><span>المقبوض</span></div>
-      <div class="stat"><b>${esc(money(pays.reduce((s, p) => s + (p.total || 0) - (p.paid || 0), 0), cur()))}</b><span>ديون الشهر</span></div>
+      <div class="stat"><b>${esc(money(pays.reduce((s, p) => s + (p.total || 0) - (p.paid || 0), 0), cur()))}</b><span>الدفعات المستحقة هذا الشهر</span></div>
       <div class="stat"><b>${avgRating}</b><span>متوسط التقييم (${rated.length})</span></div>
       <a class="stat" href="#/expenses?m=${m}"><b>${esc(money(expTotal, cur()))}</b><span>المصاريف</span></a>
       <div class="stat ${incTotal - expTotal < 0 ? "warn" : ""}"><b>${esc(money(incTotal - expTotal, cur()))}</b><span>صافي الربح</span></div>
@@ -1129,7 +1131,7 @@ async function monthData(m, upToDay = 31) {
     list(query(P.col("payments"), where("date", ">=", from), where("date", "<=", to))),
     list(query(P.col("expenses"), where("date", ">=", from), where("date", "<=", to))).catch(() => []),
   ]);
-  const liveExp = exps.filter((e) => !e.void);
+  const liveExp = exps.filter((e) => !e.void && !e.unpaid);
   const expenses = liveExp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
   // المواعيد حتى اليوم فقط (المواعيد القادمة لا تدخل في الحساب)
   const real = appts.filter((a) => a.status !== "cancelled" && a.date <= ymd());
@@ -1163,7 +1165,7 @@ async function printMonthReport(m) {
   };
   // أكثر الخدمات دخلاً
   const bySvc = {};
-  d.pays.forEach((p) => { const k = p.service || "أخرى"; if (k === "تسديد دين") return; bySvc[k] = bySvc[k] || { n: 0, v: 0 }; bySvc[k].n++; bySvc[k].v += Number(p.paid) || 0; });
+  d.pays.forEach((p) => { const k = p.service || "أخرى"; if (k === "تسديد دين" || k === "تسديد دفعة مستحقة") return; bySvc[k] = bySvc[k] || { n: 0, v: 0 }; bySvc[k].n++; bySvc[k].v += Number(p.paid) || 0; });
   const svc = Object.entries(bySvc).sort((a, b) => b[1].v - a[1].v).slice(0, 6);
   const byType = {};
   d.real.forEach((a) => byType[a.type || "دون نوع"] = (byType[a.type || "دون نوع"] || 0) + 1);
@@ -1185,7 +1187,7 @@ async function printMonthReport(m) {
       <div class="mr-box"><span>عدد المرضى</span><b>${d.patients}</b>${delta(d.patients, prev.patients)}</div>
       <div class="mr-box"><span>مرضى جدد</span><b>${d.newPts}</b></div>
       <div class="mr-box"><span>نسبة الغياب</span><b>${d.noshowRate}%</b><small class="mr-d">${d.noshow} موعد من ${d.real.length}</small></div>
-      <div class="mr-box"><span>ديون هذا الشهر</span><b>${esc(money(d.debt, cur()))}</b></div>
+      <div class="mr-box"><span>الدفعات المستحقة هذا الشهر</span><b>${esc(money(d.debt, cur()))}</b></div>
       ${d.expenses ? `<div class="mr-box"><span>المصاريف</span><b>${esc(money(d.expenses, cur()))}</b>${delta(d.expenses, prev.expenses)}</div>
       <div class="mr-box main"><span>صافي الربح</span><b>${esc(money(d.income - d.expenses, cur()))}</b>${delta(d.income - d.expenses, prev.income - prev.expenses)}</div>` : ""}
     </div>
@@ -1203,18 +1205,21 @@ async function printMonthReport(m) {
       <li>${d.real.length} موعداً${partial ? " حتى الآن" : " خلال الشهر"}${prev.real.length ? `، مقابل ${prev.real.length} ${partial ? "في الفترة نفسها من" : "في"} الشهر السابق` : ""}.</li>
       ${busiest ? `<li>أكثر الأيام ازدحاماً: <b>${esc(busiest[0])}</b> (${busiest[1]} موعداً).</li>` : ""}
       ${d.noshowRate >= 15 ? `<li>نسبة الغياب مرتفعة: يُنصح بإرسال تذكير واتساب قبل الموعد بيوم.</li>` : ""}
-      ${d.debt > 0 ? `<li>توجد ديون غير مسددة بقيمة ${esc(money(d.debt, cur()))} من هذا الشهر.</li>` : ""}
+      ${d.debt > 0 ? `<li>توجد دفعات مستحقة غير مسددة بقيمة ${esc(money(d.debt, cur()))} من هذا الشهر.</li>` : ""}
     </ul></div>`, { signer: "الطبيب", footer: `أُعدّ بواسطة منصة ${PLATFORM()}` });
 }
 
 // ---------- مصاريف العيادة ----------
-const EXP_CATS = ["إيجار", "رواتب", "مواد ومستلزمات طبية", "كهرباء وماء وإنترنت", "صيانة وأجهزة", "تسويق وإعلان", "ضرائب ورسوم", "أخرى"];
+const EXP_CATS = ["إيجار", "رواتب", "مواد ومستلزمات طبية", "المخبر", "كهرباء وماء وإنترنت", "صيانة وأجهزة", "تسويق وإعلان", "ضرائب ورسوم", "أخرى"];
 async function renderExpenses() {
   const m = params().get("m") || ymd().slice(0, 7);
   const all = (await list(query(P.col("expenses"), where("date", ">=", m + "-01"), where("date", "<=", m + "-31"))))
     .sort((a, b) => b.date.localeCompare(a.date));
-  const rows = all.filter((e) => !e.void);
+  const rows = all.filter((e) => !e.void && !e.unpaid);
   const total = rows.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  // ديون العيادة: مبالغ مستحقة عليها لم تُدفع بعد (للمخبر أو المورد مثلاً)
+  const owed = (await list(query(P.col("expenses"), where("unpaid", "==", true)))).filter((e) => !e.void).sort((a, b) => a.date.localeCompare(b.date));
+  const owedTotal = owed.reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const income = (await list(query(P.col("payments"), where("date", ">=", m + "-01"), where("date", "<=", m + "-31")))).reduce((s, p) => s + (Number(p.paid) || 0), 0);
   const byCat = {};
   rows.forEach((e) => byCat[e.category || "أخرى"] = (byCat[e.category || "أخرى"] || 0) + (Number(e.amount) || 0));
@@ -1226,10 +1231,13 @@ async function renderExpenses() {
       <div class="stat"><b>${esc(money(total, cur()))}</b><span>المصاريف</span></div>
       <div class="stat ${income - total < 0 ? "warn" : ""}"><b>${esc(money(income - total, cur()))}</b><span>صافي الربح</span></div>
     </div>
+    <section class="card"><div class="row-between"><h3>ديون العيادة</h3>${owed.length ? `<span class="chip danger">${esc(money(owedTotal, cur()))}</span>` : ""}</div>
+      <p class="muted small">ما على العيادة دفعه للمخبر أو المورد أو غيرهما. سجّله كمصروف مع اختيار «لم يُدفع بعد».</p>
+      ${owed.length ? `<ul class="plain">${owed.map((e) => `<li class="row-between"><span><b>${esc(e.payee || e.category || "")}</b> · ${esc(money(e.amount, cur()))}<br><small class="muted">${esc(e.date)}${e.note ? ` · ${esc(e.note)}` : ""}</small></span><button class="btn small paid" data-id="${e.id}">تم الدفع</button></li>`).join("")}</ul>` : empty("لا توجد ديون على العيادة ✓")}</section>
     ${rows.length ? `<section class="card"><h3>حسب البند</h3><div class="bars">${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="bar-row"><span>${esc(k)}</span><div class="bar"><i style="width:${v / maxC * 100}%"></i></div><b>${esc(money(v, cur()))}</b></div>`).join("")}</div></section>` : ""}
     <section class="card">
       ${all.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>ملاحظة</th><th></th></tr></thead><tbody>
-      ${all.map((e) => `<tr class="${e.void ? "void" : ""}"><td>${esc(e.date)}</td><td>${esc(e.category || "")}</td><td>${esc(money(e.amount, cur()))}</td><td>${esc(e.note || "")}${e.void ? ` <span class="chip">ملغى</span>` : ""}</td>
+      ${all.map((e) => `<tr class="${e.void ? "void" : ""}"><td>${esc(e.date)}</td><td>${esc(e.category || "")}</td><td>${esc(money(e.amount, cur()))}${e.unpaid ? ` <span class="chip danger">غير مدفوع</span>` : ""}</td><td>${esc([e.payee, e.note].filter(Boolean).join(" · "))}${e.void ? ` <span class="chip">ملغى</span>` : ""}</td>
         <td>${e.void ? "" : `<button class="icon-btn ed" data-id="${e.id}" aria-label="تعديل">✎</button>`}</td></tr>`).join("")}</tbody></table></div>` : empty("لا توجد مصاريف مسجلة لهذا الشهر")}
     </section>
     <p class="muted small">المصاريف تظهر للأطباء فقط، وتدخل في التقرير الشهري لحساب صافي الربح.</p>`;
@@ -1238,12 +1246,14 @@ async function renderExpenses() {
     ${select("البند", "category", EXP_CATS.map((c) => [c, c]), e.category || EXP_CATS[0])}
     ${field("المبلغ", "amount", { type: "number", value: e.amount ?? "", required: true, attrs: 'min="1" inputmode="numeric"' })}
     ${field("التاريخ", "date", { type: "date", value: e.date || ymd(), required: true })}
+    ${field("الجهة (اختياري)", "payee", { value: e.payee || "", placeholder: "مثلاً: مخبر الأسنان، المورد" })}
     ${field("ملاحظة", "note", { value: e.note || "", placeholder: "مثلاً: راتب السكرتيرة لشهر أيلول" })}
+    <label class="check"><input type="checkbox" name="unpaid" ${e.unpaid ? "checked" : ""}><span>لم يُدفع بعد (دين على العيادة)</span></label>
     ${e.id ? `<label class="check"><input type="checkbox" name="void"><span>إلغاء هذا المصروف</span></label>` : ""}
   </form>`, {
     ok: "حفظ",
     onOk: async (f) => {
-      const data = { category: f.category, amount: Number(f.amount) || 0, date: f.date, note: f.note || "" };
+      const data = { category: f.category, amount: Number(f.amount) || 0, date: f.date, note: f.note || "", payee: f.payee || "", unpaid: !!f.unpaid };
       if (e.id) await updateDoc(P.colDoc("expenses", e.id), { ...data, void: !!f.void, updatedAt: serverTimestamp() });
       else await addDoc(P.col("expenses"), { ...data, void: false, by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp() });
       await audit(e.id ? "تعديل مصروف" : "تسجيل مصروف", `${f.category} ${f.amount}`);
@@ -1253,6 +1263,13 @@ async function renderExpenses() {
   });
   $(".add").onclick = () => form();
   $$(".ed").forEach((b) => b.onclick = () => form(all.find((e) => e.id === b.dataset.id)));
+  $$(".paid").forEach((b) => b.onclick = async () => {
+    const e = owed.find((x) => x.id === b.dataset.id);
+    if (!(await confirmBox("تسديد", `تسجيل دفع ${money(e.amount, cur())} لـ ${e.payee || e.category}؟ يُسجل بتاريخ اليوم.`, "تم الدفع"))) return;
+    await updateDoc(P.colDoc("expenses", e.id), { unpaid: false, date: ymd(), paidAt: serverTimestamp() });
+    await audit("تسديد دين على العيادة", `${e.payee || e.category} ${e.amount}`);
+    toast("تم"); setTimeout(render, 100);
+  });
 }
 
 // ---------- سجل التعديلات ----------

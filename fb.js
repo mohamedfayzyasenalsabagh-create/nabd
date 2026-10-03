@@ -247,7 +247,7 @@ export function defaultServices(spec) {
   ];
   const extra = {
     obgyn: [{ id: "echo", name: "إيكو", price: 0, duration: 20, kind: "general" }, { id: "preg", name: "متابعة حمل", price: 0, duration: 20, kind: "general" }, { id: "cosm", name: "استشارة تجميلية", price: 0, duration: 30, kind: "cosmetic" }],
-    dental: [{ id: "fill", name: "حشوة", price: 0, duration: 30, kind: "general" }, { id: "rct", name: "معالجة لبية", price: 0, duration: 45, kind: "general" }, { id: "clean", name: "تنظيف", price: 0, duration: 30, kind: "general" }, { id: "ext", name: "قلع", price: 0, duration: 30, kind: "general" }, { id: "implant", name: "زرع", price: 0, duration: 60, kind: "general" }],
+    dental: [{ id: "fill", name: "حشوة", price: 0, duration: 30, kind: "general" }, { id: "rct", name: "معالجة لبية", price: 0, duration: 45, kind: "general" }, { id: "clean", name: "تنظيف", price: 0, duration: 30, kind: "general" }, { id: "ext", name: "قلع", price: 0, duration: 30, kind: "general" }, { id: "crown", name: "تتويج", price: 0, duration: 45, kind: "general" }, { id: "implant", name: "زرع", price: 0, duration: 60, kind: "general" }],
     peds: [{ id: "vac", name: "لقاح", price: 0, duration: 10, kind: "general" }, { id: "growth", name: "متابعة نمو", price: 0, duration: 15, kind: "general" }],
     derm: [{ id: "session", name: "جلسة", price: 0, duration: 30, kind: "cosmetic" }, { id: "consult", name: "استشارة تجميلية", price: 0, duration: 20, kind: "cosmetic" }],
     eye: [{ id: "exam", name: "فحص نظر", price: 0, duration: 20, kind: "general" }],
@@ -364,7 +364,7 @@ export async function registerPatient(data) {
   }
   await setDoc(pRef, {
     name: data.name.trim(), phone, age: data.age ? Number(data.age) : null, dob: data.dob || null,
-    sex: data.sex || "", address: data.address || "", bloodType: data.bloodType || "", uid,
+    sex: data.sex || "", address: data.address || "", bloodType: data.bloodType || "", guardian: !!data.guardian, uid,
     archived: false, createdAt: serverTimestamp(), createdBy: currentActor.uid
   });
   await audit("تسجيل مريض جديد", data.name);

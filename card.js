@@ -3,7 +3,7 @@ import { addFileDoc, fileData,
   P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, arrayUnion, arrayRemove,
   audit, resetPatientPassword, randId
 } from "./fb.js";
-import { makeThumb, tileImg, isImg, showFile, CASH_METHODS, freqText, daysText,
+import { makeThumb, tileImg, isImg, showFile, shareImages, CASH_METHODS, freqText, daysText,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, waLink, empty, compressImage, pickFile, printDoc, daysBetween, qrSvg
 } from "./ui.js";
@@ -63,7 +63,7 @@ export async function renderCard() {
     </div>
     <div class="row gap wrap quick">
       <button class="btn small primary q-book">+ موعد</button>
-      ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button><button class="btn small q-doc">📄 ورقة طبية</button><button class="btn small q-lab">🧪 طلب تحاليل وأشعة</button><button class="btn small q-file">🖨 السجل الطبي</button>` : ""}
+      ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button><button class="btn small q-doc">📄 ورقة طبية</button><button class="btn small q-lab">🧪 طلب تحاليل وأشعة</button>${hasMod("dental") ? `<button class="btn small q-dlab">🦷 طلب للمخبر</button>` : ""}<button class="btn small q-file">🖨 السجل الطبي</button>` : ""}
       <button class="btn small q-pay">دفعة</button>
       <a class="btn small" href="tel:${esc(p.phone)}">اتصال</a>
       <a class="btn small" target="_blank" rel="noopener" href="${esc(waLink(p.phone, `مرحباً ${p.name}، `))}">واتساب</a>
@@ -77,6 +77,7 @@ export async function renderCard() {
   $(".q-rx")?.addEventListener("click", () => rxModal(pid));
   $(".q-doc")?.addEventListener("click", () => medDocModal(pid));
   $(".q-lab")?.addEventListener("click", () => labOrderModal(pid));
+  $(".q-dlab")?.addEventListener("click", () => dentalLabModal(pid));
   $(".q-file")?.addEventListener("click", () => printPatientFile(pid));
   const T = { summary, info: infoTab, visits, rx, preg, gyn, cosm, files, private: privateTab, appts, money: moneyTab, msgs, account };
   try {
@@ -183,7 +184,7 @@ async function infoTab(p) {
   const next = apps.filter((a) => a.date >= ymd() && !["cancelled", "done", "noshow"].includes(a.status)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
   tabEl().innerHTML = `<section class="card"><div class="row-between"><h3>البيانات الأساسية</h3><button class="btn small ed">تعديل</button></div>
     <table class="kv"><tr><th>الاسم</th><td>${esc(p.name)}</td></tr><tr><th>الجوال</th><td dir="ltr">${esc(p.phone)}</td></tr>
-    <tr><th>العمر</th><td>${esc(p.age ?? "—")}</td></tr><tr><th>فصيلة الدم</th><td>${esc(p.bloodType || "—")}</td></tr><tr><th>العنوان</th><td>${esc(p.address || "—")}</td></tr></table></section>
+    <tr><th>العمر</th><td>${esc(p.age ?? "—")}</td></tr><tr><th>زمرة الدم</th><td>${esc(p.bloodType || "—")}</td></tr><tr><th>العنوان</th><td>${esc(p.address || "—")}</td></tr></table></section>
     <section class="card"><h3>الموعد القادم</h3>${next ? `<p><b>${esc(fmtDate(next.date))}</b> · ${esc(fmtTime(next.time))} · ${esc(next.type || "")}</p>` : empty("لا يوجد موعد")}</section>
     <p class="muted small">التفاصيل الطبية تظهر للأطباء فقط.</p>`;
   $(".ed").onclick = () => editBasic(p);
@@ -191,11 +192,12 @@ async function infoTab(p) {
 async function editBasic(p) {
   await modal("تعديل البيانات", `<form class="stack">
     ${field("الاسم", "name", { value: p.name, required: true })}
-    <div class="grid2">${field("العمر", "age", { type: "number", value: p.age ?? "" })}${select("فصيلة الدم", "bloodType", ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], p.bloodType)}</div>
+    <div class="grid2">${field("العمر", "age", { type: "number", value: p.age ?? "" })}${select("زمرة الدم", "bloodType", ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], p.bloodType)}</div>
     ${field("العنوان", "address", { value: p.address })}
+    <label class="check"><input type="checkbox" name="guardian" ${p.guardian ? "checked" : ""}><span>الجوال لولي أمر المريض</span></label>
     <p class="muted small">رقم الجوال هو رقم الدخول، ويُغيَّر من تبويب «الحساب» ← «تغيير رقم الجوال».</p></form>`, {
     onOk: async (f) => {
-      await updateDoc(P.patient(p.id), { name: f.name, age: f.age, bloodType: f.bloodType, address: f.address });
+      await updateDoc(P.patient(p.id), { name: f.name, age: f.age, bloodType: f.bloodType, address: f.address, guardian: !!f.guardian });
       await audit("تعديل بيانات مريض", f.name);
       toast("تم الحفظ"); setTimeout(refresh, 50);
     }
@@ -265,7 +267,7 @@ async function rx(p) {
 
 export async function rxModal(pid) {
   const p = PC.byId[pid];
-  const [{ COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES, BRANDS, brandToGeneric }, { searchDiseases }, { drugWarnings }, med, pregs] = await Promise.all([
+  const [{ COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES, BRANDS, brandToGeneric, dispenseText }, { searchDiseases }, { drugWarnings }, med, pregs] = await Promise.all([
     import("./drugs.js"), import("./diseases.js"), import("./drugsafety.js"),
     one(P.subDoc(pid, "medical", "profile")).catch(() => null), list(P.sub(pid, "pregnancies")).catch(() => []),
   ]);
@@ -286,6 +288,7 @@ export async function rxModal(pid) {
       <div class="qt">${QUICK_TIMES.map(([t, v]) => `<button type="button" class="qt-b" data-v="${v}">${t}</button>`).join("")}</div></div>
     <input type="number" placeholder="أيام" value="${esc(it.days)}" data-k="days" aria-label="المدة بالأيام" min="1">
     <input placeholder="ملاحظة (قبل الأكل…)" value="${esc(it.note)}" data-k="note" aria-label="ملاحظة">
+    <input placeholder="الشكل والعدد للصرف (Cap. N. 20)" value="${esc(it.qty ?? dispenseText(it))}" data-k="qty" aria-label="الشكل والعدد" dir="ltr" class="rx-qty">
     <button type="button" class="icon-btn rm" aria-label="حذف">✕</button><div class="rx-warns">${warnHtml(it.drug)}</div></div>`;
   await modal(`وصفة · ${p?.name || ""}`, `<form class="stack">
     ${condChips(mm, flags.preg)}${mm.allergies ? `<div class="alert danger">⚠️ حساسية: ${esc(mm.allergies)}</div>` : ""}
@@ -306,6 +309,7 @@ export async function rxModal(pid) {
   </form>`, {
     ok: "حفظ", wide: true,
     onOpen: (w) => {
+      const syncQty = (row, it) => { if (it.qtyEdited) return; it.qty = dispenseText(it); const q = row.querySelector('[data-k="qty"]'); if (q) q.value = it.qty; };
       const draw = () => {
         w.querySelector(".rx-rows").innerHTML = items.map(rowHtml).join("");
         w.querySelectorAll(".rx-row input").forEach((el) => el.oninput = () => {
@@ -318,10 +322,13 @@ export async function rxModal(pid) {
           const k = el.dataset.k === "drug" && known[el.value.trim().toLowerCase()];
           if (k) ["dose", "times", "days"].forEach((f) => { if (!it[f] && k[f] !== "") { it[f] = String(k[f]); const inp = row.querySelector(`[data-k="${f}"]`); if (inp) inp.value = it[f]; } });
           if (el.dataset.k === "drug") row.querySelector(".rx-warns").innerHTML = warnHtml(el.value);
+          if (el.dataset.k === "qty") it.qtyEdited = true;
+          else syncQty(row, it);
         });
         w.querySelectorAll(".qt-b").forEach((b) => b.onclick = () => {
           const row = b.closest(".rx-row"), inp = row.querySelector('[data-k="times"]');
           inp.value = b.dataset.v; items[row.dataset.i].times = b.dataset.v;
+          syncQty(row, items[row.dataset.i]);
         });
         w.querySelectorAll(".rx-row .rm").forEach((b) => b.onclick = () => { items.splice(b.closest(".rx-row").dataset.i, 1); if (!items.length) items.push({ drug: "", dose: "", times: "", days: "", note: "" }); draw(); });
       };
@@ -363,7 +370,7 @@ export async function rxModal(pid) {
     onOk: async (f) => {
       const date = ymd();
       const clean = items.filter((x) => x.drug.trim()).map((x) => ({
-        drug: x.drug.trim(), dose: x.dose.trim(), times: x.times.trim(), days: x.days ? Number(x.days) : null, note: x.note.trim(),
+        drug: x.drug.trim(), dose: x.dose.trim(), times: x.times.trim(), days: x.days ? Number(x.days) : null, note: x.note.trim(), qty: String(x.qty ?? dispenseText(x)).trim(),
         endDate: x.days ? addDays(date, Number(x.days) - 1) : null
       }));
       if (!clean.length) { toast("اكتب دواءً واحداً على الأقل", true); return false; }
@@ -471,6 +478,63 @@ export async function labOrderModal(pid) {
   await audit("طباعة طلب تحاليل", p.name);
 }
 
+// ---------- طلب لمخبر الأسنان ----------
+const LAB_WORK = ["حافظة مسافة", "تتويج", "خزف", "خزف على معدن", "زيركون كامل", "إيندو كراون", "قلب معدني", "قلب زيركون"];
+const FDI = [[18, 17, 16, 15, 14, 13, 12, 11], [21, 22, 23, 24, 25, 26, 27, 28], [48, 47, 46, 45, 44, 43, 42, 41], [31, 32, 33, 34, 35, 36, 37, 38]];
+const toothChart = (sel, interactive) => `<div class="lab-chart" dir="ltr">${[[FDI[0], FDI[1]], [FDI[2], FDI[3]]].map(([r, l]) => `<div class="lc-row">${[...r, "|", ...l].map((n) => n === "|" ? `<span class="lc-mid"></span>` : interactive
+  ? `<label class="lc-t"><input type="checkbox" name="tooth" value="${n}" ${sel.includes(n) ? "checked" : ""}><span>${n}</span></label>`
+  : `<span class="lc-t ${sel.includes(n) ? "on" : ""}"><span>${n}</span></span>`).join("")}</div>`).join(`<div class="lc-line"></div>`)}</div>`;
+export async function dentalLabModal(pid) {
+  const p = PC.byId[pid];
+  const photos = (await list(P.sub(pid, "files")).catch(() => [])).filter((f) => /^photo/.test(f.kind || "") && !f.broken).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const r = await modal(`طلب للمخبر · ${p?.name || ""}`, `<form class="stack lab-form">
+    <p class="muted small">اختر الأسنان من المخطط (الترقيم الدولي FDI):</p>
+    ${toothChart([], true)}
+    <div class="lab-grid">${LAB_WORK.map((t) => `<label class="check"><input type="checkbox" name="work" value="${esc(t)}"><span>${esc(t)}</span></label>`).join("")}</div>
+    ${field("أخرى", "other", { placeholder: "عمل آخر" })}
+    <div class="grid2">${field("اللون", "shade", { placeholder: "مثلاً: A2", attrs: 'dir="ltr"' })}${field("تاريخ التسليم المطلوب", "due", { type: "date" })}</div>
+    <div class="grid2">${field("المخبر", "lab", { placeholder: "اسم المخبر" })}${field("جوال المخبر (لواتساب)", "labPhone", { attrs: 'dir="ltr" inputmode="tel"', placeholder: "09xxxxxxxx", value: localStorage.getItem("labPhone") || "" })}</div>
+    ${field("ملاحظات", "note", { type: "textarea" })}
+    ${photos.length ? `<p class="muted small">صور سريرية ترسل مع الطلب:</p><div class="lab-photos">${photos.slice(0, 12).map((f) => `<label class="lab-ph"><input type="checkbox" name="ph" value="${f.id}">${tileImg(f)}<small>${esc(f.date || "")}</small></label>`).join("")}</div>` : `<p class="muted small">لإرسال صور سريرية مع الطلب ارفعها أولاً من تبويب «التحاليل والملفات» بنوع «صورة سريرية».</p>`}
+    <input type="hidden" name="act" value="print">
+  </form>`, {
+    ok: "🖨 طباعة", wide: true,
+    onOpen: (w) => {
+      const foot = w.querySelector(".modal-foot");
+      const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = "📤 إرسال واتساب";
+      b.onclick = () => { w.querySelector("[name=act]").value = "send"; w.querySelector(".ok").click(); };
+      foot.insertBefore(b, foot.querySelector(".cancel"));
+    },
+    onOk: (f, w) => {
+      const teeth = [...w.querySelectorAll("[name=tooth]:checked")].map((x) => Number(x.value));
+      const work = [...w.querySelectorAll("[name=work]:checked")].map((x) => x.value);
+      if (f.other) work.push(f.other);
+      if (!work.length) { toast("اختر نوع العمل", true); return false; }
+      return { ...f, teeth, work, ph: [...w.querySelectorAll("[name=ph]:checked")].map((x) => x.value) };
+    }
+  });
+  if (!r || !r.work) return;
+  if (r.labPhone) try { localStorage.setItem("labPhone", r.labPhone); } catch {}
+  const doctor = S.profile.name || S.clinic?.doctorName || "";
+  if (r.act === "send") {
+    const text = [`طلب عمل مخبري من ${S.pub.name}${doctor ? ` · د. ${doctor}` : ""}`, `المريض: ${p.name}`, r.teeth.length ? `الأسنان: ${r.teeth.join("، ")}` : "", `العمل: ${r.work.join("، ")}`,
+      r.shade ? `اللون: ${r.shade}` : "", r.due ? `التسليم المطلوب: ${fmtDate(r.due, false)}` : "", r.note ? `ملاحظات: ${r.note}` : ""].filter(Boolean).join("\n");
+    const srcs = [];
+    for (const id of r.ph) { const f = photos.find((x) => x.id === id); try { const d = await fileData(P.sub(pid, "files"), f); if (d) srcs.push(d); } catch {} }
+    if (srcs.length && await shareImages(srcs, text)) { await audit("إرسال طلب للمخبر", p.name); return; }
+    window.open(waLink(r.labPhone || "", text), "_blank");
+  } else {
+    printDoc(S.pub, "طلب عمل مخبري", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · <b>العمر:</b> ${esc(ageText(p))}` : ""}${r.lab ? ` · <b>المخبر:</b> ${esc(r.lab)}` : ""}</p>
+      ${toothChart(r.teeth, false)}
+      <table class="kv"><tr><th>العمل المطلوب</th><td>${r.work.map(esc).join("، ")}</td></tr>
+        ${r.teeth.length ? `<tr><th>الأسنان</th><td dir="ltr">${r.teeth.join(", ")}</td></tr>` : ""}
+        ${r.shade ? `<tr><th>اللون</th><td dir="ltr">${esc(r.shade)}</td></tr>` : ""}
+        ${r.due ? `<tr><th>التسليم المطلوب</th><td>${esc(fmtDate(r.due, false))}</td></tr>` : ""}
+        ${r.note ? `<tr><th>ملاحظات</th><td class="pre">${esc(r.note)}</td></tr>` : ""}</table>`, { signer: `د. ${doctor}` });
+  }
+  await audit("طلب للمخبر", p.name);
+}
+
 // ---------- ملف المريض كاملاً للطباعة أو PDF ----------
 export async function printPatientFile(pid) {
   const p = PC.byId[pid];
@@ -524,7 +588,7 @@ export function printRx(p, r) {
   const qr = r.verify ? qrSvg(`${location.origin}${location.pathname}#/v/${r.verify}`, 96) : "";
   printDoc(S.pub, "وصفة طبية", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · <b>العمر:</b> ${esc(ageText(p))}` : ""}${r.diagnosis ? ` · <b>التشخيص:</b> ${esc(r.diagnosis)}` : ""}</p>
     <div class="rx-ltr" dir="ltr"><div class="rx-sign">℞</div>
-    <ol class="rx-print">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b><div dir="rtl" class="rx-how">${[esc(it.dose || ""), freqText(it.times), it.days ? `لمدة ${daysText(it.days)}` : ""].filter(Boolean).join(" · ")}</div>${it.note ? `<div class="muted" dir="rtl">${esc(it.note)}</div>` : ""}</li>`).join("")}</ol></div>
+    <ol class="rx-print">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b>${it.qty ? ` <span class="rx-q">${esc(it.qty)}</span>` : ""}<div dir="rtl" class="rx-how">${[esc(it.dose || ""), freqText(it.times), it.days ? `لمدة ${daysText(it.days)}` : ""].filter(Boolean).join(" · ")}</div>${it.note ? `<div class="muted" dir="rtl">${esc(it.note)}</div>` : ""}</li>`).join("")}</ol></div>
     ${r.note ? `<p>${esc(r.note)}</p>` : ""}${S.clinic?.rxFooter ? `<p class="muted">${esc(S.clinic.rxFooter)}</p>` : ""}`, { qr, date: r.date, signer: r.doctorName ? `د. ${r.doctorName}` : "الطبيب" });
 }
 
@@ -853,14 +917,14 @@ async function files(p) {
   for (let i = fls.length - 1; i >= 0; i--) if (fls[i].broken) fls.splice(i, 1);
   const unseen = await list(query(P.col("inbox"), where("patientId", "==", p.id), where("seen", "==", false)));
   for (const u of unseen) await updateDoc(P.colDoc("inbox", u.id), { seen: true });
-  const KIND = { echo: "إيكو", lab: "تحليل", other: "ملف" };
+  const KIND = { echo: "إيكو", lab: "تحليل", other: "ملف", "photo-before": "صورة سريرية قبل", "photo-after": "صورة سريرية بعد", photo: "صورة سريرية" };
   tabEl().innerHTML = `
     <section class="card"><div class="row-between"><h3>نتائج التحاليل</h3><button class="btn primary small addl">+ نتيجة</button></div>
       ${Object.keys(byTest).length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>التحليل</th><th>آخر قيمة</th><th>السابقة</th><th>التغير</th></tr></thead><tbody>
       ${Object.entries(byTest).map(([t, a]) => { const [n, o] = a; const dv = o && !isNaN(n.value) && !isNaN(o.value) ? (Number(n.value) - Number(o.value)).toFixed(1) : ""; return `<tr><td><b>${esc(t)}</b></td><td>${esc(n.value)} ${esc(n.unit || "")}<br><small class="muted">${esc(n.date)}</small></td><td>${o ? `${esc(o.value)}<br><small class="muted">${esc(o.date)}</small>` : "—"}</td><td dir="ltr">${dv ? (dv > 0 ? "▲ " : dv < 0 ? "▼ " : "") + esc(dv) : ""}</td></tr>`; }).join("")}
       </tbody></table></div>` : empty("لا توجد نتائج")}
     </section>
-    <section class="card"><div class="row-between"><h3>الإيكو والملفات</h3><button class="btn primary small addf">+ رفع</button></div>
+    <section class="card"><div class="row-between"><h3>${hasMod("dental") ? "الصور السريرية والملفات" : "الإيكو والملفات"}</h3><button class="btn primary small addf">+ رفع</button></div>
       ${fls.length ? `<div class="file-grid">${fls.map((f) => `<button class="file-tile" data-id="${f.id}">
         ${tileImg(f)}
         <span>${esc(KIND[f.kind] || "ملف")} · ${esc(f.date || "")}${f.uploadedBy === "patient" ? " · من المريض" : ""}</span></button>`).join("")}</div>` : empty("لا توجد ملفات")}
@@ -876,7 +940,7 @@ async function files(p) {
     });
   };
   $(".addf").onclick = async () => {
-    const r = await modal("رفع ملف", `<form class="stack">${select("النوع", "kind", [["echo", "إيكو"], ["lab", "تحليل"], ["other", "ملف آخر"]])}${field("التاريخ", "date", { type: "date", value: ymd(), required: true })}${field("ملاحظة", "note")}</form>`, { ok: "اختيار الملف" });
+    const r = await modal("رفع ملف", `<form class="stack">${select("النوع", "kind", [...(hasMod("dental") ? [["photo-before", "صورة سريرية قبل"], ["photo-after", "صورة سريرية بعد"], ["photo", "صورة سريرية"]] : []), ["echo", "إيكو"], ["lab", "تحليل"], ["other", "ملف آخر"]])}${field("التاريخ", "date", { type: "date", value: ymd(), required: true })}${field("ملاحظة", "note")}</form>`, { ok: "اختيار الملف" });
     if (!r) return;
     const f = await pickFile("image/*,application/pdf"); if (!f) return;
     try {
@@ -929,9 +993,9 @@ async function moneyTab(p) {
   $(".settle")?.addEventListener("click", async () => {
     const r = await modal("تسديد", `<form class="stack">${field("المبلغ", "paid", { type: "number", value: t - pd, required: true, attrs: 'min="1"' })}${select("طريقة الدفع", "method", Object.entries(CASH_METHODS), "cash")}</form>`);
     if (!r) return;
-    const rec = { patientId: p.id, patientName: p.name, service: "تسديد دين", total: 0, paid: r.paid, date: ymd(), method: r.method || "cash", note: "", by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp() };
+    const rec = { patientId: p.id, patientName: p.name, service: "تسديد دفعة مستحقة", total: 0, paid: r.paid, date: ymd(), method: r.method || "cash", note: "", by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp() };
     const ref = await addDoc(P.col("payments"), rec);
-    await audit("تسديد دين", `${p.name} ${r.paid}`);
+    await audit("تسديد دفعة مستحقة", `${p.name} ${r.paid}`);
     refresh();
     if (await confirmBox("إيصال", "هل تريد طباعة إيصال؟", "طباعة")) printReceipt({ id: ref.id, ...rec });
   });
@@ -977,7 +1041,7 @@ async function account(p) {
       <button class="btn ${p.archived ? "" : "danger"} ar">${p.archived ? "إرجاع من الأرشيف" : "أرشفة المريض"}</button></section>`;
   $(".rp").onclick = async () => {
     if (!(await confirmBox("كلمة مرور جديدة", "كلمة المرور الحالية ستتوقف. متابعة؟", "متابعة"))) return;
-    try { const temp = await resetPatientPassword(p.phone); showCredentials(p.phone, temp, p.name); } catch (e) { toast(errMsg(e), true); }
+    try { const temp = await resetPatientPassword(p.phone); showCredentials(p.phone, temp, p.name, false, !!p.guardian); } catch (e) { toast(errMsg(e), true); }
   };
   $(".ed").onclick = () => editBasic(p);
   $(".pf")?.addEventListener("click", () => printFile(p));
@@ -989,7 +1053,7 @@ async function account(p) {
       const { changePatientPhone } = await import("./fb.js");
       const res = await changePatientPhone(p.id, p.phone, r.phone);
       p.phone = res.phone;
-      if (res.temp) showCredentials(res.phone, res.temp, p.name);
+      if (res.temp) showCredentials(res.phone, res.temp, p.name, false, !!p.guardian);
       else toast(res.shared ? "تم ربط المريض بحساب الرقم الجديد الموجود مسبقاً" : "تم تغيير الرقم");
       setTimeout(refresh, 300);
     } catch (e) { toast(errMsg(e), true); }
@@ -1029,7 +1093,7 @@ async function printFile(p) {
   vs.sort((a, b) => b.date.localeCompare(a.date)); rxs.sort((a, b) => b.date.localeCompare(a.date)); labs.sort((a, b) => b.date.localeCompare(a.date));
   await audit("طباعة ملف مريض", p.name);
   printDoc(S.pub, "السجل الطبي", `
-    <table class="kv"><tr><th>الاسم</th><td>${esc(p.name)}</td></tr><tr><th>العمر</th><td>${esc(p.age ?? "")}</td></tr><tr><th>الجوال</th><td dir="ltr">${esc(p.phone)}</td></tr><tr><th>فصيلة الدم</th><td>${esc(p.bloodType || "")}</td></tr>
+    <table class="kv"><tr><th>الاسم</th><td>${esc(p.name)}</td></tr><tr><th>العمر</th><td>${esc(p.age ?? "")}</td></tr><tr><th>الجوال</th><td dir="ltr">${esc(p.phone)}</td></tr><tr><th>زمرة الدم</th><td>${esc(p.bloodType || "")}</td></tr>
     <tr><th>أمراض مزمنة</th><td>${esc(m.chronic || "—")}</td></tr><tr><th>حساسية</th><td>${esc(m.allergies || "—")}</td></tr><tr><th>عمليات</th><td>${esc(m.surgeries || "—")}</td></tr>
     <tr><th>G / P / A / CS</th><td>${esc(m.gravida ?? "-")} / ${esc(m.para ?? "-")} / ${esc(m.abortions ?? "-")} / ${esc(m.cesareans ?? "-")}</td></tr></table>
     ${pregs.length ? `<h4>الحمول</h4>${pregs.map((g) => `<p>${esc(g.lmp)} → ${g.status === "active" ? `حامل حالياً · الولادة المتوقعة ${esc(g.eddUs || g.eddLmp)}` : g.delivery ? `ولادة ${esc(g.delivery.type || "")} ${esc(g.delivery.date)}` : esc(g.endNote || "")}</p>`).join("")}` : ""}
