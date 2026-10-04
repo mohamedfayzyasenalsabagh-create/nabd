@@ -2799,5 +2799,8 @@ export const EN = {
 "اللقب / الاختصاص (يظهر في رأس الورقة)": "Title / specialty (shown in the page header)",
 "اختصاص الطبيب يحدد نماذج الوصفات المقترحة له، ويظهر في رأس أوراقه المطبوعة وفي دليل الأطباء.": "The doctor's specialty sets their suggested prescription templates and appears in their printed page header and in the doctors directory.",
 "اللقب يظهر في رأس الأوراق المطبوعة وصفحة الحجز.": "The title appears in the printed page header and the booking page.",
-"مثلاً: اختصاصي طب أطفال": "e.g. Pediatric specialist"
+"مثلاً: اختصاصي طب أطفال": "e.g. Pediatric specialist",
+"مخطط أسنان تفاعلي، منحنيات نمو ولقاحات، متابعة حمل، مؤشرات حيوية، فحص نظر، وجلسات. وفي المراكز الطبية لكل طبيب اختصاصه.": "Interactive dental chart, growth curves and vaccines, pregnancy follow-up, vital signs, eye exams and sessions. In medical centers, each doctor has their own specialty.",
+"مركزي فيه عدة اختصاصات، هل لكل طبيب اختصاصه؟": "My center has several specialties. Can each doctor have their own?",
+"نعم في باقة المراكز الطبية: من «المزيد ← الفريق» اختر اختصاص كل طبيب ولقبه. اختصاص الطبيب يحدد نماذج الوصفات المقترحة له، ويظهر في رأس أوراقه المطبوعة، ويظهر المركز في دليل الأطباء تحت كل اختصاصاته.": "Yes, on the Medical Centers plan: from “More → Team” choose each doctor's specialty and title. The doctor's specialty sets their suggested prescription templates and appears in their printed page header, and the center is listed in the doctors directory under all its specialties."
 };
