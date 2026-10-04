@@ -1,13 +1,14 @@
 // المرجع الطبي للطبيب: الوصفات الجاهزة حسب المرض، والتثقيف الدوائي
 import { $, $$, esc, freqText, daysText } from "./ui.js";
 import { S } from "./app.js";
+import { mySpec } from "./staff.js";
 
 const main = () => $("#main");
 const SPECS = [["", "كل الاختصاصات"], ["dental", "الأسنان"], ["general", "الباطنية والعامة"], ["peds", "الأطفال"], ["obgyn", "النسائية والتوليد"], ["derm", "الجلدية"], ["ent", "الأنف والأذن والحنجرة"], ["eye", "العين"], ["uro", "البولية"], ["ortho", "العظمية"]];
 
 export async function renderLibrary() {
   const { DISEASES, searchDiseases } = await import("./diseases.js");
-  const mine = [...(S.clinic?.modules || []), S.clinic?.specialty || ""].filter(Boolean);
+  const mine = [mySpec(), ...(S.clinic?.modules || []), S.clinic?.specialty || ""].filter(Boolean);
   main().innerHTML = `<h2 class="page-title">نماذج وصفات دوائية جاهزة حسب التشخيص وفق أحدث البروتوكولات والتوصيات العالمية</h2>
     <p class="muted">طبيب متخرج حديثاً؟ لا تقلق، يتضمن التطبيق وصفات جاهزة لأكثر الأمراض شيوعاً وفق آخر تحديثات التوصيات العالمية للبروتوكولات العلاجية والدوائية. ابحث باسم المرض أو برمز التصنيف الدولي للأمراض ICD-10، وعند كتابة الوصفة للمريض اكتب اسم المرض في خانة البحث فتُعبأ الوصفة تلقائياً.</p>
     <div class="card stack"><input class="lq" placeholder="🔎 ابحث بالمرض: فطور فموية، التهاب أذن، جرب…" autocomplete="off">

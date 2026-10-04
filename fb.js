@@ -278,7 +278,9 @@ export function publicCopy(c) {
     hours: c.hours || defaultHours(),
     slotMinutes: c.slotMinutes || 20,
     services: (c.services || []).map(({ name, duration, price }) => ({ name, duration, price: c.showPrices ? price : null })),
-    doctors: (c.doctors || []).filter((d) => d.active !== false).map(({ id, name, title }) => ({ id, name, title: title || "" })),
+    doctors: (c.doctors || []).filter((d) => d.active !== false).map(({ id, name, title, spec }) => ({ id, name, title: title || "", spec: spec || "" })),
+    // اختصاصات أطباء المركز (للبحث في دليل الأطباء)
+    specialties: [...new Set([c.specialty, ...(c.doctors || []).filter((d) => d.active !== false).map((d) => d.spec)].filter(Boolean))],
     bookingEnabled: !!c.bookingEnabled,
     mapUrl: c.mapUrl || "",
     // دليل الأطباء

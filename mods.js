@@ -5,7 +5,7 @@ import {
   printDoc, daysBetween, lineChart
 } from "./ui.js";
 import { S } from "./app.js";
-import { hasMod, cur, paymentModal, ageText } from "./staff.js";
+import { hasMod, cur, paymentModal, ageText, docPub } from "./staff.js";
 
 const byDate = (a, b) => (a.date || "").localeCompare(b.date || "");
 
@@ -304,7 +304,7 @@ async function printQuote(p, plan, tot) {
   const rest = n > 1 ? Math.round((total - first) / (n - 1) / 1000) * 1000 : 0;
   const lastAmt = n > 1 ? total - first - rest * (n - 2) : 0;
   const until = addDays(ymd(), Number(r.valid) || 30);
-  printDoc(S.pub, "عرض سعر · خطة علاج", `<p><b>المريض:</b> ${esc(p.name)} · <b>رقم العرض:</b> <span dir="ltr">${esc(plan.id.slice(0, 6).toUpperCase())}</span></p>
+  printDoc(docPub(), "عرض سعر · خطة علاج", `<p><b>المريض:</b> ${esc(p.name)} · <b>رقم العرض:</b> <span dir="ltr">${esc(plan.id.slice(0, 6).toUpperCase())}</span></p>
     <table class="tbl"><thead><tr><th>#</th><th>الإجراء</th><th>السن</th><th>المرحلة</th><th>السعر</th></tr></thead><tbody>
     ${items.map((i, k) => `<tr><td>${k + 1}</td><td>${esc(i.proc)}${i.status === "done" ? ` <small class="muted">(منجز)</small>` : ""}</td><td>${esc(i.tooth || "—")}</td><td>${esc(i.phase || 1)}</td><td>${esc(money(i.cost, cur()))}</td></tr>`).join("")}
     </tbody></table>
@@ -323,7 +323,7 @@ async function printQuote(p, plan, tot) {
 
 function printPlan(p, plan, tot, chart) {
   const bad = Object.entries(chart.teeth || {}).filter(([, v]) => v.status && v.status !== "sound");
-  printDoc(S.pub, "خطة علاج الأسنان", `<p><b>المريض:</b> ${esc(p.name)} · <b>التاريخ:</b> ${esc(fmtDate(plan.date, false))}</p>
+  printDoc(docPub(), "خطة علاج الأسنان", `<p><b>المريض:</b> ${esc(p.name)} · <b>التاريخ:</b> ${esc(fmtDate(plan.date, false))}</p>
     ${bad.length ? `<p><b>حالة الأسنان:</b> ${bad.map(([n, v]) => `${esc(n)}: ${esc(TOOTH[v.status]?.[0] || "")}`).join(" · ")}</p>` : ""}
     <table class="tbl"><thead><tr><th>المرحلة</th><th>السن</th><th>الإجراء</th><th>الكلفة</th><th>الحالة</th></tr></thead><tbody>
     ${(plan.items || []).map((i) => `<tr><td>${esc(i.phase || 1)}</td><td>${esc(i.tooth || "—")}</td><td>${esc(i.proc)}</td><td>${esc(money(i.cost, cur()))}</td><td>${i.status === "done" ? "منجز" : "مخطط"}</td></tr>`).join("")}
@@ -407,7 +407,7 @@ export async function peds(p, el, refresh) {
     await setDoc(recRef, { given, updatedAt: serverTimestamp() });
     await syncNext(given); refresh();
   });
-  $(".prvac", el).onclick = () => printDoc(S.pub, "بطاقة اللقاحات", `<p><b>الطفل:</b> ${esc(p.name)} · <b>تاريخ الميلاد:</b> ${esc(p.dob ? fmtDate(p.dob, false) : "—")}</p>
+  $(".prvac", el).onclick = () => printDoc(docPub(), "بطاقة اللقاحات", `<p><b>الطفل:</b> ${esc(p.name)} · <b>تاريخ الميلاد:</b> ${esc(p.dob ? fmtDate(p.dob, false) : "—")}</p>
     <table class="tbl"><thead><tr><th>اللقاح</th><th>الموعد</th><th>تاريخ الإعطاء</th><th>رقم الجرعة</th></tr></thead><tbody>
     ${vs.map((v) => `<tr><td>${esc(v.name)}</td><td>${esc(v.due || "")}</td><td>${esc(v.given?.date || "")}</td><td dir="ltr">${esc(v.given?.lot || "")}</td></tr>`).join("")}</tbody></table>`);
   if (p.dob) syncNext(rec?.given || {});
@@ -515,7 +515,7 @@ export async function eye(p, el, refresh) {
       onOk: async (f) => { await addDoc(P.sub(p.id, "eye"), { ...f, createdAt: serverTimestamp() }); await audit("فحص نظر", p.name); setTimeout(refresh, 50); }
     });
   };
-  $(".prg", el)?.addEventListener("click", () => printDoc(S.pub, last.type === "contact" ? "وصفة عدسات لاصقة" : "وصفة نظارة طبية",
+  $(".prg", el)?.addEventListener("click", () => printDoc(docPub(), last.type === "contact" ? "وصفة عدسات لاصقة" : "وصفة نظارة طبية",
     `<p><b>المريض:</b> ${esc(p.name)} ${ageText(p) ? `· ${esc(ageText(p))}` : ""} · <b>التاريخ:</b> ${esc(fmtDate(last.date, false))}</p>${glassesTable(last)}${last.notes ? `<p>${esc(last.notes)}</p>` : ""}`));
 }
 

@@ -2794,5 +2794,10 @@ export const EN = {
 "📤 إرسال واتساب": "📤 Send via WhatsApp",
 "📤 مشاركة الصورة (واتساب أو غيره)": "📤 Share photo (WhatsApp or other)",
 "🦷 طلب للمخبر": "🦷 Lab order",
-"العمل:": "Work:"
+"العمل:": "Work:",
+"تعديل الاختصاص واللقب": "Edit specialty and title",
+"اللقب / الاختصاص (يظهر في رأس الورقة)": "Title / specialty (shown in the page header)",
+"اختصاص الطبيب يحدد نماذج الوصفات المقترحة له، ويظهر في رأس أوراقه المطبوعة وفي دليل الأطباء.": "The doctor's specialty sets their suggested prescription templates and appears in their printed page header and in the doctors directory.",
+"اللقب يظهر في رأس الأوراق المطبوعة وصفحة الحجز.": "The title appears in the printed page header and the booking page.",
+"مثلاً: اختصاصي طب أطفال": "e.g. Pediatric specialist"
 };

@@ -22,6 +22,14 @@ export const ROLES = { doctor: "طبيب", secretary: "سكرتارية", nurse:
 // تعدد الاختصاصات متاح لباقة المراكز الطبية فقط
 export const multiSpec = () => !!S.clinic?.features?.multiSpecialty || S.clinic?.plan === "center";
 export const specMods = (spec = S.clinic?.specialty) => SPECIALTIES[spec]?.modules || [];
+// اختصاص الطبيب الحالي (في المراكز لكل طبيب اختصاصه)، وإلا اختصاص العيادة
+export const myDoctor = () => (S.clinic?.doctors || []).find((d) => d.id === S.profile?.doctorId) || null;
+export const mySpec = () => myDoctor()?.spec || S.clinic?.specialty || "";
+export const docPub = () => {
+  const d = myDoctor();
+  if (!d || (S.clinic?.doctors || []).filter((x) => x.active !== false).length < 2) return S.pub;
+  return { ...S.pub, doctorName: d.name, title: d.title || SPECIALTIES[d.spec]?.name || S.pub.title };
+};
 export const hasMod = (m) => (multiSpec() ? (S.clinic?.modules || specMods()) : specMods()).includes(m);
 export const feat = (f) => !!S.clinic?.features?.[f];
 export const doctors = () => (S.clinic?.doctors || []).filter((d) => d.active !== false);

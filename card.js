@@ -8,7 +8,7 @@ import { makeThumb, tileImg, isImg, showFile, shareImages, CASH_METHODS, freqTex
   field, select, waLink, empty, compressImage, pickFile, printDoc, daysBetween, qrSvg
 } from "./ui.js";
 import { S } from "./app.js";
-import { PC, isDoctor, isNurse, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName } from "./staff.js";
+import { PC, isDoctor, isNurse, specMods, mySpec, myDoctor, docPub, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName } from "./staff.js";
 const mods = () => import("./mods.js");
 const women = () => hasMod("preg") || hasMod("gyn");
 
@@ -219,7 +219,7 @@ async function visits(p) {
   $(".add").onclick = () => visitModal(p.id);
   $$(".pr").forEach((b) => b.onclick = () => {
     const v = vs.find((x) => x.id === b.dataset.id);
-    printDoc(S.pub, "تقرير زيارة", `<table class="kv"><tr><th>المريض</th><td>${esc(p.name)}</td></tr><tr><th>التاريخ</th><td>${esc(fmtDate(v.date, false))}</td></tr>
+    printDoc(docPub(), "تقرير زيارة", `<table class="kv"><tr><th>المريض</th><td>${esc(p.name)}</td></tr><tr><th>التاريخ</th><td>${esc(fmtDate(v.date, false))}</td></tr>
       <tr><th>الشكوى</th><td>${esc(v.complaint || "")}</td></tr><tr><th>الفحص</th><td>${esc(v.exam || "")}</td></tr><tr><th>التشخيص</th><td>${esc(v.diagnosis || "")}</td></tr><tr><th>العلاج</th><td>${esc(v.treatment || "")}</td></tr></table>`);
   });
 }
@@ -273,12 +273,12 @@ export async function rxModal(pid) {
   ]);
   const mm = med || {};
   const flags = { preg: !!mm.pregnant || pregs.some((g) => g.status === "active"), lact: !!mm.lactating, liver: !!mm.liver, kidney: !!mm.kidney };
-  const specKeys = [...(S.clinic?.modules || []), S.clinic?.specialty || ""].filter(Boolean);
+  const specKeys = [...specMods(mySpec()), mySpec(), ...(S.clinic?.modules || []), S.clinic?.specialty || ""].filter(Boolean);
   const warnHtml = (drug) => drugWarnings(drug, flags, mm.allergies || "").map((x) => `<div class="rx-warn ${x.level}">⚠️ ${esc(x.text)}</div>`).join("");
   const known = Object.fromEntries(COMMON_DRUGS.map((d) => [d.drug.toLowerCase(), d]));
   const drugs = [...new Set([...(S.clinic?.drugs || []), ...COMMON_DRUGS.map((d) => d.drug)])];
   const own = S.clinic?.rxTemplates || [];
-  const builtin = builtinTemplatesFor(S.clinic?.modules || [], S.clinic?.specialty || "");
+  const builtin = builtinTemplatesFor(myDoctor()?.spec ? specMods(mySpec()) : (S.clinic?.modules || []), mySpec());
   const templates = [...own, ...builtin.filter((b) => !own.some((o) => o.name === b.name))];
   let items = [{ drug: "", dose: "", times: "", days: "", note: "" }];
   const rowHtml = (it, i) => `<div class="rx-row" data-i="${i}">
@@ -432,15 +432,15 @@ export async function medDocModal(pid) {
   const F = ["f", "female"].includes(p.sex), g = (m, fm) => (F ? fm : m);
   if (r.kind === "leave") {
     const n = Math.max(1, Number(r.days) || 1), to = addDays(r.from, n - 1);
-    printDoc(S.pub, "إجازة مرضية", `${r.toLeave ? `<p>${esc(r.toLeave)}</p>` : `<p>إلى من يهمه الأمر</p>`}
+    printDoc(docPub(), "إجازة مرضية", `${r.toLeave ? `<p>${esc(r.toLeave)}</p>` : `<p>إلى من يهمه الأمر</p>`}
       <p class="lead">نشهد بأن ${who} قد ${g("راجع", "راجعت")} العيادة بتاريخ ${esc(fmtDate(r.from, false))}، وبعد الفحص تبيّن ${g("أنه", "أنها")} بحاجة إلى راحة طبية لمدة <b>${esc(leaveDays(n))}</b>، اعتباراً من ${esc(fmtDate(r.from, false))} ولغاية ${esc(fmtDate(to, false))} ضمناً.</p>
       ${diag}<p>أُعطيت هذه الشهادة بناءً على ${g("طلبه", "طلبها")}.</p>`, { signer });
   } else if (r.kind === "report") {
-    printDoc(S.pub, "تقرير طبي", `<p>${esc(r.toReport || "إلى من يهمه الأمر")}</p>
+    printDoc(docPub(), "تقرير طبي", `<p>${esc(r.toReport || "إلى من يهمه الأمر")}</p>
       <p class="lead">نفيد بأن ${who} ${g("يراجع", "تراجع")} عيادتنا.</p>${diag}
       ${r.body ? `<div class="pre lead">${esc(r.body)}</div>` : ""}<p>أُعطي هذا التقرير بناءً على ${g("طلبه", "طلبها")}.</p>`, { signer });
   } else {
-    printDoc(S.pub, "رسالة تحويل", `<p>${r.toRef ? `حضرة ${esc(r.toRef)} المحترم،` : "حضرة الزميل المحترم،"}</p>
+    printDoc(docPub(), "رسالة تحويل", `<p>${r.toRef ? `حضرة ${esc(r.toRef)} المحترم،` : "حضرة الزميل المحترم،"}</p>
       <p class="lead">تحية طيبة، أحوّل إليكم ${who} لإجراء التقييم والمتابعة اللازمة.</p>${diag}
       ${r.reason ? `<p><b>سبب التحويل:</b></p><div class="pre">${esc(r.reason)}</div>` : ""}
       ${r.summary ? `<p><b>ملخص الحالة:</b></p><div class="pre">${esc(r.summary)}</div>` : ""}
@@ -470,7 +470,7 @@ export async function labOrderModal(pid) {
     }
   });
   if (!r || !r.picked) return;
-  printDoc(S.pub, "طلب تحاليل وأشعة", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · ${esc(ageText(p))}` : ""} · <b>التاريخ:</b> ${esc(fmtDate(ymd(), false))}</p>
+  printDoc(docPub(), "طلب تحاليل وأشعة", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · ${esc(ageText(p))}` : ""} · <b>التاريخ:</b> ${esc(fmtDate(ymd(), false))}</p>
     <p>يرجى إجراء ما يلي:</p>
     <ol class="lab-print">${r.picked.map((t) => `<li dir="auto">☐ ${esc(t)}</li>`).join("")}</ol>
     ${r.note ? `<p><b>ملاحظة:</b> ${esc(r.note)}</p>` : ""}
@@ -524,7 +524,7 @@ export async function dentalLabModal(pid) {
     if (srcs.length && await shareImages(srcs, text)) { await audit("إرسال طلب للمخبر", p.name); return; }
     window.open(waLink(r.labPhone || "", text), "_blank");
   } else {
-    printDoc(S.pub, "طلب عمل مخبري", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · <b>العمر:</b> ${esc(ageText(p))}` : ""}${r.lab ? ` · <b>المخبر:</b> ${esc(r.lab)}` : ""}</p>
+    printDoc(docPub(), "طلب عمل مخبري", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · <b>العمر:</b> ${esc(ageText(p))}` : ""}${r.lab ? ` · <b>المخبر:</b> ${esc(r.lab)}` : ""}</p>
       ${toothChart(r.teeth, false)}
       <table class="kv"><tr><th>العمل المطلوب</th><td>${r.work.map(esc).join("، ")}</td></tr>
         ${r.teeth.length ? `<tr><th>الأسنان</th><td dir="ltr">${r.teeth.join(", ")}</td></tr>` : ""}
@@ -550,7 +550,7 @@ export async function printPatientFile(pid) {
   const { TOOTH } = await import("./mods.js");
   const teeth = Object.entries(chart?.teeth || {}).filter(([, t]) => t.status && t.status !== "sound").sort((a, b) => a[0].localeCompare(b[0]));
   const sec = (t, body) => `<div class="mr-sec"><h4>${t}</h4>${body}</div>`;
-  printDoc(S.pub, "السجل الطبي للمريض", `
+  printDoc(docPub(), "السجل الطبي للمريض", `
     <table class="kv"><tr><th>الاسم</th><td><b>${esc(p.name)}</b></td></tr>
       ${ageText(p) ? `<tr><th>العمر</th><td>${esc(ageText(p))}</td></tr>` : ""}
       <tr><th>الجوال</th><td dir="ltr">${esc(p.phone || "")}</td></tr>
@@ -586,7 +586,7 @@ export function maskName(n) {
 }
 export function printRx(p, r) {
   const qr = r.verify ? qrSvg(`${location.origin}${location.pathname}#/v/${r.verify}`, 96) : "";
-  printDoc(S.pub, "وصفة طبية", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · <b>العمر:</b> ${esc(ageText(p))}` : ""}${r.diagnosis ? ` · <b>التشخيص:</b> ${esc(r.diagnosis)}` : ""}</p>
+  printDoc(docPub(), "وصفة طبية", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · <b>العمر:</b> ${esc(ageText(p))}` : ""}${r.diagnosis ? ` · <b>التشخيص:</b> ${esc(r.diagnosis)}` : ""}</p>
     <div class="rx-ltr" dir="ltr"><div class="rx-sign">℞</div>
     <ol class="rx-print">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b>${it.qty ? ` <span class="rx-q">${esc(it.qty)}</span>` : ""}<div dir="rtl" class="rx-how">${[esc(it.dose || ""), freqText(it.times), it.days ? `لمدة ${daysText(it.days)}` : ""].filter(Boolean).join(" · ")}</div>${it.note ? `<div class="muted" dir="rtl">${esc(it.note)}</div>` : ""}</li>`).join("")}</ol></div>
     ${r.note ? `<p>${esc(r.note)}</p>` : ""}${S.clinic?.rxFooter ? `<p class="muted">${esc(S.clinic.rxFooter)}</p>` : ""}`, { qr, date: r.date, signer: r.doctorName ? `د. ${r.doctorName}` : "الطبيب" });
@@ -780,7 +780,7 @@ async function pregSchedule(p, g) {
 function printPregReport(p, g) {
   const c = pregCalc(g);
   const ms = (g.measurements || []).slice().sort((a, b) => a.date.localeCompare(b.date));
-  printDoc(S.pub, "تقرير متابعة حمل", `<table class="kv"><tr><th>المريض</th><td>${esc(p.name)} ${p.age ? `· ${esc(p.age)} سنة` : ""}</td></tr>
+  printDoc(docPub(), "تقرير متابعة حمل", `<table class="kv"><tr><th>المريض</th><td>${esc(p.name)} ${p.age ? `· ${esc(p.age)} سنة` : ""}</td></tr>
     <tr><th>أول يوم من آخر دورة</th><td>${esc(g.lmp)}</td></tr><tr><th>عمر الحمل اليوم</th><td>${esc(gaText(c))}</td></tr>
     <tr><th>الولادة المتوقعة</th><td>${esc(fmtDate(c.edd, false))}</td></tr>${g.highRisk ? `<tr><th>ملاحظة</th><td>حمل عالي الخطورة: ${esc(g.riskNote || "")}</td></tr>` : ""}</table>
     ${ms.length ? `<h4>القياسات</h4><table class="tbl"><thead><tr><th>التاريخ</th><th>الوزن</th><th>الضغط</th><th>نبض الجنين</th><th>ملاحظات</th></tr></thead><tbody>${ms.map((m) => `<tr><td>${esc(m.date)}</td><td>${esc(m.weight ?? "")}</td><td dir="ltr">${esc(m.bp || "")}</td><td>${esc(m.fhr ?? "")}</td><td>${esc(m.note || "")}</td></tr>`).join("")}</tbody></table>` : ""}`);
@@ -1081,7 +1081,7 @@ async function certModal(p, kind) {
   if (kind === "referral") body = `<p>الزميل/ة الكريم/ة في <b>${esc(r.to)}</b> المحترم/ة،</p><p class="lead">نحيل إليكم ${who}${r.diag ? ` بتشخيص: <b>${esc(r.diag)}</b>` : ""}.</p><p class="pre">${esc(r.text)}</p><p>مع الشكر والتقدير.</p>`;
   if (kind === "report") body = `<p class="lead">${who}${r.diag ? `<br>التشخيص: <b>${esc(r.diag)}</b>` : ""}</p><p class="pre">${esc(r.text)}</p>`;
   await audit(`طباعة ${T[kind]}`, p.name);
-  printDoc(S.pub, T[kind], body);
+  printDoc(docPub(), T[kind], body);
 }
 
 async function printFile(p) {
@@ -1092,7 +1092,7 @@ async function printFile(p) {
   const m = med || {};
   vs.sort((a, b) => b.date.localeCompare(a.date)); rxs.sort((a, b) => b.date.localeCompare(a.date)); labs.sort((a, b) => b.date.localeCompare(a.date));
   await audit("طباعة ملف مريض", p.name);
-  printDoc(S.pub, "السجل الطبي", `
+  printDoc(docPub(), "السجل الطبي", `
     <table class="kv"><tr><th>الاسم</th><td>${esc(p.name)}</td></tr><tr><th>العمر</th><td>${esc(p.age ?? "")}</td></tr><tr><th>الجوال</th><td dir="ltr">${esc(p.phone)}</td></tr><tr><th>زمرة الدم</th><td>${esc(p.bloodType || "")}</td></tr>
     <tr><th>أمراض مزمنة</th><td>${esc(m.chronic || "—")}</td></tr><tr><th>حساسية</th><td>${esc(m.allergies || "—")}</td></tr><tr><th>عمليات</th><td>${esc(m.surgeries || "—")}</td></tr>
     <tr><th>G / P / A / CS</th><td>${esc(m.gravida ?? "-")} / ${esc(m.para ?? "-")} / ${esc(m.abortions ?? "-")} / ${esc(m.cesareans ?? "-")}</td></tr></table>

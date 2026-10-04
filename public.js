@@ -294,7 +294,7 @@ export async function bookingPage(slug) {
       ${!pub.bookingEnabled ? `<div class="card stack"><p>الحجز الإلكتروني غير مفعّل لهذه العيادة حالياً. تواصل مع العيادة لحجز موعدك.</p>${pub.phone ? `<div class="row gap wrap"><a class="btn primary" href="tel:${esc(pub.phone)}">اتصال</a><a class="btn" href="${esc(waLink(pub.phone, `مرحباً، أود حجز موعد في ${pub.name}`))}" target="_blank" rel="noopener">واتساب</a></div>` : ""}</div>` : `
       <form id="bk" class="card stack">
         <h2>احجز موعدك</h2>
-        ${docs.length > 1 ? select("الطبيب", "doctorId", docs.map((d) => [d.id, `د. ${d.name}${d.title ? " · " + d.title : ""}`]), state.doctorId) : ""}
+        ${docs.length > 1 ? select("الطبيب", "doctorId", docs.map((d) => [d.id, `د. ${d.name}${d.title ? " · " + d.title : SPECIALTIES[d.spec]?.name ? " · " + SPECIALTIES[d.spec].name : ""}`]), state.doctorId) : ""}
         ${pub.services?.length ? select("نوع الزيارة", "service", pub.services.map((s) => [s.name, s.name + (s.price ? ` · ${s.price}` : "")]), state.service) : ""}
         <div class="field"><span>اليوم</span><div class="days">${open.map((d) => `<button type="button" class="day ${d === state.date ? "on" : ""}" data-d="${d}"><small>${DAYS[parseYmd(d).getDay()]}</small><b>${parseYmd(d).getDate()}</b></button>`).join("")}</div></div>
         <div class="field"><span>الوقت المتاح</span><div class="slots">${sl.length ? sl.map((t) => `<button type="button" class="slot ${t === state.time ? "on" : ""}" data-t="${t}">${esc(fmtTime(t))}</button>`).join("") : `<span class="muted">لا توجد أوقات متاحة في هذا اليوم</span>`}</div></div>
@@ -390,7 +390,7 @@ export async function directoryPage() {
     try { sessionStorage.setItem("dir", JSON.stringify(st)); } catch {}
     const q = norm(st.q.trim());
     const rows = all.filter((c) => c.slug
-      && (!st.spec || c.specialty === st.spec)
+      && (!st.spec || c.specialty === st.spec || (c.specialties || []).includes(st.spec))
       && (!st.city || c.city === st.city)
       && (!q || norm([c.name, c.doctorName, c.title, ...(c.doctors || []).map((d) => d.name)].join(" ")).includes(q)))
       .sort((a, b) => (b.bookingEnabled - a.bookingEnabled) || String(a.name).localeCompare(String(b.name), "ar"));

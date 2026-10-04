@@ -158,6 +158,10 @@ export async function renderTeam() {
   const RN = { secretary: "سكرتارية", nurse: "ممرض/ة", accountant: "محاسب" };
   const docUsers = users.filter((u) => u.active && u.role === "doctor");
   const docs = (S.clinic?.doctors || []);
+  const c0 = S.clinic || {};
+  // في المراكز: تُفعَّل وحدة اختصاص الطبيب تلقائياً
+  const withSpecMods = (spec) => (multiSpec() && spec ? { modules: [...new Set([...(c0.modules || []), ...specMods(spec)])] } : {});
+  const specSel = (v) => multiSpec() ? select("الاختصاص", "spec", Object.entries(SPECIALTIES).map(([k, x]) => [k, x.name]), v || c0.specialty) : "";
   const act = docs.filter((d) => d.active !== false);
   const maxD = S.clinic?.maxDoctors || 1, maxS = S.clinic?.maxStaff || 1;
   const canDoc = feat("multiDoctor") && act.length < maxD, canStaff = staff.length < maxS;
@@ -167,7 +171,8 @@ export async function renderTeam() {
       <ul class="plain">${act.map((d) => {
         const u = docUsers.find((x) => x.doctorId === d.id);
         const me = d.id === S.profile.doctorId;
-        return `<li class="req"><div><b>د. ${esc(d.name)}</b> ${me ? `<span class="chip">أنت · المسؤول</span>` : ""} <span class="muted small">${esc(d.title || "")}</span></div>
+        return `<li class="req"><div><b>د. ${esc(d.name)}</b> ${me ? `<span class="chip">أنت · المسؤول</span>` : ""} ${multiSpec() ? `<span class="chip">${esc(SPECIALTIES[d.spec || c0.specialty]?.name || "")}</span>` : ""} <span class="muted small">${esc(d.title || "")}</span>
+          <button class="link-btn small edd" data-id="${d.id}">تعديل الاختصاص واللقب</button></div>
           ${u && !me ? `<div class="muted small" dir="ltr">${esc(u.phone)}</div><div class="row gap"><button class="btn small rp" data-uid="${u.id}">كلمة مرور جديدة</button><button class="btn small danger offd" data-id="${d.id}" data-uid="${u.id}">إيقاف</button></div>` : ""}</li>`;
       }).join("")}</ul>
       ${!feat("multiDoctor") ? `<p class="muted small">إضافة أطباء متاحة في الباقة الاحترافية. <a href="#/subscription">الترقية</a></p>` : !canDoc ? `<p class="muted small">وصلت إلى الحد الأقصى لباقتك.</p>` : ""}
@@ -185,12 +190,12 @@ export async function renderTeam() {
       <li><b>محاسب:</b> ما تفعله السكرتارية، مع الحسابات كاملة بأي فترة، ومصاريف العيادة، دون أي بيانات طبية.</li>
     </ul></section>`;
   $(".addd")?.addEventListener("click", async () => {
-    const r = await modal("إضافة طبيب", `<form class="stack">${field("الاسم", "name", { required: true })}${field("اللقب / الاختصاص", "title")}${field("رقم الجوال (للدخول)", "phone", { required: true, attrs: 'dir="ltr" inputmode="tel"' })}</form>`, {
+    const r = await modal("إضافة طبيب", `<form class="stack">${field("الاسم", "name", { required: true })}${specSel()}${field("اللقب / الاختصاص", "title", { placeholder: "مثلاً: اختصاصي طب أطفال" })}${field("رقم الجوال (للدخول)", "phone", { required: true, attrs: 'dir="ltr" inputmode="tel"' })}</form>`, {
       ok: "إضافة",
       onOk: async (f) => {
         const doctorId = "d" + randId(6);
         const res = await createStaff(f.name, f.phone, "doctor", f.title, doctorId);
-        await saveClinic({ doctors: [...docs, { id: doctorId, uid: res.uid, name: f.name.trim(), title: f.title.trim(), active: true }] });
+        await saveClinic({ doctors: [...docs, { id: doctorId, uid: res.uid, name: f.name.trim(), title: f.title.trim(), spec: f.spec || c0.specialty || "", active: true }], ...withSpecMods(f.spec) });
         return { ...res, name: f.name };
       }
     });
@@ -220,6 +225,14 @@ export async function renderTeam() {
     await updateDoc(P.user(u.id), { active: false });
     await audit("إيقاف حساب موظف", u.name);
     render();
+  });
+  $$(".edd").forEach((b) => b.onclick = async () => {
+    const d = docs.find((x) => x.id === b.dataset.id); if (!d) return;
+    const r = await modal(`د. ${d.name}`, `<form class="stack">${specSel(d.spec)}${field("اللقب / الاختصاص (يظهر في رأس الورقة)", "title", { value: d.title || "" })}
+      <p class="muted small">${multiSpec() ? "اختصاص الطبيب يحدد نماذج الوصفات المقترحة له، ويظهر في رأس أوراقه المطبوعة وفي دليل الأطباء." : "اللقب يظهر في رأس الأوراق المطبوعة وصفحة الحجز."}</p></form>`);
+    if (!r) return;
+    await saveClinic({ doctors: docs.map((x) => (x.id === d.id ? { ...x, title: (r.title || "").trim(), ...(r.spec ? { spec: r.spec } : {}) } : x)), ...withSpecMods(r.spec) });
+    toast("تم الحفظ"); render();
   });
   $$(".offd").forEach((b) => b.onclick = async () => {
     const d = docs.find((x) => x.id === b.dataset.id);
