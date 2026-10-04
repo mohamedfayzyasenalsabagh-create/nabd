@@ -1,7 +1,7 @@
 // واجهة فريق العيادة: الأطباء والسكرتارية
 import { SPECIALTIES, fileData,
   db, P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, onSnapshot,
-  serverTimestamp, runTransaction, arrayUnion, arrayRemove, orderBy, limit, registerPatient, audit,
+  serverTimestamp, runTransaction, writeBatch, arrayUnion, arrayRemove, orderBy, limit, registerPatient, audit,
   normPhone, clinicState, tsMs
 } from "./fb.js";
 import { APP_URL, COPYRIGHT, CASH_METHODS, methodName,
@@ -37,6 +37,10 @@ export const multiDoc = () => doctors().length > 1;
 export const docName = (id) => doctors().find((d) => d.id === id)?.name || (S.clinic?.doctors || []).find((d) => d.id === id)?.name || "";
 const defaultDoc = () => (isDoctor() && S.profile.doctorId && doctors().some((d) => d.id === S.profile.doctorId) ? S.profile.doctorId : doctors()[0]?.id || "main");
 const apptDoc = (a) => a.doctorId || doctors()[0]?.id || "main";
+// لون ثابت لكل طبيب في المراكز، واسمه مع اختصاصه
+const docIdx = (id) => Math.max(0, doctors().findIndex((d) => d.id === id)) % 6;
+const docSpecName = (id) => { const d = (S.clinic?.doctors || []).find((x) => x.id === id); return d ? (SPECIALTIES[d.spec]?.name || "") : ""; };
+const docTag = (id) => `<span class="dtag dc${docIdx(id)}">د. ${esc(docName(id))}${docSpecName(id) ? ` · ${esc(docSpecName(id))}` : ""}</span>`;
 export const STATUS = { confirmed: "مؤكد", arrived: "في الانتظار", in: "لدى الطبيب", done: "انتهى", noshow: "لم يحضر", cancelled: "ملغى" };
 export const cur = () => S.clinic?.currency || "ل.س";
 export const readOnly = () => !clinicState(S.clinic).ok;
@@ -200,7 +204,7 @@ async function renderHome() {
     if (exp.length) alerts.push(`<li><a href="#/inventory">⏳ ${exp.length} صنف ينتهي خلال شهر</a></li>`);
   }
 
-  let doctorBits = "";
+  let doctorBits = "", centerBits = "";
   if (isDoctor()) {
     const pays = await list(query(P.col("payments"), where("date", "==", today)));
     const income = pays.reduce((s, p) => s + (p.paid || 0), 0);
@@ -214,6 +218,7 @@ async function renderHome() {
     }
     const inbox = await list(query(P.col("inbox"), where("seen", "==", false)));
     inbox.forEach((i) => alerts.push(`<li><a href="#/p/${i.patientId}/files">📎 ${esc(i.patientName)} رفع ${esc(i.label || "ملفاً")}</a></li>`));
+    if (isAdmin() && multiDoc()) centerBits = await centerSummary(today);
     doctorBits = `<div class="stat"><b>${money(income, cur())}</b><span>دخل اليوم</span></div><div class="stat"><b>${newPts}</b><span>مرضى جدد هذا الشهر</span></div>`;
   }
 
@@ -226,6 +231,7 @@ async function renderHome() {
       <div class="stat"><b>${done}</b><span>انتهت</span></div>
       ${doctorBits}
     </div>
+    ${centerBits}
     ${alerts.length ? `<section class="card alerts"><h3>تنبيهات</h3><ul class="plain">${alerts.join("")}</ul></section>` : ""}
     ${waiting ? `<button class="btn primary block call-next">📢 استدعاء الدور التالي · ${waiting} بالانتظار</button>` : ""}
     <section class="card">
@@ -239,16 +245,50 @@ async function renderHome() {
         <span class="n">${esc(a.patientName)}${multiDoc() ? `<small>د. ${esc(docName(apptDoc(a)))}</small>` : ""}</span><span class="chip">${esc(a.type || "")}</span></button></li>`).join("")}</ul>` : empty("لا توجد مواعيد")}
     </section>`;
   bindDocFilter(renderHome);
+  $$("[data-cdoc]").forEach((b) => b.onclick = () => { S.docFilter = b.dataset.cdoc; renderHome(); });
   $(".new").onclick = () => bookModal({});
   $(".call-next")?.addEventListener("click", async () => { await callNext(); render(); });
   bindApptButtons([...appts, ...week]);
+}
+
+// ملخص أطباء المركز لصاحب المركز: مرضى كل طبيب ومواعيده اليوم
+async function centerSummary(today) {
+  await backfillDoctorIds();
+  const all = (await list(query(P.col("appointments"), where("date", "==", today)))).filter((a) => a.status !== "cancelled");
+  const pts = PC.list.filter((p) => !p.archived);
+  const rows = doctors().map((d) => {
+    const mine = all.filter((a) => apptDoc(a) === d.id);
+    return { d, patients: pts.filter((p) => (p.doctorIds || []).includes(d.id)).length, today: mine.length,
+      waiting: mine.filter((a) => a.status === "arrived").length, inn: mine.find((a) => a.status === "in")?.queueNo, done: mine.filter((a) => a.status === "done").length };
+  });
+  return `<section class="card"><h3>أطباء المركز</h3><div class="cdocs">
+    ${rows.map((r) => `<button class="cdoc dc${docIdx(r.d.id)}" data-cdoc="${r.d.id}"><div class="cd-h"><b>د. ${esc(r.d.name)}</b><span>${esc(SPECIALTIES[r.d.spec || S.clinic?.specialty]?.name || "")}</span></div>
+      <div class="cd-s"><span><b>${r.patients}</b>مريض</span><span><b>${r.today}</b>موعد اليوم</span><span><b>${r.waiting}</b>بالانتظار</span><span><b>${r.done}</b>انتهت</span></div>
+      ${r.inn ? `<div class="cd-now">لديه الآن رقم الدور ${r.inn}</div>` : ""}</button>`).join("")}
+    </div><p class="muted small">اضغط على الطبيب لعرض مواعيده. يُحسب المريض لكل طبيب حجز عنده موعداً.</p></section>`;
+}
+// مرة واحدة: ربط المرضى القدامى بالأطباء من مواعيدهم السابقة
+async function backfillDoctorIds() {
+  const need = PC.list.filter((p) => !Array.isArray(p.doctorIds));
+  if (!need.length || S._bfDone) return;
+  S._bfDone = true;
+  try {
+    const ap = await list(P.col("appointments"));
+    const map = {};
+    ap.forEach((a) => { if (a.patientId && a.status !== "cancelled") (map[a.patientId] ||= new Set()).add(apptDoc(a)); });
+    for (let i = 0; i < need.length; i += 400) {
+      const b = writeBatch(db);
+      need.slice(i, i + 400).forEach((p) => { const ids = [...(map[p.id] || [])]; p.doctorIds = ids; b.update(P.colDoc("patients", p.id), { doctorIds: ids }); });
+      await b.commit();
+    }
+  } catch (e) { console.warn(e); }
 }
 
 function apptRow(a) {
   const quick = a.status === "confirmed" && a.date === ymd();
   return `<li class="appt-li"><button class="appt st-${a.status}" data-a="${a.id}">
     <span class="t">${esc(fmtTime(a.time))}${a.queueNo ? ` <span class="q">#${a.queueNo}</span>` : ""}</span>
-    <span class="n">${esc(a.patientName)}<small>${esc(a.type || "")}${multiDoc() && S.docFilter === "all" ? ` · د. ${esc(docName(apptDoc(a)))}` : ""}</small></span>
+    <span class="n">${esc(a.patientName)}<small>${esc(a.type || "")}</small>${multiDoc() ? docTag(apptDoc(a)) : ""}</span>
     ${quick ? `<span class="chip st ghost-chip"></span>` : `<span class="chip st">${esc(STATUS[a.status] || a.status)}</span>`}</button>${quick ? `<button class="arrive" data-arr="${a.id}" aria-label="تسجيل الحضور">حضر ✓</button>` : ""}</li>`;
 }
 function bindApptButtons(arr) {
@@ -259,10 +299,10 @@ function bindApptButtons(arr) {
     const a = map[b.dataset.arr]; if (!a) return;
     b.disabled = true;
     try {
-      const q = a.queueNo || await nextQueueNo(a.date);
+      const q = a.queueNo || await nextQueueNo(a.date, apptDoc(a));
       await updateDoc(P.colDoc("appointments", a.id), { status: "arrived", queueNo: q, updatedAt: serverTimestamp() });
       await audit(`تغيير حالة موعد إلى ${STATUS.arrived}`, a.patientName);
-      toast(`تم تسجيل الحضور · رقم الدور ${q}`);
+      toast(`تم تسجيل الحضور · رقم الدور ${q}${multiDoc() ? ` · إلى د. ${docName(apptDoc(a))}` : ""}`);
       render();
     } catch (err) { b.disabled = false; toast(errMsg(err), true); }
   });
@@ -274,7 +314,8 @@ export async function apptActions(a) {
   const doc_ = isDoctor();
   const w = await new Promise((resolve) => {
     modal(`${a.patientName}`, `
-      <p class="muted">${esc(fmtDate(a.date))} · ${esc(fmtTime(a.time))} · ${esc(a.type || "")}${multiDoc() ? ` · د. ${esc(docName(apptDoc(a)))}` : ""}</p>
+      <p class="muted">${esc(fmtDate(a.date))} · ${esc(fmtTime(a.time))} · ${esc(a.type || "")}</p>
+      ${multiDoc() ? `<p>${docTag(apptDoc(a))}${a.queueNo ? ` <span class="chip">رقم الدور ${a.queueNo}</span>` : ""}</p>` : ""}
       ${a.note ? `<p>${esc(a.note)}</p>` : ""}
       <p>الحالة: <span class="chip">${esc(STATUS[a.status])}</span></p>
       <div class="btn-grid">
@@ -296,10 +337,10 @@ export async function apptActions(a) {
     try {
       if (["arrived", "in", "done", "noshow"].includes(act)) {
         const patch = { status: act, updatedAt: serverTimestamp() };
-        if ((act === "arrived" || act === "in") && !a.queueNo) patch.queueNo = await nextQueueNo(a.date);
+        if ((act === "arrived" || act === "in") && !a.queueNo) patch.queueNo = await nextQueueNo(a.date, apptDoc(a));
         await updateDoc(P.colDoc("appointments", a.id), patch);
         await audit(`تغيير حالة موعد إلى ${STATUS[act]}`, a.patientName);
-        toast("تم");
+        toast(multiDoc() && patch.queueNo ? `رقم الدور ${patch.queueNo} · إلى د. ${docName(apptDoc(a))}` : "تم");
         if (act === "in") await callNumber(patch.queueNo || a.queueNo, apptDoc(a));
         if (act === "done") consumeForAppt(a);
       } else if (act === "visit") {
@@ -335,13 +376,19 @@ function reminderText(a) {
 export function offerNotify(phone, text, extra = "") {
   info("إبلاغ المريض", `${extra}<p>${esc(text)}</p><a class="btn primary" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">إرسال على واتساب</a>`);
 }
-async function nextQueueNo(date) {
-  const arr = await list(query(P.col("appointments"), where("date", "==", date)));
+// رقم الدور: في المراكز لكل طبيب تسلسل مستقل يبدأ من 1
+async function nextQueueNo(date, doctorId) {
+  let arr = await list(query(P.col("appointments"), where("date", "==", date)));
+  if (multiDoc() && doctorId) arr = arr.filter((x) => apptDoc(x) === doctorId);
   return arr.reduce((m, x) => Math.max(m, x.queueNo || 0), 0) + 1;
 }
 async function callNumber(n, doctorId) {
   if (!n) return;
-  try { await setDoc(P.colDoc("live", "queue"), { number: n, doctor: multiDoc() ? docName(doctorId) : "", at: serverTimestamp() }); } catch {}
+  const m = multiDoc();
+  try {
+    await setDoc(P.colDoc("live", "queue"), { number: n, doctor: m ? docName(doctorId) : "", doctorId: m ? doctorId : "", spec: m ? docSpecName(doctorId) : "", day: ymd(), at: serverTimestamp(),
+      ...(m ? { docs: { [doctorId]: { number: n, day: ymd() } } } : {}) }, { merge: true });
+  } catch {}
 }
 
 // ---------- تذكير مواعيد الغد بكبسة واحدة ----------
@@ -488,6 +535,7 @@ export async function bookAppointment({ pid, date, time, type, note = "", doctor
   });
   await markBusy(date, time, did, true);
   await audit("حجز موعد", `${p.name} ${date} ${time}`);
+  try { if (!(p.doctorIds || []).includes(did)) await updateDoc(P.colDoc("patients", pid), { doctorIds: arrayUnion(did) }); } catch (e) { console.warn(e); }
   return { id: ref.id, date, time, doctorId: did };
 }
 
@@ -1006,6 +1054,16 @@ function openTvMode() {
   };
   ov.addEventListener("click", audio);
   unsubs.push(onSnapshot(P.colDoc("live", "queue"), (s) => {
+    if (multiDoc()) {
+      // المراكز: لوحة لكل طبيب برقمه الحالي، وآخر استدعاء يومض
+      const L = s.data() || {}, last = L.day === ymd() ? `${L.doctorId}:${L.number}` : null;
+      ov.querySelector(".tvx-main").classList.add("multi");
+      ov.querySelector(".tvx-main").innerHTML = doctors().map((d) => { const x = L.docs?.[d.id]; const n = x && x.day === ymd() ? x.number : "—";
+        return `<div class="tvx-dc dc${docIdx(d.id)}${L.doctorId === d.id && last ? " hot" : ""}"><b class="tvx-dn">د. ${esc(d.name)}</b><span class="tvx-ds">${esc(docSpecName(d.id))}</span><div class="tvx-dnum">${n}</div></div>`; }).join("");
+      if (lastNum !== null && last !== lastNum) { ov.querySelector(".tvx-dc.hot")?.classList.add("pulse"); chime(); }
+      lastNum = last;
+      return;
+    }
     const n = s.data()?.number ?? "—", el = ov.querySelector(".tvx-num");
     el.textContent = n; el.classList.toggle("empty", n === "—");
     ov.querySelector(".tvx-label").textContent = n === "—" ? "أهلا وسهلا بكم" : "الدور الحالي";
@@ -1016,7 +1074,7 @@ function openTvMode() {
   }));
   unsubs.push(onSnapshot(query(P.col("appointments"), where("date", "==", ymd())), (s) => {
     const w = s.docs.map((d) => d.data()).filter((a) => a.status === "arrived" && a.queueNo).sort((a, b) => a.queueNo - b.queueNo);
-    ov.querySelector(".tvx-wait").innerHTML = w.length ? w.slice(0, 8).map((a) => `<span>${a.queueNo}</span>`).join("") : `<i>لا يوجد</i>`;
+    ov.querySelector(".tvx-wait").innerHTML = w.length ? w.slice(0, multiDoc() ? 12 : 8).map((a) => multiDoc() ? `<span class="dc${docIdx(apptDoc(a))}">${a.queueNo}<small>د. ${esc(docName(apptDoc(a)))}</small></span>` : `<span>${a.queueNo}</span>`).join("") : `<i>لا يوجد</i>`;
   }));
   // ملء الشاشة الحقيقي + إبقاء الشاشة مضاءة
   try { (ov.requestFullscreen || ov.webkitRequestFullscreen)?.call(ov)?.catch?.(() => {}); } catch {}
@@ -1045,9 +1103,20 @@ function openTvMode() {
 }
 
 // استدعاء الدور التالي: يحدّث شاشة الانتظار على كل الأجهزة فوراً
-async function callNext() {
+async function callNext(forDoc) {
   const today = ymd();
-  const arr = byDoc((await list(query(P.col("appointments"), where("date", "==", today))))).filter((a) => a.status === "arrived" && a.queueNo).sort((a, b) => a.queueNo - b.queueNo);
+  let arr = byDoc((await list(query(P.col("appointments"), where("date", "==", today))))).filter((a) => a.status === "arrived" && a.queueNo).sort((a, b) => a.queueNo - b.queueNo);
+  // في المراكز: لكل طبيب دوره، فإن كان المنتظرون عند أكثر من طبيب نسأل عن الطبيب
+  if (multiDoc() && arr.length) {
+    let did = forDoc;
+    const ids = [...new Set(arr.map(apptDoc))];
+    if (!did) did = ids.length === 1 ? ids[0] : await new Promise((res) => {
+      modal("استدعاء الدور التالي", `<p class="muted">اختر الطبيب الذي سيستقبل المريض التالي:</p><div class="btn-grid">${ids.map((id) => `<button class="btn" data-cd="${id}">د. ${esc(docName(id))}<small class="muted"> · ${arr.filter((a) => apptDoc(a) === id).length} بالانتظار</small></button>`).join("")}</div>`,
+        { ok: null, cancel: "إغلاق", onOpen: (w) => w.querySelectorAll("[data-cd]").forEach((b) => b.onclick = () => { w.remove(); res(b.dataset.cd); }) }).then(() => res(null));
+    });
+    if (!did) return;
+    arr = arr.filter((a) => apptDoc(a) === did);
+  }
   if (!arr.length) return info("لا يوجد أحد في الانتظار", `<p>يأخذ المريض رقم الدور عند وصوله إلى العيادة.</p><p>من «المواعيد» افتح موعد المريض واضغط <b>«حضر ✓»</b>، فيظهر رقمه هنا وعلى شاشة التلفاز، ثم اضغط «استدعاء الدور التالي».</p>`);
   const a = arr[0];
   await updateDoc(P.colDoc("appointments", a.id), { status: "in" });
@@ -1059,7 +1128,8 @@ function renderTv() {
   main().innerHTML = `<div class="tv">
     <div class="tv-brand">${logoHtml(S.pub, 90)}<div><h1>${esc(S.pub.name)}</h1><p>${esc(S.pub.title || "")}</p></div></div>
     <p class="muted small tv-help">الدور يعمل لمواعيد اليوم: عند وصول المريض افتح موعده واضغط «حضر ✓» ليأخذ رقماً، ثم استدعه من هنا.</p>
-    <div class="tv-label">الدور الحالي</div><div class="tv-num">—</div><div class="tv-doc muted"></div>
+    <div class="tv-label">${multiDoc() ? "آخر استدعاء" : "الدور الحالي"}</div><div class="tv-num">—</div><div class="tv-doc muted"></div>
+    ${multiDoc() ? `<p class="muted small">في المركز لكل طبيب دور مستقل يبدأ من 1:</p><div class="tv-docs"></div>` : ""}
     <div class="row gap no-tv"><button class="btn primary next">استدعاء الدور التالي</button><button class="btn fs">تشغيل على التلفاز (ملء الشاشة)</button></div>
   </div>`;
   S.unsub.push(onSnapshot(P.colDoc("live", "queue"), (s) => {
@@ -1067,8 +1137,10 @@ function renderTv() {
     if (!el) return;
     el.textContent = s.data()?.number ?? "—"; el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse");
     const d = $(".tv-doc"); if (d) d.textContent = s.data()?.doctor ? `إلى د. ${s.data().doctor}` : "";
+    const g = $(".tv-docs");
+    if (g && multiDoc()) g.innerHTML = doctors().map((x) => { const v = s.data()?.docs?.[x.id]; return `<div class="tv-dc"><span class="dtag dc${docIdx(x.id)}">د. ${esc(x.name)}</span><b>${v && v.day === ymd() ? v.number : "—"}</b></div>`; }).join("");
   }));
-  $(".next").onclick = callNext;
+  $(".next").onclick = () => callNext();
   $(".fs").onclick = openTvMode;
 }
 

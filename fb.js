@@ -368,7 +368,7 @@ export async function registerPatient(data) {
   // الحساب والملف يُكتبان معاً لتتحقق القواعد من تطابق رقم الجوال
   b.set(pRef, {
     name: data.name.trim(), phone, age: data.age ? Number(data.age) : null, dob: data.dob || null,
-    sex: data.sex || "", address: data.address || "", bloodType: data.bloodType || "", guardian: !!data.guardian, uid,
+    sex: data.sex || "", address: data.address || "", bloodType: data.bloodType || "", guardian: !!data.guardian, doctorIds: data.doctorIds || [], uid,
     archived: false, createdAt: serverTimestamp(), createdBy: currentActor.uid
   });
   await b.commit();
