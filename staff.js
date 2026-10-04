@@ -40,7 +40,10 @@ const apptDoc = (a) => a.doctorId || doctors()[0]?.id || "main";
 // لون ثابت لكل طبيب في المراكز، واسمه مع اختصاصه
 const docIdx = (id) => Math.max(0, doctors().findIndex((d) => d.id === id)) % 6;
 const docSpecName = (id) => { const d = (S.clinic?.doctors || []).find((x) => x.id === id); return d ? (SPECIALTIES[d.spec]?.name || "") : ""; };
-const docTag = (id) => `<span class="dtag dc${docIdx(id)}">د. ${esc(docName(id))}${docSpecName(id) ? ` · ${esc(docSpecName(id))}` : ""}</span>`;
+// حرف الدور: لكل طبيب حرف ثابت (A، B، C...) حسب ترتيب إضافته، حتى لا تتكرر أرقام الدور في المركز
+export const docLetter = (id) => { const i = (S.clinic?.doctors || []).findIndex((d) => d.id === id); return i < 0 ? "" : String.fromCharCode(65 + (i % 26)); };
+const qLab = (n, did) => (n ? (multiDoc() ? docLetter(did) + n : String(n)) : "");
+const docTag = (id) => `<span class="dtag dc${docIdx(id)}"><span class="notr" dir="ltr">${docLetter(id)}</span> · د. ${esc(docName(id))}${docSpecName(id) ? ` · ${esc(docSpecName(id))}` : ""}</span>`;
 export const STATUS = { confirmed: "مؤكد", arrived: "في الانتظار", in: "لدى الطبيب", done: "انتهى", noshow: "لم يحضر", cancelled: "ملغى" };
 export const cur = () => S.clinic?.currency || "ل.س";
 export const readOnly = () => !clinicState(S.clinic).ok;
@@ -259,10 +262,10 @@ async function centerSummary(today) {
   const rows = doctors().map((d) => {
     const mine = all.filter((a) => apptDoc(a) === d.id);
     return { d, patients: pts.filter((p) => (p.doctorIds || []).includes(d.id)).length, today: mine.length,
-      waiting: mine.filter((a) => a.status === "arrived").length, inn: mine.find((a) => a.status === "in")?.queueNo, done: mine.filter((a) => a.status === "done").length };
+      waiting: mine.filter((a) => a.status === "arrived").length, inn: qLab(mine.find((a) => a.status === "in")?.queueNo, d.id), done: mine.filter((a) => a.status === "done").length };
   });
   return `<section class="card"><h3>أطباء المركز</h3><div class="cdocs">
-    ${rows.map((r) => `<button class="cdoc dc${docIdx(r.d.id)}" data-cdoc="${r.d.id}"><div class="cd-h"><b>د. ${esc(r.d.name)}</b><span>${esc(SPECIALTIES[r.d.spec || S.clinic?.specialty]?.name || "")}</span></div>
+    ${rows.map((r) => `<button class="cdoc dc${docIdx(r.d.id)}" data-cdoc="${r.d.id}"><div class="cd-h"><b><span class="notr">${docLetter(r.d.id)}</span> · د. ${esc(r.d.name)}</b><span>${esc(SPECIALTIES[r.d.spec || S.clinic?.specialty]?.name || "")}</span></div>
       <div class="cd-s"><span><b>${r.patients}</b>مريض</span><span><b>${r.today}</b>موعد اليوم</span><span><b>${r.waiting}</b>بالانتظار</span><span><b>${r.done}</b>انتهت</span></div>
       ${r.inn ? `<div class="cd-now">لديه الآن رقم الدور ${r.inn}</div>` : ""}</button>`).join("")}
     </div><p class="muted small">اضغط على الطبيب لعرض مواعيده. يُحسب المريض لكل طبيب حجز عنده موعداً.</p></section>`;
@@ -287,7 +290,7 @@ async function backfillDoctorIds() {
 function apptRow(a) {
   const quick = a.status === "confirmed" && a.date === ymd();
   return `<li class="appt-li"><button class="appt st-${a.status}" data-a="${a.id}">
-    <span class="t">${esc(fmtTime(a.time))}${a.queueNo ? ` <span class="q">#${a.queueNo}</span>` : ""}</span>
+    <span class="t">${esc(fmtTime(a.time))}${a.queueNo ? ` <span class="q" dir="ltr">${multiDoc() ? "" : "#"}${qLab(a.queueNo, apptDoc(a))}</span>` : ""}</span>
     <span class="n">${esc(a.patientName)}<small>${esc(a.type || "")}</small>${multiDoc() ? docTag(apptDoc(a)) : ""}</span>
     ${quick ? `<span class="chip st ghost-chip"></span>` : `<span class="chip st">${esc(STATUS[a.status] || a.status)}</span>`}</button>${quick ? `<button class="arrive" data-arr="${a.id}" aria-label="تسجيل الحضور">حضر ✓</button>` : ""}</li>`;
 }
@@ -302,7 +305,7 @@ function bindApptButtons(arr) {
       const q = a.queueNo || await nextQueueNo(a.date, apptDoc(a));
       await updateDoc(P.colDoc("appointments", a.id), { status: "arrived", queueNo: q, updatedAt: serverTimestamp() });
       await audit(`تغيير حالة موعد إلى ${STATUS.arrived}`, a.patientName);
-      toast(`تم تسجيل الحضور · رقم الدور ${q}${multiDoc() ? ` · إلى د. ${docName(apptDoc(a))}` : ""}`);
+      toast(`تم تسجيل الحضور · رقم الدور ${qLab(q, apptDoc(a))}${multiDoc() ? ` · إلى د. ${docName(apptDoc(a))}` : ""}`);
       render();
     } catch (err) { b.disabled = false; toast(errMsg(err), true); }
   });
@@ -315,7 +318,7 @@ export async function apptActions(a) {
   const w = await new Promise((resolve) => {
     modal(`${a.patientName}`, `
       <p class="muted">${esc(fmtDate(a.date))} · ${esc(fmtTime(a.time))} · ${esc(a.type || "")}</p>
-      ${multiDoc() ? `<p>${docTag(apptDoc(a))}${a.queueNo ? ` <span class="chip">رقم الدور ${a.queueNo}</span>` : ""}</p>` : ""}
+      ${multiDoc() ? `<p>${docTag(apptDoc(a))}${a.queueNo ? ` <span class="chip">رقم الدور ${qLab(a.queueNo, apptDoc(a))}</span>` : ""}</p>` : ""}
       ${a.note ? `<p>${esc(a.note)}</p>` : ""}
       <p>الحالة: <span class="chip">${esc(STATUS[a.status])}</span></p>
       <div class="btn-grid">
@@ -340,7 +343,7 @@ export async function apptActions(a) {
         if ((act === "arrived" || act === "in") && !a.queueNo) patch.queueNo = await nextQueueNo(a.date, apptDoc(a));
         await updateDoc(P.colDoc("appointments", a.id), patch);
         await audit(`تغيير حالة موعد إلى ${STATUS[act]}`, a.patientName);
-        toast(multiDoc() && patch.queueNo ? `رقم الدور ${patch.queueNo} · إلى د. ${docName(apptDoc(a))}` : "تم");
+        toast(multiDoc() && patch.queueNo ? `رقم الدور ${qLab(patch.queueNo, apptDoc(a))} · إلى د. ${docName(apptDoc(a))}` : "تم");
         if (act === "in") await callNumber(patch.queueNo || a.queueNo, apptDoc(a));
         if (act === "done") consumeForAppt(a);
       } else if (act === "visit") {
@@ -385,6 +388,7 @@ async function nextQueueNo(date, doctorId) {
 async function callNumber(n, doctorId) {
   if (!n) return;
   const m = multiDoc();
+  n = qLab(n, doctorId);
   try {
     await setDoc(P.colDoc("live", "queue"), { number: n, doctor: m ? docName(doctorId) : "", doctorId: m ? doctorId : "", spec: m ? docSpecName(doctorId) : "", day: ymd(), at: serverTimestamp(),
       ...(m ? { docs: { [doctorId]: { number: n, day: ymd() } } } : {}) }, { merge: true });
@@ -1059,7 +1063,7 @@ function openTvMode() {
       const L = s.data() || {}, last = L.day === ymd() ? `${L.doctorId}:${L.number}` : null;
       ov.querySelector(".tvx-main").classList.add("multi");
       ov.querySelector(".tvx-main").innerHTML = doctors().map((d) => { const x = L.docs?.[d.id]; const n = x && x.day === ymd() ? x.number : "—";
-        return `<div class="tvx-dc dc${docIdx(d.id)}${L.doctorId === d.id && last ? " hot" : ""}"><b class="tvx-dn">د. ${esc(d.name)}</b><span class="tvx-ds">${esc(docSpecName(d.id))}</span><div class="tvx-dnum">${n}</div></div>`; }).join("");
+        return `<div class="tvx-dc dc${docIdx(d.id)}${L.doctorId === d.id && last ? " hot" : ""}"><b class="tvx-dn">د. ${esc(d.name)}</b><span class="tvx-ds">${esc(docSpecName(d.id))}</span><div class="tvx-dnum" dir="ltr">${n === "—" ? `<span class="tvx-dl">${docLetter(d.id)}</span>` : n}</div></div>`; }).join("");
       if (lastNum !== null && last !== lastNum) { ov.querySelector(".tvx-dc.hot")?.classList.add("pulse"); chime(); }
       lastNum = last;
       return;
@@ -1074,7 +1078,7 @@ function openTvMode() {
   }));
   unsubs.push(onSnapshot(query(P.col("appointments"), where("date", "==", ymd())), (s) => {
     const w = s.docs.map((d) => d.data()).filter((a) => a.status === "arrived" && a.queueNo).sort((a, b) => a.queueNo - b.queueNo);
-    ov.querySelector(".tvx-wait").innerHTML = w.length ? w.slice(0, multiDoc() ? 12 : 8).map((a) => multiDoc() ? `<span class="dc${docIdx(apptDoc(a))}">${a.queueNo}<small>د. ${esc(docName(apptDoc(a)))}</small></span>` : `<span>${a.queueNo}</span>`).join("") : `<i>لا يوجد</i>`;
+    ov.querySelector(".tvx-wait").innerHTML = w.length ? w.slice(0, multiDoc() ? 12 : 8).map((a) => multiDoc() ? `<span class="dc${docIdx(apptDoc(a))}">${qLab(a.queueNo, apptDoc(a))}<small>د. ${esc(docName(apptDoc(a)))}</small></span>` : `<span>${a.queueNo}</span>`).join("") : `<i>لا يوجد</i>`;
   }));
   // ملء الشاشة الحقيقي + إبقاء الشاشة مضاءة
   try { (ov.requestFullscreen || ov.webkitRequestFullscreen)?.call(ov)?.catch?.(() => {}); } catch {}
@@ -1121,7 +1125,7 @@ async function callNext(forDoc) {
   const a = arr[0];
   await updateDoc(P.colDoc("appointments", a.id), { status: "in" });
   await callNumber(a.queueNo, apptDoc(a));
-  toast(`تم استدعاء الرقم ${a.queueNo}`);
+  toast(`تم استدعاء الرقم ${qLab(a.queueNo, apptDoc(a))}`);
 }
 
 function renderTv() {
@@ -1129,7 +1133,7 @@ function renderTv() {
     <div class="tv-brand">${logoHtml(S.pub, 90)}<div><h1>${esc(S.pub.name)}</h1><p>${esc(S.pub.title || "")}</p></div></div>
     <p class="muted small tv-help">الدور يعمل لمواعيد اليوم: عند وصول المريض افتح موعده واضغط «حضر ✓» ليأخذ رقماً، ثم استدعه من هنا.</p>
     <div class="tv-label">${multiDoc() ? "آخر استدعاء" : "الدور الحالي"}</div><div class="tv-num">—</div><div class="tv-doc muted"></div>
-    ${multiDoc() ? `<p class="muted small">في المركز لكل طبيب دور مستقل يبدأ من 1:</p><div class="tv-docs"></div>` : ""}
+    ${multiDoc() ? `<p class="muted small">في المركز لكل طبيب حرف خاص لرقم الدور (A، B، C...):</p><div class="tv-docs"></div>` : ""}
     <div class="row gap no-tv"><button class="btn primary next">استدعاء الدور التالي</button><button class="btn fs">تشغيل على التلفاز (ملء الشاشة)</button></div>
   </div>`;
   S.unsub.push(onSnapshot(P.colDoc("live", "queue"), (s) => {

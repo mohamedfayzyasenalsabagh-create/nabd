@@ -11,7 +11,7 @@ import { APP_URL,
 } from "./ui.js";
 import { S, PLATFORM } from "./app.js";
 import { PAY_METHODS } from "./owner.js";
-import { multiSpec, specMods, render, doctors, feat, hasMod, cur, isAdmin } from "./staff.js";
+import { multiSpec, specMods, docLetter, render, doctors, feat, hasMod, cur, isAdmin } from "./staff.js";
 
 const main = () => $("#main");
 const plans = () => (S.platform?.plans?.length ? S.platform.plans : DEFAULT_PLANS);
@@ -171,7 +171,7 @@ export async function renderTeam() {
       <ul class="plain">${act.map((d) => {
         const u = docUsers.find((x) => x.doctorId === d.id);
         const me = d.id === S.profile.doctorId;
-        return `<li class="req"><div><b>د. ${esc(d.name)}</b> ${me ? `<span class="chip">أنت · المسؤول</span>` : ""} ${multiSpec() ? `<span class="chip">${esc(SPECIALTIES[d.spec || c0.specialty]?.name || "")}</span>` : ""} <span class="muted small">${esc(d.title || "")}</span>
+        return `<li class="req"><div><b>د. ${esc(d.name)}</b> ${me ? `<span class="chip">أنت · المسؤول</span>` : ""} ${multiSpec() ? `<span class="chip">${esc(SPECIALTIES[d.spec || c0.specialty]?.name || "")}</span>` : ""} ${docs.filter((x) => x.active !== false).length > 1 ? `<span class="chip" title="حرف الدور">الدور <span class="notr">${docLetter(d.id)}</span></span>` : ""} <span class="muted small">${esc(d.title || "")}</span>
           <button class="link-btn small edd" data-id="${d.id}">تعديل الاختصاص واللقب</button></div>
           ${u && !me ? `<div class="muted small" dir="ltr">${esc(u.phone)}</div><div class="row gap"><button class="btn small rp" data-uid="${u.id}">كلمة مرور جديدة</button><button class="btn small danger offd" data-id="${d.id}" data-uid="${u.id}">إيقاف</button></div>` : ""}</li>`;
       }).join("")}</ul>

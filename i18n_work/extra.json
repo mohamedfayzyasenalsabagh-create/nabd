@@ -255,5 +255,9 @@
  "رقم الدور": "Queue no.",
  "مخطط أسنان تفاعلي، منحنيات نمو ولقاحات، متابعة حمل، مؤشرات حيوية، فحص نظر، وجلسات. وفي المراكز الطبية لكل طبيب اختصاصه ودوره ومرضاه.": "Interactive dental chart, growth curves and vaccines, pregnancy follow-up, vital signs, eye exams and sessions. In medical centers, each doctor has their own specialty, queue and patients.",
  "في المركز، كيف تعرف السكرتيرة إلى أي طبيب يذهب المريض؟": "In a center, how does the secretary know which doctor the patient goes to?",
- "بجانب كل موعد اسم الطبيب واختصاصه بلون خاص به. ولكل طبيب رقم دور مستقل يبدأ من 1، وعند «استدعاء الدور التالي» تختار الطبيب، وتعرض شاشة الانتظار لوحة لكل طبيب برقمه الحالي. ويرى صاحب المركز في الصفحة الرئيسية لوحة بأطباء المركز وعدد مرضى كل طبيب ومواعيده اليوم.": "Each appointment shows the doctor's name and specialty in their own color. Each doctor has a separate queue starting from 1; on “Call next” she picks the doctor, and the waiting screen shows a board for each doctor with their current number. The center owner sees a center doctors board on the home page with each doctor's patients and today's appointments."
+ "بجانب كل موعد اسم الطبيب واختصاصه بلون خاص به. ولكل طبيب حرف خاص لرقم الدور (A1، A2 للطبيب الأول، B1، B2 للثاني...) فلا تتكرر الأرقام، وعند «استدعاء الدور التالي» تختار الطبيب، وتعرض شاشة الانتظار لوحة لكل طبيب برقمه الحالي. ويرى صاحب المركز في الصفحة الرئيسية لوحة بأطباء المركز وعدد مرضى كل طبيب ومواعيده اليوم.": "Each appointment shows the doctor's name and specialty in their own color. Each doctor has their own queue letter (A1, A2 for the first doctor, B1, B2 for the second...) so numbers never repeat; on “Call next” she picks the doctor, and the waiting screen shows a board for each doctor with their current number. The center owner sees a center doctors board on the home page with each doctor's patients and today's appointments.",
+ "في المركز لكل طبيب حرف خاص لرقم الدور (A، B، C...):": "In the center each doctor has their own queue letter (A, B, C...):",
+ "الدور": "Queue",
+ "حرف الدور": "Queue letter",
+ "تم استدعاء الرقم": "Called number"
 }
