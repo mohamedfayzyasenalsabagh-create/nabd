@@ -1,5 +1,5 @@
 // يفتح التطبيق بسرعة ودون إنترنت (البيانات تتزامن عند عودة الاتصال)
-const CACHE = "nabd-v47";
+const CACHE = "nabd-v48";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "fb.js", "ui.js", "staff.js", "admin.js", "card.js", "mods.js", "patient.js", "public.js", "owner.js", "legal.js", "config.js", "i18n.js", "qrcode.js", "manifest.json", "icon.svg", "icon-192.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {

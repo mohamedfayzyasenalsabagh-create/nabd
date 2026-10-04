@@ -259,5 +259,7 @@
  "في المركز لكل طبيب حرف خاص لرقم الدور (A، B، C...):": "In the center each doctor has their own queue letter (A, B, C...):",
  "الدور": "Queue",
  "حرف الدور": "Queue letter",
- "تم استدعاء الرقم": "Called number"
+ "تم استدعاء الرقم": "Called number",
+ "الجرعات المتبقية في العلبة": "Doses left in the box",
+ "يتوقف التذكير عند انتهائها": "reminders stop when it runs out"
 }

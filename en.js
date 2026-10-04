@@ -2816,5 +2816,7 @@ export const EN = {
 "في المركز، كيف تعرف السكرتيرة إلى أي طبيب يذهب المريض؟": "In a center, how does the secretary know which doctor the patient goes to?",
 "بجانب كل موعد اسم الطبيب واختصاصه بلون خاص به. ولكل طبيب حرف خاص لرقم الدور (A1، A2 للطبيب الأول، B1، B2 للثاني...) فلا تتكرر الأرقام، وعند «استدعاء الدور التالي» تختار الطبيب، وتعرض شاشة الانتظار لوحة لكل طبيب برقمه الحالي. ويرى صاحب المركز في الصفحة الرئيسية لوحة بأطباء المركز وعدد مرضى كل طبيب ومواعيده اليوم.": "Each appointment shows the doctor's name and specialty in their own color. Each doctor has their own queue letter (A1, A2 for the first doctor, B1, B2 for the second...) so numbers never repeat; on “Call next” she picks the doctor, and the waiting screen shows a board for each doctor with their current number. The center owner sees a center doctors board on the home page with each doctor's patients and today's appointments.",
 "في المركز لكل طبيب حرف خاص لرقم الدور (A، B، C...):": "In the center each doctor has their own queue letter (A, B, C...):",
-"حرف الدور": "Queue letter"
+"حرف الدور": "Queue letter",
+"الجرعات المتبقية في العلبة": "Doses left in the box",
+"يتوقف التذكير عند انتهائها": "reminders stop when it runs out"
 };

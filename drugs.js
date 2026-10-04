@@ -164,6 +164,18 @@ export function brandToGeneric(v) {
 
 // الشكل الصيدلاني والعدد المطلوب صرفه (مثل: Cap. N. 20)
 const AR_NUM = { "حبة": 1, "حبتان": 2, "حبتين": 2, "كبسولة": 1, "كبسولتان": 2, "كبسولتين": 2, "كيس": 1, "كيسان": 2, "تحميلة": 1 };
+// عدد الجرعات في العلبة: من خانة الصرف (مثل Cap. N. 15) مقسوماً على عدد الحبات في الجرعة
+export function doseCount(it) {
+  const m = String(it.qty || "").match(/^\s*(Tab|Cap|Sachet|Supp|Amp)\.?\s*N\.?\s*(\d+)/i);
+  if (!m) return null;
+  const d = String(it.dose || "");
+  let per = 1;
+  const k = d.match(/^\s*(\d+)\s*(حب|كبسول|tab|cap|كيس|تحميل)/i);
+  if (k) per = Number(k[1]);
+  else for (const [w, v] of Object.entries(AR_NUM)) if (d.trim().startsWith(w)) { per = v; break; }
+  const n = Math.floor(Number(m[2]) / (per || 1));
+  return n > 0 ? n : null;
+}
 export function dispenseText(it) {
   const name = `${it.drug || ""} ${it.dose || ""}`.toLowerCase();
   if (!it.drug) return "";

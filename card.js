@@ -29,7 +29,7 @@ export const gaText = (c) => c ? `${c.w} أسبوع${c.d ? " و" + c.d + " يو�
 export function activeMeds(rxs, today = ymd()) {
   const out = [];
   rxs.forEach((r) => (r.items || []).forEach((it) => {
-    if (!it.endDate || it.endDate >= today) out.push({ ...it, rxDate: r.date });
+    if (!it.endDate || it.endDate >= today) out.push({ ...it, rxDate: r.date, rxAt: r.createdAt?.toMillis?.() || (r.createdAt?.seconds ? r.createdAt.seconds * 1000 : 0) });
   }));
   return out;
 }
@@ -267,7 +267,7 @@ async function rx(p) {
 
 export async function rxModal(pid) {
   const p = PC.byId[pid];
-  const [{ COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES, BRANDS, brandToGeneric, dispenseText }, { searchDiseases }, { drugWarnings }, med, pregs] = await Promise.all([
+  const [{ COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES, BRANDS, brandToGeneric, dispenseText, doseCount }, { searchDiseases }, { drugWarnings }, med, pregs] = await Promise.all([
     import("./drugs.js"), import("./diseases.js"), import("./drugsafety.js"),
     one(P.subDoc(pid, "medical", "profile")).catch(() => null), list(P.sub(pid, "pregnancies")).catch(() => []),
   ]);
@@ -372,7 +372,12 @@ export async function rxModal(pid) {
       const clean = items.filter((x) => x.drug.trim()).map((x) => ({
         drug: x.drug.trim(), dose: x.dose.trim(), times: x.times.trim(), days: x.days ? Number(x.days) : null, note: x.note.trim(), qty: String(x.qty ?? dispenseText(x)).trim(),
         endDate: x.days ? addDays(date, Number(x.days) - 1) : null
-      }));
+      })).map((x) => {
+        // إن حُدد عدد الحبات في العلبة: التذكير ينتهي بانتهاء العلبة
+        const n = doseCount(x), per = (x.times.match(/\d{1,2}:\d{2}/g) || []).length;
+        if (n && per) { x.doses = n; x.endDate = addDays(date, Math.ceil(n / per)); }
+        return x;
+      });
       if (!clean.length) { toast("اكتب دواءً واحداً على الأقل", true); return false; }
       const risky = clean.filter((x) => drugWarnings(x.drug, flags, mm.allergies || "").some((z) => z.level === "no"));
       if (risky.length && !(await confirmBox("تنبيه دوائي", `الأدوية التالية يُتجنب استخدامها لهذا المريض: ${risky.map((x) => x.drug).join("، ")}. هل تريد حفظ الوصفة رغم ذلك؟`, "حفظ رغم التنبيه", true))) return false;

@@ -267,10 +267,19 @@ const medKey = (m) => `${m.rxDate || ""}|${m.drug}`;
 function myTimes() { try { return JSON.parse(localStorage.getItem(MT_KEY()) || "{}"); } catch { return {}; } }
 function saveMyTimes(o) { try { localStorage.setItem(MT_KEY(), JSON.stringify(o)); } catch {} }
 function myMeds(rxs, day) { const o = myTimes(); return activeMeds(rxs, day).map((m) => (o[medKey(m)] ? { ...m, times: o[medKey(m)], mine: true } : m)); }
-function todayDoses(meds) {
+// ترتيب الجرعة منذ بدء الوصفة: لا يُرسل تذكير بعد انتهاء حبات العلبة
+function doseIdx(m, day, time) {
+  const ts = timesList(m.times).map((t) => t.padStart(5, "0")).sort(), start = m.rxAt || +parseYmd(m.rxDate || day);
+  const at = (d, t) => { const x = parseYmd(d); const [h, mi] = t.split(":").map(Number); x.setHours(h, mi, 0, 0); return +x; };
+  let k = 0;
+  for (let d = m.rxDate || day; d <= day; d = addDays(d, 1)) for (const t of ts) { if (d === day && t >= time) return k; if (at(d, t) >= start) k++; }
+  return k;
+}
+const leftDoses = (m) => (m.doses ? Math.max(0, m.doses - doseIdx(m, ymd(), new Date().toTimeString().slice(0, 5))) : null);
+function todayDoses(meds, day = ymd()) {
   const out = [];
   meds.forEach((m) => String(m.times || "").split(/[,،\s]+/).map((t) => t.trim()).filter((t) => /^\d{1,2}:\d{2}$/.test(t))
-    .forEach((t) => out.push({ ...m, time: t.padStart(5, "0") })));
+    .forEach((t) => { const time = t.padStart(5, "0"); if (!m.doses || doseIdx(m, day, time) < m.doses) out.push({ ...m, time }); }));
   return out.sort((a, b) => a.time.localeCompare(b.time));
 }
 async function meds() {
@@ -281,7 +290,7 @@ async function meds() {
     <section class="card">${act.length ? `<ul class="plain">${act.map((m) => `<li class="req"><b>${esc(m.drug)}</b> ${esc(m.dose || "")}
       ${m.times ? `<div class="muted small">${esc(freqText(m.times))}</div><div class="row-between"><span>⏰ ${esc(timesList(m.times).map(fmtTime).join(" · "))}</span><button class="btn small mt" data-k="${esc(medKey(m))}" data-n="${timesList(m.times).length}" data-t="${esc(m.times)}">اختر أوقاتي</button></div>` : ""}
       ${m.note ? `<div class="muted">${esc(m.note)}</div>` : ""}
-      <div class="muted small">${m.endDate ? `لغاية ${esc(fmtDate(m.endDate, false))}` : "مستمر"}</div></li>`).join("")}</ul>` : empty("لا توجد أدوية حالية")}</section>
+      <div class="muted small">${m.doses ? `💊 ${tr("الجرعات المتبقية في العلبة")}: <span class="notr" dir="ltr">${leftDoses(m)}/${m.doses}</span> · ${tr("يتوقف التذكير عند انتهائها")}` : m.endDate ? `لغاية ${esc(fmtDate(m.endDate, false))}` : "مستمر"}</div></li>`).join("")}</ul>` : empty("لا توجد أدوية حالية")}</section>
     <section class="card stack"><h3>التذكير</h3>
       ${perm === "granted" ? `<p class="muted">${NATIVE ? "✓ التذكير مفعّل، ويعمل حتى لو كان التطبيق مغلقاً. يصلك أيضاً تذكير بموعدك مساء اليوم السابق وقبله بساعتين." : "يعمل التذكير ما دام التطبيق مفتوحاً أو في الخلفية. للتذكير والتطبيق مغلق، ثبّت تطبيق أندرويد."}</p>`
         : perm === "denied" ? `<p class="muted">الإشعارات متوقفة لهذا التطبيق. فعّلها من إعدادات الجوال ← التطبيقات ← نبض ← الإشعارات.</p>`
@@ -316,7 +325,7 @@ async function scheduleNative() {
     const hide = !!T.me?.hideSensitive;
     for (let d = 0; d < 7; d++) {
       const day = addDays(ymd(), d);
-      todayDoses(myMeds(rxs, day)).forEach((m) => {
+      todayDoses(myMeds(rxs, day), day).forEach((m) => {
         const [h, mi] = m.time.split(":").map(Number);
         const at = parseYmd(day); at.setHours(h, mi, 0, 0);
         if (+at > now) items.push({ id: `dose-${day}-${m.time}-${m.drug}`, at: +at, title: tr("وقت الدواء"), body: hide ? tr("لديك جرعة دواء الآن") : `${m.drug} ${m.dose || ""}`.trim() });
