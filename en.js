@@ -2832,5 +2832,6 @@ export const EN = {
 "تم ربط المريض بحساب هذا الرقم الموجود مسبقاً": "Patient linked to the existing account for this number",
 "تنبيه": "Notice",
 "هل يمكن تسجيل مريض دون إنشاء حساب له؟": "Can I register a patient without creating an account?",
-"نعم، عند تسجيل المريض اختر «عدم إنشاء حساب للمريض الآن»، ويصبح رقم الجوال اختيارياً. ومتى أراد المريض الحساب لاحقاً: «بطاقة المريض ← الحساب ← إنشاء حساب للمريض».": "Yes. When registering, choose “Don't create an app account now” and the mobile number becomes optional. If the patient wants an account later: “Patient card → Account → Create patient account”."
+"نعم، عند تسجيل المريض اختر «عدم إنشاء حساب للمريض الآن»، ويصبح رقم الجوال اختيارياً. ومتى أراد المريض الحساب لاحقاً: «بطاقة المريض ← الحساب ← إنشاء حساب للمريض».": "Yes. When registering, choose “Don't create an app account now” and the mobile number becomes optional. If the patient wants an account later: “Patient card → Account → Create patient account”.",
+"تحميلات تطبيق أندرويد": "Android app downloads"
 };

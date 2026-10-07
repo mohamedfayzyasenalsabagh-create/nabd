@@ -85,6 +85,7 @@ async function renderClinics() {
       <button class="stat f ${filter === "expired" ? "sel" : ""}" data-f="expired"><b>${expired.length}</b><span>منتهية أو موقوفة</span></button>
       <div class="stat"><b>${mrr}$</b><span>الدخل الشهري المتوقع</span></div>
       <div class="stat"><b>${gotThis}$</b><span>المقبوض هذا الشهر${gotLast ? ` (السابق ${gotLast}$)` : ""}</span></div>
+      <div class="stat dl-stat"><b>…</b><span>تحميلات تطبيق أندرويد</span></div>
     </div>
     ${follow.length ? `<section class="card follow"><h3>⏰ تحتاج متابعة للتجديد</h3><p class="muted small">أرسل تذكيراً بالتجديد قبل انتهاء الاشتراك، فالعيادة المنتهية تصبح للقراءة فقط.</p>
       <ul class="remind-list">${follow.map(({ c, s: x }) => `<li class="${c.renewRemindedAt && tsMs(c.renewRemindedAt) > Date.now() - 3 * 864e5 ? "done" : ""}">
@@ -100,6 +101,7 @@ async function renderClinics() {
         <td>${c.plan === "gift" ? "مدى الحياة" : `${esc(fmtDate(ymd(new Date(tsMs(c.expiresAt))), false))}<br><small class="${s.days <= 7 ? "danger-t" : "muted"}">${s.days > 0 ? `بعد ${s.days} يوم` : "انتهى"}</small>`}</td>
         <td><button class="btn small man" data-id="${c.id}">إدارة</button></td></tr>`).join("")}
       </tbody></table></div>` : empty("لا توجد عيادات")}</section>`;
+  loadDownloads();
   $$(".stat.f").forEach((b) => b.onclick = () => { filter = b.dataset.f; renderClinics(); });
   $("#cq").oninput = debounce((e) => { q = e.target.value; renderClinics().then(() => { const i = $("#cq"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 250);
   $$(".man").forEach((b) => b.onclick = () => manageClinic(all.find((c) => c.id === b.dataset.id)));
@@ -285,4 +287,20 @@ function renderSettings() {
     try { await updateDoc(P.platform(), data); S.platform = { ...S.platform, ...data }; toast("حُفظت الإعدادات"); start(); }
     catch (err) { toast(errMsg(err), true); }
   };
+}
+
+// عدد تحميلات التطبيق: مجموع تنزيلات ملف nabd.apk في كل إصدارات GitHub
+async function loadDownloads() {
+  const el = document.querySelector(".dl-stat b"); if (!el) return;
+  try {
+    let n = 0;
+    for (let page = 1; page <= 5; page++) {
+      const r = await fetch(`https://api.github.com/repos/mohamedfayzyasenalsabagh-create/nabd/releases?per_page=100&page=${page}`);
+      if (!r.ok) throw new Error(r.status);
+      const arr = await r.json();
+      arr.forEach((rel) => (rel.assets || []).forEach((a) => { if (/\.apk$/i.test(a.name)) n += a.download_count || 0; }));
+      if (arr.length < 100) break;
+    }
+    el.textContent = n;
+  } catch { el.textContent = "—"; }
 }
