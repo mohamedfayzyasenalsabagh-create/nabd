@@ -118,6 +118,9 @@ async function summary(p) {
     : [g || m.pregnant ? "حامل" : "", m.lactating ? "مرضع" : "", m.liver ? "مرض كبدي" : "", m.kidney ? "مرض كلوي" : ""].filter(Boolean);
   if (fls.length) smart.push(`⚠️ ${EN ? "Take care choosing drugs" : "انتبه في اختيار الأدوية"}: ${fls.join(EN ? ", " : "، ")}.`);
   const medNames = [...meds.map((x) => x.drug), ...String(m.permanentMeds || "").split(/[،,\n]/).map((x) => x.trim()).filter((x) => real(x))];
+  if (real(m.surgeries)) smart.push(`${EN ? "Previous surgery" : "عمليات سابقة"}: <span class="notr">${esc(m.surgeries)}</span>.`);
+  if (m.smoking === "yes") smart.push(`🚬 ${EN ? "Smoker" : "مدخن"}${m.smokeNote ? `: <span class="notr">${esc(m.smokeNote)}</span>` : ""}.`);
+  else if (m.smoking === "ex") smart.push(`🚬 ${EN ? "Ex-smoker" : "مدخن سابق"}.`);
   if (medNames.length) smart.push(`${EN ? "Current and long-term medicines" : "الأدوية الحالية والدائمة"}: ${medNames.length}.`);
   sm.checkInteractions(medNames).forEach((x) => smart.push(`<span class="${x.level === "danger" ? "danger-t" : ""}">💊 <span>${x.sev === "major" ? "تداخل خطير" : "تداخل متوسط"}</span>: <b dir="ltr" class="notr">${esc(x.a)} + ${esc(x.b)}</b> <span>${esc(x.text)}</span></span>`));
   const byT = {}; labs.sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach((l) => { if (!byT[l.test]) byT[l.test] = l; });
@@ -145,7 +148,8 @@ async function summary(p) {
         <tr><th>أمراض مزمنة</th><td>${esc(m.chronic || "—")}</td></tr>
         <tr><th>حساسية</th><td>${esc(m.allergies || "—")}</td></tr>
         <tr><th>عمليات سابقة</th><td>${esc(m.surgeries || "—")}</td></tr>
-        <tr><th>أدوية دائمة</th><td>${esc(m.permanentMeds || "—")}</td></tr>
+        <tr><th>أدوية مستمرة</th><td>${esc(m.permanentMeds || "—")}</td></tr>
+        <tr><th>التدخين</th><td>${esc(SMOKE[m.smoking] || "—")}${m.smokeNote ? ` · ${esc(m.smokeNote)}` : ""}</td></tr>
         ${women() ? `<tr><th>حمل / ولادة / إجهاض / قيصرية</th><td>${esc(m.gravida ?? "—")} / ${esc(m.para ?? "—")} / ${esc(m.abortions ?? "—")} / ${esc(m.cesareans ?? "—")}</td></tr>
         <tr><th>وسيلة منع الحمل</th><td>${esc(m.contraception || "—")}</td></tr>` : ""}
       </table></section>
@@ -169,13 +173,18 @@ async function summary(p) {
   if ($("#modsum")) $("#modsum").innerHTML = bits;
 }
 
+const SMOKE = { no: "غير مدخن", yes: "مدخن", ex: "مدخن سابق" };
 const isF = (p) => ["f", "female"].includes(p?.sex);
 async function medicalModal(p, m) {
   await modal(women() ? "التاريخ المرضي والنسائي" : "التاريخ المرضي", `<form class="stack">
     ${field("أمراض مزمنة", "chronic", { value: m.chronic })}
     ${field("حساسية", "allergies", { value: m.allergies, hint: "تظهر كتنبيه أحمر أعلى البطاقة" })}
     ${field("عمليات سابقة", "surgeries", { value: m.surgeries })}
-    ${field("أدوية دائمة", "permanentMeds", { value: m.permanentMeds })}
+    ${field("أدوية مستمرة (دائمة)", "permanentMeds", { value: m.permanentMeds })}
+    <div class="grid2">
+      ${select("التدخين", "smoking", [["", "—"], ["no", "غير مدخن"], ["yes", "مدخن"], ["ex", "مدخن سابق"]], m.smoking || "")}
+      ${field("نوعه وكميته", "smokeNote", { value: m.smokeNote || "", placeholder: "مثلاً: علبة يومياً، أركيلة" })}
+    </div>
     <fieldset><legend>حالات تؤثر على اختيار الدواء</legend><div class="grid2">
       ${isF(p) ? `<label class="check"><input type="checkbox" name="pregnant" ${m.pregnant ? "checked" : ""}><span>🤰 حامل</span></label>
       <label class="check"><input type="checkbox" name="lactating" ${m.lactating ? "checked" : ""}><span>🍼 مرضع</span></label>` : ""}
@@ -594,7 +603,8 @@ export async function printPatientFile(pid) {
     ${sec("التاريخ المرضي", `<table class="kv">
       <tr><th>أمراض مزمنة</th><td>${esc(m.chronic || "لا يوجد")}</td></tr>
       <tr><th>عمليات سابقة</th><td>${esc(m.surgeries || "لا يوجد")}</td></tr>
-      <tr><th>أدوية دائمة</th><td>${esc(m.permanentMeds || "لا يوجد")}</td></tr></table>`)}
+      <tr><th>أدوية مستمرة</th><td>${esc(m.permanentMeds || "لا يوجد")}</td></tr>
+      ${m.smoking ? `<tr><th>التدخين</th><td>${esc(SMOKE[m.smoking])}${m.smokeNote ? ` · ${esc(m.smokeNote)}` : ""}</td></tr>` : ""}</table>`)}
     ${sec("الأدوية الحالية", meds.length ? `<ul>${meds.map((x) => `<li dir="auto"><b>${esc(x.drug)}</b> ${esc(x.dose || "")}${x.times ? ` · ${esc(freqText(x.times))}` : ""}</li>`).join("")}</ul>` : `<p class="muted">لا توجد</p>`)}
     ${sec(`الزيارات${vis.length > 15 ? " (آخر 15)" : ""}`, vs.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>الشكوى</th><th>التشخيص</th><th>العلاج</th></tr></thead><tbody>${vs.map((v) => `<tr><td>${esc(v.date)}</td><td>${esc(v.complaint || "")}</td><td>${esc(v.diagnosis || "")}</td><td>${esc(v.treatment || "")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">لا توجد زيارات</p>`)}
     ${ls.length ? sec("التحاليل", `<table class="tbl"><thead><tr><th>التاريخ</th><th>التحليل</th><th>النتيجة</th></tr></thead><tbody>${ls.map((l) => `<tr><td>${esc(l.date || "")}</td><td dir="auto">${esc(l.test || "")}</td><td dir="auto">${esc(l.value || "")} ${esc(l.unit || "")}</td></tr>`).join("")}</tbody></table>`) : ""}

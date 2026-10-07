@@ -486,5 +486,18 @@
  "هل في التطبيق مساعد ذكي للطبيب؟": "Is there a smart assistant for the doctor?",
  "نعم، «المزيد ← المساعد الطبي الذكي» للطبيب فقط، وهو مختص بالطب حصراً ويعمل دون أي اشتراك: اقتراح التشخيص من الأعراض مع علامات الإنذار، وفحص التداخلات الدوائية (تظهر تلقائياً داخل الوصفة)، وتفسير التحاليل وحساب eGFR، وملخص ذكي أعلى ملف المريض. وهو مساعدة فقط، والقرار للطبيب.": "Yes. “More → Smart medical assistant” is for doctors only, strictly medical and needs no subscription: diagnosis suggestions from symptoms with red flags, drug interaction checks (shown automatically in the prescription), lab interpretation with eGFR, and a smart summary at the top of the patient file. It is only an aid; the decision is the doctor's.",
  "المساعد الطبي الذكي": "Smart medical assistant",
- "من الأعراض إلى التشخيص، فحص التداخلات الدوائية، وتفسير التحاليل، مع ملخص ذكي لكل مريض.": "Symptoms to diagnosis, drug interaction checks and lab interpretation, with a smart summary for every patient."
+ "من الأعراض إلى التشخيص، فحص التداخلات الدوائية، وتفسير التحاليل، مع ملخص ذكي لكل مريض.": "Symptoms to diagnosis, drug interaction checks and lab interpretation, with a smart summary for every patient.",
+ "التدخين": "Smoking",
+ "غير مدخن": "Non-smoker",
+ "مدخن": "Smoker",
+ "مدخن سابق": "Ex-smoker",
+ "نوعه وكميته": "Type and amount",
+ "مثلاً: علبة يومياً، أركيلة": "e.g. a pack a day, shisha",
+ "التاريخ المرضي (اختياري)": "Medical history (optional)",
+ "مثلاً: سكري، ضغط، ربو": "e.g. diabetes, hypertension, asthma",
+ "مثلاً: البنسلين": "e.g. penicillin",
+ "أدوية مستمرة": "Long-term medicines",
+ "أدوية مستمرة (دائمة)": "Long-term medicines",
+ "الأدوية التي يتناولها بشكل دائم": "Medicines taken regularly",
+ "عمليات سابقة": "Previous surgery"
 }

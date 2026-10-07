@@ -716,6 +716,13 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
       ${select("زمرة الدم", "bloodType", ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])}
     </div>
     ${field("العنوان", "address")}
+    ${isDoctor() ? `<details class="med-intake"><summary>التاريخ المرضي (اختياري)</summary><div class="stack">
+      ${field("أمراض مزمنة", "chronic", { placeholder: "مثلاً: سكري، ضغط، ربو" })}
+      ${field("حساسية", "allergies", { placeholder: "مثلاً: البنسلين" })}
+      ${field("عمليات سابقة", "surgeries")}
+      ${field("أدوية مستمرة", "permanentMeds", { placeholder: "الأدوية التي يتناولها بشكل دائم" })}
+      ${select("التدخين", "smoking", [["", "—"], ["no", "غير مدخن"], ["yes", "مدخن"], ["ex", "مدخن سابق"]], "")}
+    </div></details>` : ""}
     <p class="muted small acc-note">${kids ? "يُنشأ لولي الأمر حساب برقم جواله، ويمكنه متابعة أكثر من طفل من الحساب نفسه." : "يُنشأ للمريض حساب تلقائياً برقم جواله."}</p>
   </form>`, {
     ok: "تسجيل",
@@ -727,7 +734,11 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
       const dup = PC.list.find((p) => p.phone === normPhone(f.phone) && p.name.trim() === f.name.trim());
       if (dup && !(await confirmBox("يوجد مريض بالاسم والرقم نفسيهما", "هل تريد تسجيله مرة أخرى؟", "تسجيل"))) return false;
       if (f.dob && !f.age) f.age = Math.floor(daysBetween(f.dob, ymd()) / 365.25);
+      const MED = ["chronic", "allergies", "surgeries", "permanentMeds", "smoking"];
+      const med = Object.fromEntries(MED.filter((k) => (f[k] || "").trim()).map((k) => [k, f[k].trim()]));
+      MED.forEach((k) => delete f[k]);
       const res = await registerPatient(f);
+      if (Object.keys(med).length) { try { await setDoc(P.subDoc(res.pid, "medical", "profile"), { ...med, updatedAt: serverTimestamp() }, { merge: true }); } catch (e) { console.warn(e); } }
       return { ...res, name: f.name, guardian: !!f.guardian };
     }
   });
