@@ -149,6 +149,7 @@ async function render() {
       case "subscription": return isAdmin() ? (await admin()).renderSubscription() : renderMore();
       case "reports": return isDoctor() ? await renderReports() : renderMore();
       case "library": return isDoctor() ? (await import("./medref.js")).renderLibrary() : renderMore();
+      case "assistant": return isDoctor() ? (await import("./medref.js")).renderAssistant() : renderMore();
       case "druged": return isDoctor() ? (await import("./medref.js")).renderDrugEd() : renderMore();
       case "faq": return await renderFaq();
       case "expenses": return canFin() ? await renderExpenses() : renderMore();
@@ -871,7 +872,7 @@ function renderMore() {
       ["#/tv", "شاشة الانتظار (للتلفاز)"],
       ...(feat("inventory") ? [["#/inventory", "المخزون"]] : []),
     ]],
-    ...(d ? [["المرجع الطبي", [["#/library", "نماذج وصفات دوائية جاهزة حسب التشخيص"], ["#/druged", "التثقيف الدوائي"]]]] : []),
+    ...(d ? [["المرجع الطبي", [["#/assistant", "🤖 المساعد الطبي الذكي"], ["#/library", "نماذج وصفات دوائية جاهزة حسب التشخيص"], ["#/druged", "التثقيف الدوائي"]]]] : []),
     ...(acct ? [["الحسابات", [["#/expenses", "مصاريف العيادة"]]]] : []),
     ...(d ? [["الإدارة", [
       ["#/reports", "التقارير"],

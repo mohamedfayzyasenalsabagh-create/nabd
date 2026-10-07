@@ -8,6 +8,7 @@ import { makeThumb, tileImg, isImg, showFile, shareImages, CASH_METHODS, freqTex
   field, select, waLink, empty, compressImage, pickFile, printDoc, daysBetween, qrSvg
 } from "./ui.js";
 import { S } from "./app.js";
+import { isEn as isEnL } from "./i18n.js";
 import { PC, isDoctor, isNurse, specMods, mySpec, myDoctor, docPub, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName } from "./staff.js";
 const mods = () => import("./mods.js");
 const women = () => hasMod("preg") || hasMod("gyn");
@@ -92,12 +93,14 @@ export const refresh = () => renderCard();
 const condChips = (m, preg) => { const c = [(preg || m.pregnant) && "🤰 حامل", m.lactating && "🍼 مرضع", m.liver && "🟤 مرض كبدي", m.kidney && "🫘 مرض كلوي"].filter(Boolean); return c.length ? `<div class="row gap wrap cond-chips">${c.map((x) => `<span class="chip danger">${x}</span>`).join("")}</div>` : ""; };
 // ---------- الملخص (الطبيبة) ----------
 async function summary(p) {
-  const [med, rxs, pregs, vis, apps] = await Promise.all([
+  const [med, rxs, pregs, vis, apps, labs, sm] = await Promise.all([
     one(P.subDoc(p.id, "medical", "profile")),
     list(P.sub(p.id, "prescriptions")),
     list(P.sub(p.id, "pregnancies")),
     list(P.sub(p.id, "visits")),
     list(query(P.col("appointments"), where("patientId", "==", p.id))),
+    list(P.sub(p.id, "labs")).catch(() => []),
+    import("./smart.js"),
   ]);
   const m = med || {};
   const meds = activeMeds(rxs);
@@ -105,7 +108,28 @@ async function summary(p) {
   const gc = g ? pregCalc(g) : null;
   const last = vis.sort((a, b) => b.date.localeCompare(a.date))[0];
   const next = apps.filter((a) => a.date >= ymd() && !["cancelled", "done", "noshow"].includes(a.status)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
+  // الملخص الذكي: سطور قصيرة يقرؤها الطبيب قبل دخول المريض (بالعربية أو الإنكليزية حسب لغة الواجهة)
+  const EN = isEnL, smart = [];
+  const real = (v) => v && !/^\s*(لا|لا يوجد|لايوجد|none|no|nil|-|—)\s*$/i.test(v);
+  const age = p.dob ? Math.floor(daysBetween(p.dob, ymd()) / 365.25) : p.age;
+  const who = EN ? (p.sex === "f" ? "Female" : p.sex === "m" ? "Male" : "Patient") : (p.sex === "f" ? "مريضة" : p.sex === "m" ? "مريض" : "المريض");
+  smart.push(`${who}${age ? (EN ? `, ${age} years` : ` بعمر ${age} سنة`) : ""}${real(m.chronic) ? `${EN ? ", chronic: " : "، أمراض مزمنة: "}<b class="notr">${esc(m.chronic)}</b>` : ""}${real(m.allergies) ? `${EN ? ", " : "، "}<b class="danger-t">${EN ? "allergy" : "حساسية"}: <span class="notr">${esc(m.allergies)}</span></b>` : ""}.`);
+  const fls = EN ? [g || m.pregnant ? "pregnant" : "", m.lactating ? "breastfeeding" : "", m.liver ? "liver disease" : "", m.kidney ? "kidney disease" : ""].filter(Boolean)
+    : [g || m.pregnant ? "حامل" : "", m.lactating ? "مرضع" : "", m.liver ? "مرض كبدي" : "", m.kidney ? "مرض كلوي" : ""].filter(Boolean);
+  if (fls.length) smart.push(`⚠️ ${EN ? "Take care choosing drugs" : "انتبه في اختيار الأدوية"}: ${fls.join(EN ? ", " : "، ")}.`);
+  const medNames = [...meds.map((x) => x.drug), ...String(m.permanentMeds || "").split(/[،,\n]/).map((x) => x.trim()).filter((x) => real(x))];
+  if (medNames.length) smart.push(`${EN ? "Current and long-term medicines" : "الأدوية الحالية والدائمة"}: ${medNames.length}.`);
+  sm.checkInteractions(medNames).forEach((x) => smart.push(`<span class="${x.level === "danger" ? "danger-t" : ""}">💊 <span>${x.sev === "major" ? "تداخل خطير" : "تداخل متوسط"}</span>: <b dir="ltr" class="notr">${esc(x.a)} + ${esc(x.b)}</b> <span>${esc(x.text)}</span></span>`));
+  const byT = {}; labs.sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach((l) => { if (!byT[l.test]) byT[l.test] = l; });
+  const abn = Object.values(byT).map((l) => ({ l, r: sm.interpretLab(l.test, l.value, p.sex) })).filter((x) => x.r && x.r.st !== "ok");
+  if (abn.length) smart.push(`🧪 ${EN ? "Latest abnormal labs" : "آخر تحاليل غير طبيعية"}: <span class="notr" dir="ltr">${abn.map(({ l, r }) => `${esc(l.test)} ${esc(l.value)} ${r.st === "low" ? "▼" : "▲"}`).join(", ")}</span>`);
+  const cr = Object.values(byT).find((l) => sm.findLab(l.test)?.k === "creat"), eg = cr ? sm.egfr(cr.value, age, p.sex) : null;
+  if (eg) smart.push(`${EN ? "Kidney" : "الكلية"}: <span class="notr" dir="ltr">eGFR ≈ ${eg.g}</span> (<span>${esc(eg.stage)}</span>)${eg.g < 60 ? (EN ? ", adjust drug doses" : "، عدّل جرعات الأدوية") : ""}.`);
+  if (last) { const dd = daysBetween(last.date, ymd()); smart.push(EN ? `Last visit ${dd} days ago${last.diagnosis ? `: <span class="notr">${esc(last.diagnosis)}</span>` : ""}. Visits: ${vis.length}.` : `آخر زيارة قبل ${dd} يوم${last.diagnosis ? `: ${esc(last.diagnosis)}` : ""}. عدد الزيارات: ${vis.length}.`); }
+  const nos = apps.filter((a) => a.status === "noshow").length;
+  if (nos) smart.push(EN ? `Missed ${nos} previous appointment${nos > 1 ? "s" : ""}.` : `لم يحضر ${nos} ${nos === 1 ? "موعداً" : "مواعيد"} سابقاً.`);
   tabEl().innerHTML = `
+    ${isDoctor() ? `<section class="card smart"><h3>🤖 الملخص الذكي</h3><ul>${smart.map((x) => `<li>${x}</li>`).join("")}</ul></section>` : ""}
     ${m.allergies ? `<div class="alert danger">⚠️ حساسية: ${esc(m.allergies)}</div>` : ""}
     ${condChips(m, !!g)}
     ${g ? `<section class="card preg-card ${g.highRisk ? "risk" : ""}"><div class="row-between"><h3>🤰 حامل · ${esc(gaText(gc))}</h3>${g.highRisk ? `<span class="chip danger">عالي الخطورة</span>` : ""}</div>
@@ -267,14 +291,19 @@ async function rx(p) {
 
 export async function rxModal(pid) {
   const p = PC.byId[pid];
-  const [{ COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES, BRANDS, brandToGeneric, dispenseText, doseCount }, { searchDiseases }, { drugWarnings }, med, pregs] = await Promise.all([
+  const [{ COMMON_DRUGS, builtinTemplatesFor, QUICK_TIMES, BRANDS, brandToGeneric, dispenseText, doseCount }, { searchDiseases }, { drugWarnings }, med, pregs, { interactionsFor }, prevRx] = await Promise.all([
     import("./drugs.js"), import("./diseases.js"), import("./drugsafety.js"),
     one(P.subDoc(pid, "medical", "profile")).catch(() => null), list(P.sub(pid, "pregnancies")).catch(() => []),
+    import("./smart.js"), list(P.sub(pid, "prescriptions")).catch(() => []),
   ]);
   const mm = med || {};
   const flags = { preg: !!mm.pregnant || pregs.some((g) => g.status === "active"), lact: !!mm.lactating, liver: !!mm.liver, kidney: !!mm.kidney };
   const specKeys = [...specMods(mySpec()), mySpec(), ...(S.clinic?.modules || []), S.clinic?.specialty || ""].filter(Boolean);
-  const warnHtml = (drug) => drugWarnings(drug, flags, mm.allergies || "").map((x) => `<div class="rx-warn ${x.level}">⚠️ ${esc(x.text)}</div>`).join("");
+  // أدوية المريض الحالية والدائمة: لفحص التداخلات مع الدواء الجديد
+  const curMeds = [...activeMeds(prevRx).map((x) => x.drug), ...String(mm.permanentMeds || "").split(/[،,\n]/).map((x) => x.trim()).filter(Boolean)];
+  const warnHtml = (drug) => drugWarnings(drug, flags, mm.allergies || "").map((x) => `<div class="rx-warn ${x.level}">⚠️ ${esc(x.text)}</div>`).join("")
+    + interactionsFor(drug, [...curMeds, ...((typeof items !== "undefined" ? items : []).map((x) => x.drug).filter((d) => d && d !== drug))])
+      .map((x) => `<div class="rx-warn ${x.sev === "major" ? "no" : "care"}">💊 <span>${x.sev === "major" ? "تداخل خطير مع" : "تداخل متوسط مع"}</span> <b dir="ltr" class="notr">${esc(x.a === drug ? x.b : x.a)}</b><div>${esc(x.text)}</div></div>`).join("");
   const known = Object.fromEntries(COMMON_DRUGS.map((d) => [d.drug.toLowerCase(), d]));
   const drugs = [...new Set([...(S.clinic?.drugs || []), ...COMMON_DRUGS.map((d) => d.drug)])];
   const own = S.clinic?.rxTemplates || [];
@@ -321,7 +350,7 @@ export async function rxModal(pid) {
           // عند اختيار دواء معروف: تعبئة الجرعة والأوقات والمدة المقترحة إن كانت فارغة
           const k = el.dataset.k === "drug" && known[el.value.trim().toLowerCase()];
           if (k) ["dose", "times", "days"].forEach((f) => { if (!it[f] && k[f] !== "") { it[f] = String(k[f]); const inp = row.querySelector(`[data-k="${f}"]`); if (inp) inp.value = it[f]; } });
-          if (el.dataset.k === "drug") row.querySelector(".rx-warns").innerHTML = warnHtml(el.value);
+          if (el.dataset.k === "drug") w.querySelectorAll(".rx-row").forEach((r2) => { const x = items[r2.dataset.i]; if (x) r2.querySelector(".rx-warns").innerHTML = warnHtml(x.drug); });
           if (el.dataset.k === "qty") it.qtyEdited = true;
           else syncQty(row, it);
         });
@@ -379,8 +408,9 @@ export async function rxModal(pid) {
         return x;
       });
       if (!clean.length) { toast("اكتب دواءً واحداً على الأقل", true); return false; }
-      const risky = clean.filter((x) => drugWarnings(x.drug, flags, mm.allergies || "").some((z) => z.level === "no"));
-      if (risky.length && !(await confirmBox("تنبيه دوائي", `الأدوية التالية يُتجنب استخدامها لهذا المريض: ${risky.map((x) => x.drug).join("، ")}. هل تريد حفظ الوصفة رغم ذلك؟`, "حفظ رغم التنبيه", true))) return false;
+      const risky = clean.filter((x) => drugWarnings(x.drug, flags, mm.allergies || "").some((z) => z.level === "no")
+        || interactionsFor(x.drug, [...curMeds, ...clean.map((y) => y.drug).filter((d) => d !== x.drug)]).some((z) => z.sev === "major"));
+      if (risky.length && !(await confirmBox("تنبيه دوائي", `الأدوية التالية يُتجنب استخدامها لهذا المريض أو لها تداخل دوائي خطير: ${risky.map((x) => x.drug).join("، ")}. هل تريد حفظ الوصفة رغم ذلك؟`, "حفظ رغم التنبيه", true))) return false;
       let verify = null;
       if (feat("qr")) {
         verify = randId(16);
@@ -914,7 +944,7 @@ async function photosModal(p, x) {
 
 // ---------- التحاليل والملفات ----------
 async function files(p) {
-  const [labs, fls] = await Promise.all([list(P.sub(p.id, "labs")), list(P.sub(p.id, "files"))]);
+  const [labs, fls, SM] = await Promise.all([list(P.sub(p.id, "labs")), list(P.sub(p.id, "files")), import("./smart.js")]);
   const byTest = {};
   labs.forEach((l) => (byTest[l.test] = byTest[l.test] || []).push(l));
   Object.values(byTest).forEach((a) => a.sort((x, y) => y.date.localeCompare(x.date)));
@@ -926,7 +956,7 @@ async function files(p) {
   tabEl().innerHTML = `
     <section class="card"><div class="row-between"><h3>نتائج التحاليل</h3><button class="btn primary small addl">+ نتيجة</button></div>
       ${Object.keys(byTest).length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>التحليل</th><th>آخر قيمة</th><th>السابقة</th><th>التغير</th></tr></thead><tbody>
-      ${Object.entries(byTest).map(([t, a]) => { const [n, o] = a; const dv = o && !isNaN(n.value) && !isNaN(o.value) ? (Number(n.value) - Number(o.value)).toFixed(1) : ""; return `<tr><td><b>${esc(t)}</b></td><td>${esc(n.value)} ${esc(n.unit || "")}<br><small class="muted">${esc(n.date)}</small></td><td>${o ? `${esc(o.value)}<br><small class="muted">${esc(o.date)}</small>` : "—"}</td><td dir="ltr">${dv ? (dv > 0 ? "▲ " : dv < 0 ? "▼ " : "") + esc(dv) : ""}</td></tr>`; }).join("")}
+      ${Object.entries(byTest).map(([t, a]) => { const [n, o] = a; const dv = o && !isNaN(n.value) && !isNaN(o.value) ? (Number(n.value) - Number(o.value)).toFixed(1) : ""; const ir = SM.interpretLab(t, n.value, p.sex); return `<tr><td><b>${esc(t)}</b></td><td>${esc(n.value)} ${esc(n.unit || "")}${ir ? ` <span class="lr ${ir.st}" title="${esc(ir.note)}">${ir.st === "ok" ? "طبيعي" : ir.st === "low" ? "منخفض ▼" : "مرتفع ▲"}</span>` : ""}<br><small class="muted">${esc(n.date)}</small></td><td>${o ? `${esc(o.value)}<br><small class="muted">${esc(o.date)}</small>` : "—"}</td><td dir="ltr">${dv ? (dv > 0 ? "▲ " : dv < 0 ? "▼ " : "") + esc(dv) : ""}</td></tr>`; }).join("")}
       </tbody></table></div>` : empty("لا توجد نتائج")}
     </section>
     <section class="card"><div class="row-between"><h3>${hasMod("dental") ? "الصور السريرية والملفات" : "الإيكو والملفات"}</h3><button class="btn primary small addf">+ رفع</button></div>
@@ -935,7 +965,7 @@ async function files(p) {
         <span>${esc(KIND[f.kind] || "ملف")} · ${esc(f.date || "")}${f.uploadedBy === "patient" ? " · من المريض" : ""}</span></button>`).join("")}</div>` : empty("لا توجد ملفات")}
     </section>`;
   $(".addl").onclick = async () => {
-    const tests = [...new Set([...Object.keys(byTest), "Hb", "TSH", "سكر الصيام", "Ferritin", "Vit D", "Beta hCG", "AMH", "FSH", "LH", "Prolactin", "Estradiol", "Progesterone"])];
+    const tests = [...new Set([...Object.keys(byTest), "Hb", "TSH", "سكر الصيام", "HbA1c", "Ferritin", "Vit D", "Creatinine", "ALT", "LDL", "Beta hCG", "AMH", "FSH", "LH", "Prolactin", "Estradiol", "Progesterone"])];
     await modal("نتيجة تحليل", `<form class="stack">
       <datalist id="tests">${tests.map((t) => `<option value="${esc(t)}">`).join("")}</datalist>
       ${field("التحليل", "test", { required: true, attrs: 'list="tests"' })}

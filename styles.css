@@ -778,3 +778,14 @@ a.stat { color: inherit; text-decoration: none; }
 .tvx-wait span small { font-size: clamp(11px, 1.6vh, 20px); font-weight: 600; }
 .tvx-dl { opacity: .25; }
 .appt .q { white-space: nowrap; }
+
+/* المساعد الذكي */
+.chips-wrap{display:flex;flex-wrap:wrap;gap:6px}.chip.sy{cursor:pointer;border:0}.chip.sy.on{background:var(--accent,#0d6b66);color:#fff}
+.sy-sel{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ddi{border-inline-start:5px solid #e0a800}.ddi.danger{border-color:#c62828}.ddi p{margin:6px 0 0}
+.chip.warn{background:#fff3cd;color:#7a5600}
+.lab-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.lab-row{display:grid;grid-template-columns:1fr 90px 70px;align-items:center;gap:6px;font-size:14px}
+.lab-row input{padding:6px 8px}.lr{font-style:normal;font-size:12px;font-weight:700}.lr.ok{color:#2e7d32}.lr.low{color:#b26a00}.lr.high{color:#c62828}
+.smart{border:1px solid var(--accent,#0d6b66);background:linear-gradient(180deg,rgba(13,107,102,.06),transparent)}
+.smart ul{margin:6px 0 0;padding-inline-start:18px}.smart li{margin:3px 0}
