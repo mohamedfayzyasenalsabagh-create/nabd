@@ -1031,19 +1031,43 @@ async function msgs(p) {
 }
 
 // ---------- الحساب ----------
-async function account(p) {
-  const siblings = PC.list.filter((x) => x.phone === p.phone && x.id !== p.id);
-  tabEl().innerHTML = `<section class="card stack"><h3>حساب التطبيق</h3>
-    <p>رقم الدخول: <b dir="ltr">${esc(p.phone)}</b></p>
-    ${siblings.length ? `<p class="muted small">نفس الرقم مسجل لـ: ${siblings.map((s) => esc(s.name)).join("، ")}. كلمة المرور مشتركة بينهم.</p>` : ""}
-    <button class="btn rp">كلمة مرور جديدة للمريض</button>
-    <button class="btn chph">تغيير رقم الجوال</button>
-    <p class="muted small">عند نسيان كلمة المرور: تُمنح كلمة مرور مؤقتة جديدة وتتوقف القديمة.</p></section>
+const accRest = (p) => `
     <section class="card stack"><h3>البيانات</h3><button class="btn ed">تعديل البيانات الأساسية</button>
       ${isDoctor() ? `<button class="btn pf">طباعة / حفظ الملف كامل PDF</button>` : ""}</section>
     <section class="card stack"><h3>الأرشفة</h3>
       <p class="muted small">تُخفي الأرشفة المريض من القوائم دون حذف أي بيانات، ويمكن إرجاعها بضغطة واحدة.</p>
       <button class="btn ${p.archived ? "" : "danger"} ar">${p.archived ? "إرجاع من الأرشيف" : "أرشفة المريض"}</button></section>`;
+async function account(p) {
+  const bindArch = () => { $(".ar").onclick = async () => {
+    await updateDoc(P.patient(p.id), { archived: !p.archived });
+    await audit(p.archived ? "إرجاع مريض من الأرشيف" : "أرشفة مريض", p.name);
+    toast("تم"); setTimeout(refresh, 100);
+  }; };
+  const siblings = PC.list.filter((x) => x.phone === p.phone && x.id !== p.id);
+  const noAcc = !p.uid;
+  tabEl().innerHTML = noAcc ? `<section class="card stack"><h3>حساب التطبيق</h3>
+    <p class="muted">لا يوجد حساب للمريض في التطبيق.${p.phone ? ` رقم الجوال: <b dir="ltr">${esc(p.phone)}</b>` : " لم يُسجل رقم جوال."}</p>
+    <button class="btn primary mkacc">إنشاء حساب للمريض</button>
+    <p class="muted small">يحصل المريض على كلمة مرور مؤقتة ليدخل التطبيق ويتابع مواعيده وأدويته وسجله.</p></section>${accRest(p)}` : `<section class="card stack"><h3>حساب التطبيق</h3>
+    <p>رقم الدخول: <b dir="ltr">${esc(p.phone)}</b></p>
+    ${siblings.length ? `<p class="muted small">نفس الرقم مسجل لـ: ${siblings.map((s) => esc(s.name)).join("، ")}. كلمة المرور مشتركة بينهم.</p>` : ""}
+    <button class="btn rp">كلمة مرور جديدة للمريض</button>
+    <button class="btn chph">تغيير رقم الجوال</button>
+    <p class="muted small">عند نسيان كلمة المرور: تُمنح كلمة مرور مؤقتة جديدة وتتوقف القديمة.</p></section>
+${accRest(p)}`;
+  $(".mkacc")?.addEventListener("click", async () => {
+    const r = await modal("إنشاء حساب للمريض", `<form class="stack">${field("رقم الجوال (رقم الدخول)", "phone", { required: true, value: p.phone || "", attrs: 'dir="ltr" inputmode="tel"', placeholder: "09xxxxxxxx" })}</form>`, { ok: "إنشاء الحساب" });
+    if (!r) return;
+    try {
+      const { changePatientPhone } = await import("./fb.js");
+      const res = await changePatientPhone(p.id, p.phone || "", r.phone, true);
+      p.phone = res.phone;
+      if (res.temp) showCredentials(res.phone, res.temp, p.name, false, !!p.guardian);
+      else toast("تم ربط المريض بحساب هذا الرقم الموجود مسبقاً");
+      setTimeout(refresh, 300);
+    } catch (e) { toast(errMsg(e), true); }
+  });
+  if (noAcc) { $(".ed").onclick = () => editBasic(p); $(".pf")?.addEventListener("click", () => printFile(p)); bindArch(); return; }
   $(".rp").onclick = async () => {
     if (!(await confirmBox("كلمة مرور جديدة", "كلمة المرور الحالية ستتوقف. متابعة؟", "متابعة"))) return;
     try { const temp = await resetPatientPassword(p.phone); showCredentials(p.phone, temp, p.name, false, !!p.guardian); } catch (e) { toast(errMsg(e), true); }
@@ -1063,11 +1087,7 @@ async function account(p) {
       setTimeout(refresh, 300);
     } catch (e) { toast(errMsg(e), true); }
   };
-  $(".ar").onclick = async () => {
-    await updateDoc(P.patient(p.id), { archived: !p.archived });
-    await audit(p.archived ? "إرجاع مريض من الأرشيف" : "أرشفة مريض", p.name);
-    toast("تم"); setTimeout(refresh, 100);
-  };
+  bindArch();
 }
 
 // ---------- المستندات المطبوعة ----------

@@ -2818,5 +2818,19 @@ export const EN = {
 "في المركز لكل طبيب حرف خاص لرقم الدور (A، B، C...):": "In the center each doctor has their own queue letter (A, B, C...):",
 "حرف الدور": "Queue letter",
 "الجرعات المتبقية في العلبة": "Doses left in the box",
-"يتوقف التذكير عند انتهائها": "reminders stop when it runs out"
+"يتوقف التذكير عند انتهائها": "reminders stop when it runs out",
+"عدم إنشاء حساب للمريض الآن (الجوال اختياري)": "Don't create an app account now (mobile optional)",
+"يُحفظ ملف المريض دون حساب في التطبيق. يمكن إنشاء الحساب لاحقاً من «بطاقة المريض ← الحساب ← إنشاء حساب للمريض».": "The patient file is saved without an app account. You can create the account later from “Patient card → Account → Create patient account”.",
+"تم تسجيل المريض دون حساب": "Patient registered without an account",
+"لا يوجد حساب للمريض في التطبيق.": "The patient has no app account.",
+"رقم الجوال:": "Mobile:",
+"لم يُسجل رقم جوال.": "No mobile number recorded.",
+"إنشاء حساب للمريض": "Create patient account",
+"يحصل المريض على كلمة مرور مؤقتة ليدخل التطبيق ويتابع مواعيده وأدويته وسجله.": "The patient gets a temporary password to sign in and follow their appointments, medicines and record.",
+"رقم الجوال (رقم الدخول)": "Mobile number (login)",
+"إنشاء الحساب": "Create account",
+"تم ربط المريض بحساب هذا الرقم الموجود مسبقاً": "Patient linked to the existing account for this number",
+"تنبيه": "Notice",
+"هل يمكن تسجيل مريض دون إنشاء حساب له؟": "Can I register a patient without creating an account?",
+"نعم، عند تسجيل المريض اختر «عدم إنشاء حساب للمريض الآن»، ويصبح رقم الجوال اختيارياً. ومتى أراد المريض الحساب لاحقاً: «بطاقة المريض ← الحساب ← إنشاء حساب للمريض».": "Yes. When registering, choose “Don't create an app account now” and the mobile number becomes optional. If the patient wants an account later: “Patient card → Account → Create patient account”."
 };

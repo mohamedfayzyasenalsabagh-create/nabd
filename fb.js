@@ -342,10 +342,21 @@ export async function bootstrapOwner(email, password, name) {
 
 // ---------- المرضى ----------
 export async function registerPatient(data) {
-  const phone = normPhone(data.phone);
-  if (phone.length < 9) throw new Error("رقم الجوال غير صحيح");
+  const phone = data.phone ? normPhone(data.phone) : "";
+  if (phone && phone.length < 9) throw new Error("رقم الجوال غير صحيح");
+  if (!phone && !data.noAccount) throw new Error("رقم الجوال غير صحيح");
   const pRef = doc(P.patients());
   const pid = pRef.id;
+  // بدون حساب: يُحفظ الملف فقط، ويمكن إنشاء الحساب لاحقاً من بطاقة المريض
+  if (data.noAccount) {
+    await setDoc(pRef, {
+      name: data.name.trim(), phone, age: data.age ? Number(data.age) : null, dob: data.dob || null,
+      sex: data.sex || "", address: data.address || "", bloodType: data.bloodType || "", guardian: !!data.guardian, doctorIds: data.doctorIds || [], uid: null, noAccount: true,
+      archived: false, createdAt: serverTimestamp(), createdBy: currentActor.uid
+    });
+    await audit("تسجيل مريض جديد (دون حساب)", data.name);
+    return { pid, tempPassword: null, shared: false, phone, noAccount: true };
+  }
   const phRef = P.phone(phone);
   const ph = await getDoc(phRef);
   let tempPassword = null, uid, shared = false;
@@ -398,10 +409,10 @@ export async function resetPatientPassword(phone) {
 }
 
 // تغيير رقم جوال المريض (عند إدخاله خطأً): ينتقل حسابه إلى الرقم الجديد
-export async function changePatientPhone(pid, oldPhone, newPhoneRaw) {
+export async function changePatientPhone(pid, oldPhone, newPhoneRaw, create = false) {
   const phone = normPhone(newPhoneRaw);
   if (phone.length < 9) throw new Error("رقم الجوال غير صحيح");
-  if (phone === oldPhone) throw new Error("الرقم الجديد مطابق للرقم الحالي");
+  if (phone === oldPhone && !create) throw new Error("الرقم الجديد مطابق للرقم الحالي");
   const pRef = P.patient(pid);
   const pat = (await getDoc(pRef)).data() || {};
   const oldUid = pat.uid;
@@ -423,7 +434,7 @@ export async function changePatientPhone(pid, oldPhone, newPhoneRaw) {
     b.set(P.user(uid), { role: "patient", clinicId: C, phone, patientIds: [pid], active: true, mustChangePassword: true, ver: r.ver, hideSensitive: false, createdAt: serverTimestamp() });
     b.set(newRef, { patientUid: uid, patientVer: r.ver }, { merge: true });
   }
-  b.update(pRef, { phone, uid });
+  b.update(pRef, { phone, uid, noAccount: false });
   await b.commit();
   if (oldUid) {
     const ou = await getDoc(P.user(oldUid));
@@ -431,7 +442,7 @@ export async function changePatientPhone(pid, oldPhone, newPhoneRaw) {
     if (rest.length) await updateDoc(P.user(oldUid), { patientIds: rest });
     else { await updateDoc(P.user(oldUid), { patientIds: [], active: false }); await setDoc(P.phone(oldPhone), { patientUid: null }, { merge: true }); }
   }
-  await audit("تغيير رقم جوال مريض", `${oldPhone} → ${phone}`);
+  await audit(create ? "إنشاء حساب لمريض" : "تغيير رقم جوال مريض", create ? phone : `${oldPhone} → ${phone}`);
   return { phone, temp, shared };
 }
 

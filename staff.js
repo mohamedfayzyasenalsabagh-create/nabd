@@ -377,6 +377,7 @@ function reminderText(a) {
   return `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، تذكير بموعدك في ${S.pub.name} يوم ${fmtDate(a.date)} الساعة ${fmtTime(a.time)}.${S.pub.address ? " العنوان: " + S.pub.address : ""}\nللتأكيد أو الاعتذار يرجى الرد على هذه الرسالة.`;
 }
 export function offerNotify(phone, text, extra = "") {
+  if (!phone) { if (extra) info("تنبيه", extra); return; }
   info("إبلاغ المريض", `${extra}<p>${esc(text)}</p><a class="btn primary" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">إرسال على واتساب</a>`);
 }
 // رقم الدور: في المراكز لكل طبيب تسلسل مستقل يبدأ من 1
@@ -703,6 +704,7 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
   const r = await modal(kids ? "طفل جديد" : "مريض جديد", `<form class="stack">
     ${field(kids ? "اسم الطفل الكامل" : "الاسم الكامل", "name", { required: true, value: name })}
     ${field(kids ? "رقم جوال ولي الأمر" : "رقم الجوال", "phone", { required: true, value: phone, attrs: 'dir="ltr" inputmode="tel"', placeholder: "09xxxxxxxx" })}
+    <label class="check"><input type="checkbox" name="noAccount"><span>عدم إنشاء حساب للمريض الآن (الجوال اختياري)</span></label>
     <label class="check"><input type="checkbox" name="guardian" ${kids ? "checked" : ""}><span>الجوال لولي أمر المريض</span></label>
     <div class="grid2">
       ${field("تاريخ الميلاد", "dob", { type: "date", required: kids })}
@@ -713,9 +715,13 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
       ${select("زمرة الدم", "bloodType", ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])}
     </div>
     ${field("العنوان", "address")}
-    <p class="muted small">${kids ? "يُنشأ لولي الأمر حساب برقم جواله، ويمكنه متابعة أكثر من طفل من الحساب نفسه." : "يُنشأ للمريض حساب تلقائياً برقم جواله."}</p>
+    <p class="muted small acc-note">${kids ? "يُنشأ لولي الأمر حساب برقم جواله، ويمكنه متابعة أكثر من طفل من الحساب نفسه." : "يُنشأ للمريض حساب تلقائياً برقم جواله."}</p>
   </form>`, {
     ok: "تسجيل",
+    onOpen: (w) => {
+      const f = w.querySelector("form"), cb = f.noAccount, note = w.querySelector(".acc-note"), t0 = note.textContent;
+      cb.onchange = () => { f.phone.required = !cb.checked; note.textContent = cb.checked ? "يُحفظ ملف المريض دون حساب في التطبيق. يمكن إنشاء الحساب لاحقاً من «بطاقة المريض ← الحساب ← إنشاء حساب للمريض»." : t0; };
+    },
     onOk: async (f) => {
       const dup = PC.list.find((p) => p.phone === normPhone(f.phone) && p.name.trim() === f.name.trim());
       if (dup && !(await confirmBox("يوجد مريض بالاسم والرقم نفسيهما", "هل تريد تسجيله مرة أخرى؟", "تسجيل"))) return false;
@@ -725,7 +731,8 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
     }
   });
   if (!r) return null;
-  showCredentials(r.phone, r.tempPassword, r.name, r.shared, r.guardian);
+  if (r.noAccount) toast("تم تسجيل المريض دون حساب");
+  else showCredentials(r.phone, r.tempPassword, r.name, r.shared, r.guardian);
   if (!silentNav) go(`#/p/${r.pid}/${canMed() ? "summary" : "info"}`);
   return r;
 }
