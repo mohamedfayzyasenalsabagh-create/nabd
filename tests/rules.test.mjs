@@ -3,7 +3,7 @@ import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, getDocs, collection, query, where, writeBatch, Timestamp, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, getDocs, collection, query, where, writeBatch, Timestamp, arrayUnion, increment } from "firebase/firestore";
 
 let env;
 const DAY = 864e5;
@@ -331,4 +331,13 @@ test("مسارات حساب المريض الفعلية: إخوة على نفس 
   await assertSucceeds(updateDoc(doc(sec, "users/pat_A2"), { patientIds: ["p1"] }));
   // تعديل بيانات عادية للملف دون تغيير الرقم
   await assertSucceeds(updateDoc(doc(sec, "clinics/A/patients/p1"), { address: "دمشق" }));
+});
+
+test("عدّاد الزوار: زيادة بمقدار 1 فقط، والقراءة لصاحب المنصة", async () => {
+  const a = anon();
+  await assertSucceeds(setDoc(doc(a, "visits/2026-10-10"), { views: increment(1), uniq: increment(1) }, { merge: true }));
+  await assertSucceeds(setDoc(doc(a, "visits/2026-10-10"), { views: increment(1), uniq: increment(0) }, { merge: true }));
+  await assertFails(setDoc(doc(a, "visits/2026-10-10"), { views: 500, uniq: 500 }, { merge: true }));
+  await assertFails(setDoc(doc(a, "visits/hack"), { views: 1, uniq: 1 }));
+  await assertFails(getDoc(doc(a, "visits/2026-10-10")));
 });

@@ -3053,5 +3053,8 @@ export const EN = {
 "مثلاً: البنسلين": "e.g. penicillin",
 "أدوية مستمرة": "Long-term medicines",
 "أدوية مستمرة (دائمة)": "Long-term medicines",
-"الأدوية التي يتناولها بشكل دائم": "Medicines taken regularly"
+"الأدوية التي يتناولها بشكل دائم": "Medicines taken regularly",
+"زوار الموقع اليوم": "Site visitors today",
+"زوار الموقع هذا الشهر": "Site visitors this month",
+"كل زوار الموقع (الزيارات)": "All site visitors (views)"
 };

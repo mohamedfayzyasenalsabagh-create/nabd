@@ -1,6 +1,6 @@
 // لوحة مالك المنصة: العيادات، الاشتراكات، الدفعات، والإعدادات
 import {
-  P, list, one, updateDoc, setDoc, query, where, orderBy, serverTimestamp, Timestamp,
+  P, list, one, updateDoc, setDoc, query, where, orderBy, serverTimestamp, Timestamp, collection, db,
   SPECIALTIES, DEFAULT_PLANS, ALL_FEATURES, tsMs, clinicState
 } from "./fb.js";
 import {
@@ -86,6 +86,9 @@ async function renderClinics() {
       <div class="stat"><b>${mrr}$</b><span>الدخل الشهري المتوقع</span></div>
       <div class="stat"><b>${gotThis}$</b><span>المقبوض هذا الشهر${gotLast ? ` (السابق ${gotLast}$)` : ""}</span></div>
       <div class="stat dl-stat"><b>…</b><span>تحميلات تطبيق أندرويد</span></div>
+      <div class="stat vs-today"><b>…</b><span>زوار الموقع اليوم</span></div>
+      <div class="stat vs-month"><b>…</b><span>زوار الموقع هذا الشهر</span></div>
+      <div class="stat vs-all"><b>…</b><span>كل زوار الموقع (الزيارات)</span></div>
     </div>
     ${follow.length ? `<section class="card follow"><h3>⏰ تحتاج متابعة للتجديد</h3><p class="muted small">أرسل تذكيراً بالتجديد قبل انتهاء الاشتراك، فالعيادة المنتهية تصبح للقراءة فقط.</p>
       <ul class="remind-list">${follow.map(({ c, s: x }) => `<li class="${c.renewRemindedAt && tsMs(c.renewRemindedAt) > Date.now() - 3 * 864e5 ? "done" : ""}">
@@ -101,7 +104,7 @@ async function renderClinics() {
         <td>${c.plan === "gift" ? "مدى الحياة" : `${esc(fmtDate(ymd(new Date(tsMs(c.expiresAt))), false))}<br><small class="${s.days <= 7 ? "danger-t" : "muted"}">${s.days > 0 ? `بعد ${s.days} يوم` : "انتهى"}</small>`}</td>
         <td><button class="btn small man" data-id="${c.id}">إدارة</button></td></tr>`).join("")}
       </tbody></table></div>` : empty("لا توجد عيادات")}</section>`;
-  loadDownloads();
+  loadDownloads(); loadVisits();
   $$(".stat.f").forEach((b) => b.onclick = () => { filter = b.dataset.f; renderClinics(); });
   $("#cq").oninput = debounce((e) => { q = e.target.value; renderClinics().then(() => { const i = $("#cq"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 250);
   $$(".man").forEach((b) => b.onclick = () => manageClinic(all.find((c) => c.id === b.dataset.id)));
@@ -303,4 +306,17 @@ async function loadDownloads() {
     }
     el.textContent = n;
   } catch { el.textContent = "—"; }
+}
+
+// زوار الموقع: الزائر الفريد يُحسب مرة واحدة يومياً لكل جهاز، والزيارات كل مرة تُفتح فيها الصفحة
+async function loadVisits() {
+  const set = (c, v) => { const el = document.querySelector(`.${c} b`); if (el) el.textContent = v; };
+  try {
+    const all = await list(collection(db, "visits"));
+    const today = ymd(), m = today.slice(0, 7);
+    const t = all.find((x) => x.id === today);
+    set("vs-today", t ? `${t.uniq || 0}` : "0");
+    set("vs-month", all.filter((x) => (x.id || "").startsWith(m)).reduce((s, x) => s + (x.uniq || 0), 0));
+    set("vs-all", `${all.reduce((s, x) => s + (x.uniq || 0), 0)} (${all.reduce((s, x) => s + (x.views || 0), 0)})`);
+  } catch { ["vs-today", "vs-month", "vs-all"].forEach((c) => set(c, "—")); }
 }

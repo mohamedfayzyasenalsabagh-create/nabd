@@ -3,7 +3,7 @@ import { faqHtml, GUIDE_URL } from "./faq.js";
 import { langBtn } from "./i18n.js";
 import { query, where, collection, db, CITIES,
   auth, P, one, list, doc, addDoc, getDoc, setClinic, signupClinic, bootstrapOwner, login, cleanSlug,
-  SPECIALTIES, DEFAULT_PLANS, TRIAL_DAYS, serverTimestamp, normPhone, sendPasswordResetEmail
+  SPECIALTIES, DEFAULT_PLANS, TRIAL_DAYS, serverTimestamp, normPhone, sendPasswordResetEmail, setDoc, increment
 } from "./fb.js";
 import { waLink, specialtyMark, COPYRIGHT,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, toast, errMsg, modal, info, field, select,
@@ -26,7 +26,18 @@ function bindTheme(rerender) {
 }
 
 // ---------- الصفحة الرئيسية ----------
+// عدّاد زوار الموقع: زيارة لكل فتح للصفحة، وزائر فريد مرة واحدة يومياً لكل جهاز
+async function trackVisit() {
+  try {
+    const day = ymd(), k = `visit:${day}`, seen = LS.get(k);
+    if (sessionStorage.getItem(k)) return;
+    sessionStorage.setItem(k, "1");
+    await setDoc(doc(db, "visits", day), { views: increment(1), uniq: increment(seen ? 0 : 1) }, { merge: true });
+    if (!seen) LS.set(k, "1");
+  } catch {}
+}
 export function landing() {
+  if (!S.user) trackVisit();
   applyBrand({ accent: "#0E7C7B" });
   document.title = `${PLATFORM()} · نظام إدارة العيادات`;
   const pay = S.platform?.payment || {};

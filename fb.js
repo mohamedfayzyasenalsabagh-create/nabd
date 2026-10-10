@@ -8,7 +8,7 @@ import {
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
   doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs,
-  onSnapshot, serverTimestamp, arrayUnion, arrayRemove, runTransaction, writeBatch, limit, orderBy, Timestamp
+  onSnapshot, serverTimestamp, arrayUnion, arrayRemove, runTransaction, writeBatch, limit, orderBy, Timestamp, increment
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig, USE_STORAGE } from "./config.js";
 
@@ -22,7 +22,7 @@ export const db = configured
 
 export {
   doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, onSnapshot,
-  serverTimestamp, arrayUnion, arrayRemove, runTransaction, writeBatch, limit, orderBy, Timestamp,
+  serverTimestamp, arrayUnion, arrayRemove, runTransaction, writeBatch, limit, orderBy, Timestamp, increment,
   onAuthStateChanged, signOut, updatePassword, sendPasswordResetEmail
 };
 

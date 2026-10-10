@@ -54,6 +54,17 @@ service cloud.firestore {
         && existsAfter(/databases/$(database)/documents/owners/$(request.auth.uid));
       allow update, delete: if false;
     }
+    // عدّاد زوار الموقع: لكل يوم مستند، والزيادة بمقدار 1 فقط، والقراءة لصاحب المنصة
+    match /visits/{day} {
+      allow read: if isOwner();
+      allow create: if day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['views', 'uniq'])
+        && request.resource.data.views == 1 && request.resource.data.uniq in [0, 1];
+      allow update: if request.resource.data.keys().hasOnly(['views', 'uniq'])
+        && request.resource.data.views == resource.data.views + 1
+        && request.resource.data.uniq in [resource.data.uniq, resource.data.uniq + 1];
+      allow delete: if false;
+    }
     match /owners/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isOwner());
       allow create: if (bootstrapping() && request.auth.uid == uid) || isOwner();
