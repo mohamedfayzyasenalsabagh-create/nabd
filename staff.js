@@ -631,6 +631,12 @@ export function searchPatients(q) {
 }
 
 // ---------- المواعيد ----------
+// طريقة العرض: قائمة أو جدول (من الإعدادات، ويمكن تبديلها من الجهاز)
+const apptMode = () => { try { return localStorage.getItem("apptMode") || S.clinic?.apptView || "list"; } catch { return S.clinic?.apptView || "list"; } };
+const modeBar = () => `<div class="seg-scroll view-seg">${[["list", "☰ قائمة"], ["grid", "▦ جدول"]].map(([k, t]) => `<button class="pill ${apptMode() === k ? "on" : ""}" data-mode="${k}">${t}</button>`).join("")}</div>`;
+function bindMode() { $$("[data-mode]").forEach((b) => b.onclick = () => { try { localStorage.setItem("apptMode", b.dataset.mode); } catch {} renderAppts(); }); }
+// أيام الأسبوع: قفز سريع لأي يوم من الأسبوع الحالي
+const weekDaysBar = (d, v) => { const ws = weekStart(d); return `<div class="seg-scroll wd-bar">${Array.from({ length: 7 }, (_, i) => addDays(ws, i)).map((x) => { const dt = parseYmd(x); return `<a class="pill ${x === d && v === "day" ? "on" : ""} ${x === ymd() ? "today" : ""}" href="#/appts?v=day&d=${x}">${DAYS[dt.getDay()]} ${dt.getDate()}</a>`; }).join("")}</div>`; };
 // عرض المواعيد: يومي (الافتراضي) أو أسبوعي أو شهري
 const VIEWS = [["day", "يوم"], ["week", "أسبوع"], ["month", "شهر"]];
 const viewBar = (v, d) => `<div class="seg-scroll view-seg">${VIEWS.map(([k, t]) => `<a class="pill ${v === k ? "on" : ""}" href="#/appts?v=${k}&d=${d}">${t}</a>`).join("")}</div>`;
@@ -675,7 +681,7 @@ async function renderApptsRange(v, d) {
       <b>${esc(title)}</b>
       <a class="icon-btn" href="#/appts?v=${v}&d=${next}" aria-label="التالي">←</a>
     </div>
-    ${viewBar(v, d)}
+    ${modeBar()}${viewBar(v, d)}${v === "week" ? weekDaysBar(d, v) : ""}
     ${docFilterBar()}
     <div class="stats"><div class="stat"><b>${live.length}</b><span>مواعيد ${v === "week" ? "الأسبوع" : "الشهر"}</span></div>
       <div class="stat"><b>${live.filter((a) => a.status === "done").length}</b><span>انتهت</span></div>
@@ -683,13 +689,96 @@ async function renderApptsRange(v, d) {
       <div class="stat"><b>${appts.length - live.length}</b><span>ملغاة</span></div></div>
     <div class="row gap"><a class="btn small" href="#/appts?v=${v}&d=${today}">${v === "week" ? "هذا الأسبوع" : "هذا الشهر"}</a><button class="btn primary small new">+ موعد</button></div>
     ${body}`;
-  bindDocFilter(() => renderApptsRange(v, d));
+  bindDocFilter(() => renderApptsRange(v, d)); bindMode();
   $(".new").onclick = () => bookModal({});
   bindApptButtons(live);
+}
+// ---------- جدول المواعيد (مثل الإكسل): الأيام أعمدة والأوقات صفوف ----------
+async function renderApptsGrid(v, d) {
+  if (multiDoc() && !S.docFilter) S.docFilter = "all";
+  const from = v === "week" ? weekStart(d) : d, days = v === "week" ? Array.from({ length: 7 }, (_, i) => addDays(from, i)).filter((x) => slotsFor(x).length || x === d) : [d];
+  const to = days[days.length - 1] || from;
+  const appts = (await list(query(P.col("appointments"), where("date", ">=", from), where("date", "<=", to)))).filter((a) => a.status !== "cancelled");
+  const docs = multiDoc() ? (S.docFilter === "all" ? doctors() : doctors().filter((x) => x.id === S.docFilter)) : [{ id: defaultDoc(), name: "" }];
+  const times = [...new Set([...days.flatMap((x) => slotsFor(x)), ...appts.map((a) => a.time)])].sort();
+  const at = {}; appts.forEach((a) => { at[`${a.date}|${a.time}|${apptDoc(a)}`] = a; });
+  const today = ymd(), prev = v === "week" ? addDays(from, -7) : addDays(d, -1), next = v === "week" ? addDays(from, 7) : addDays(d, 1);
+  const cols = days.flatMap((x) => docs.map((doc) => ({ day: x, doc })));
+  const head1 = days.map((x) => { const dt = parseYmd(x); return `<th colspan="${docs.length}" class="${x === today ? "today" : ""}"><a href="#/appts?v=day&d=${x}">${DAYS[dt.getDay()]}<small>${dt.getDate()}/${dt.getMonth() + 1}</small></a></th>`; }).join("");
+  const head2 = docs.length > 1 ? `<tr><th class="tm"></th>${cols.map((c) => `<th class="dh dc${docIdx(c.doc.id)}">د. ${esc(c.doc.name)}</th>`).join("")}</tr>` : "";
+  const cell = (c, t) => {
+    const a = at[`${c.day}|${t}|${c.doc.id}`];
+    const open = slotsFor(c.day).includes(t);
+    if (a) return `<td class="g-a st-${a.status} dc${docIdx(apptDoc(a))}"><div class="g-chip" draggable="true" data-a="${a.id}"><b>${esc(a.patientName)}</b>${a.type ? `<small>${esc(a.type)}</small>` : ""}${a.queueNo ? `<i>${esc(qLab(a.queueNo, apptDoc(a)))}</i>` : ""}</div></td>`;
+    return `<td class="g-free ${open ? "" : "off"}" data-day="${c.day}" data-t="${t}" data-doc="${c.doc.id}">${open ? "" : "·"}</td>`;
+  };
+  main().innerHTML = `
+    <div class="row-between">
+      <a class="icon-btn" href="#/appts?v=${v}&d=${prev}" aria-label="السابق">→</a>
+      <b>${v === "week" ? `${parseYmd(from).getDate()}/${parseYmd(from).getMonth() + 1} ← ${parseYmd(to).getDate()}/${parseYmd(to).getMonth() + 1}` : esc(fmtDate(d))}</b>
+      <a class="icon-btn" href="#/appts?v=${v}&d=${next}" aria-label="التالي">←</a>
+    </div>
+    ${modeBar()}${viewBar(v, d)}${weekDaysBar(d, v)}
+    ${docFilterBar()}
+    <div class="row gap"><a class="btn small" href="#/appts?v=${v}&d=${today}">${v === "week" ? "هذا الأسبوع" : "اليوم"}</a><button class="btn primary small new">+ موعد</button>
+      <span class="muted small">لنقل موعد: ضغطة مطولة على الاسم ثم اختر الخانة الجديدة، أو اسحبه بالفأرة.</span></div>
+    <div class="move-bar hidden"></div>
+    <div class="grid-wrap"><table class="agrid"><thead><tr><th class="tm">الوقت</th>${head1}</tr>${head2}</thead>
+      <tbody>${times.map((t) => `<tr><th class="tm">${esc(fmtTime(t))}</th>${cols.map((c) => cell(c, t)).join("")}</tr>`).join("")}</tbody></table></div>`;
+  bindDocFilter(() => renderApptsGrid(v, d)); bindMode();
+  $(".new").onclick = () => bookModal({ date: d });
+  const map = Object.fromEntries(appts.map((a) => [a.id, a]));
+  let moving = null, lp = null, longDone = false;
+  const bar = $(".move-bar");
+  const startMove = (a) => {
+    moving = a; document.body.classList.add("moving");
+    $$(".g-chip").forEach((x) => x.classList.toggle("sel", x.dataset.a === a.id));
+    bar.innerHTML = `<span>📦 نقل موعد <b>${esc(a.patientName)}</b>: اختر خانة فارغة</span><button class="btn small cancel-move">إلغاء</button>`;
+    bar.classList.remove("hidden"); bar.querySelector(".cancel-move").onclick = stopMove;
+  };
+  const stopMove = () => { moving = null; document.body.classList.remove("moving"); bar.classList.add("hidden"); $$(".g-chip.sel").forEach((x) => x.classList.remove("sel")); };
+  const moveTo = async (a, day, t, docId) => {
+    if (!a) return;
+    if (a.date === day && a.time === t && apptDoc(a) === docId) return stopMove();
+    const ok = await confirmBox("نقل الموعد", `نقل موعد ${a.patientName} إلى ${fmtDate(day)} الساعة ${fmtTime(t)}${multiDoc() ? ` عند د. ${docName(docId)}` : ""}؟`, "نقل");
+    if (!ok) return stopMove();
+    try {
+      const nb = await bookAppointment({ pid: a.patientId, date: day, time: t, type: a.type, note: a.note || "", doctorId: docId });
+      await updateDoc(P.colDoc("appointments", a.id), { status: "cancelled", cancelReason: "نقل", movedTo: nb.id, updatedAt: serverTimestamp() });
+      await markBusy(a.date, a.time, apptDoc(a), false);
+      await audit("نقل موعد", `${a.patientName}: ${a.date} ${a.time} → ${day} ${t}`);
+      stopMove(); toast("تم نقل الموعد");
+      const p = PC.byId[a.patientId] || {};
+      offerNotify(a.phone || p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، تم تغيير موعدك في ${S.pub.name} إلى ${fmtDate(day)} الساعة ${fmtTime(t)}${multiDoc() ? ` مع د. ${docName(docId)}` : ""}.`);
+      renderApptsGrid(v, d);
+    } catch (e) { stopMove(); toast(errMsg(e), true); }
+  };
+  $$(".g-chip").forEach((el) => {
+    const a = map[el.dataset.a];
+    // ضغطة مطولة (جوال أو فأرة) = وضع النقل، والضغطة العادية = خيارات الموعد
+    const down = () => { longDone = false; clearTimeout(lp); lp = setTimeout(() => { longDone = true; navigator.vibrate?.(30); startMove(a); }, 550); };
+    const up = () => clearTimeout(lp);
+    el.addEventListener("pointerdown", down); el.addEventListener("pointerup", up); el.addEventListener("pointerleave", up); el.addEventListener("pointercancel", up);
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("click", () => { if (longDone) { longDone = false; return; } if (moving) return; apptActions(a); });
+    el.addEventListener("dragstart", (e) => { clearTimeout(lp); e.dataTransfer.setData("text/plain", a.id); startMove(a); });
+    el.addEventListener("dragend", () => setTimeout(() => { if (moving && !document.querySelector(".g-free.over")) {} }, 0));
+  });
+  $$(".g-free").forEach((td) => {
+    const off = td.classList.contains("off");
+    td.addEventListener("click", () => {
+      if (moving) return moveTo(moving, td.dataset.day, td.dataset.t, td.dataset.doc);
+      if (!off) bookModal({ date: td.dataset.day, time: td.dataset.t, doctorId: td.dataset.doc });
+    });
+    td.addEventListener("dragover", (e) => { e.preventDefault(); td.classList.add("over"); });
+    td.addEventListener("dragleave", () => td.classList.remove("over"));
+    td.addEventListener("drop", (e) => { e.preventDefault(); td.classList.remove("over"); const a = map[e.dataTransfer.getData("text/plain")] || moving; moveTo(a, td.dataset.day, td.dataset.t, td.dataset.doc); });
+  });
 }
 async function renderAppts() {
   const d = params().get("d") || ymd();
   const v = params().get("v") || "day";
+  if (apptMode() === "grid" && v !== "month") return renderApptsGrid(v, d);
   if (v === "week" || v === "month") return renderApptsRange(v, d);
   if (multiDoc() && !S.docFilter) S.docFilter = defaultDoc();
   const all = (await list(query(P.col("appointments"), where("date", "==", d)))).sort((a, b) => a.time.localeCompare(b.time));
@@ -702,14 +791,14 @@ async function renderAppts() {
         <label class="date-pick"><b>${esc(fmtDate(d))}</b><input type="date" value="${d}" aria-label="اختيار التاريخ"></label>
         <a class="icon-btn" href="#/appts?d=${addDays(d, 1)}" aria-label="اليوم التالي">←</a>
       </div>
-      ${viewBar("day", d)}
+      ${modeBar()}${viewBar("day", d)}${weekDaysBar(d, "day")}
       ${docFilterBar()}
       <div class="row gap"><a class="btn small" href="#/appts?d=${ymd()}">اليوم</a><button class="btn primary small new">+ موعد</button></div>
       <section class="card"><h3>كل مواعيد المركز · ${live.length}</h3>
         ${live.length ? `<ul class="appt-list">${live.map(apptRow).join("")}</ul>` : empty("لا توجد مواعيد في هذا اليوم")}
         ${canc.length ? `<details><summary class="muted">ملغاة (${canc.length})</summary><ul class="appt-list">${canc.map(apptRow).join("")}</ul></details>` : ""}
       </section>`;
-    bindDocFilter(renderAppts);
+    bindDocFilter(renderAppts); bindMode();
     $(".date-pick input").onchange = (e) => go(`#/appts?d=${e.target.value}`);
     $(".new").onclick = () => bookModal({ date: d });
     bindApptButtons(all);
@@ -729,7 +818,7 @@ async function renderAppts() {
       <label class="date-pick"><b>${esc(fmtDate(d))}</b><input type="date" value="${d}" aria-label="اختيار التاريخ"></label>
       <a class="icon-btn" href="#/appts?d=${addDays(d, 1)}" aria-label="اليوم التالي">←</a>
     </div>
-    ${viewBar("day", d)}
+    ${modeBar()}${viewBar("day", d)}${weekDaysBar(d, "day")}
     ${docOpts}
     <div class="row gap"><a class="btn small" href="#/appts?d=${ymd()}">اليوم</a><button class="btn primary small new">+ موعد</button></div>
     <section class="card">
@@ -740,7 +829,7 @@ async function renderAppts() {
       ${extra.length ? `<h4>مواعيد خارج الجدول</h4><ul class="appt-list">${extra.map(apptRow).join("")}</ul>` : ""}
       ${cancelled.length ? `<details><summary class="muted">ملغاة (${cancelled.length})</summary><ul class="appt-list">${cancelled.map(apptRow).join("")}</ul></details>` : ""}
     </section>`;
-  bindDocFilter(renderAppts);
+  bindDocFilter(renderAppts); bindMode();
   $(".date-pick input").onchange = (e) => go(`#/appts?d=${e.target.value}`);
   $(".new").onclick = () => bookModal({ date: d, doctorId: did });
   $$("[data-free]").forEach((b) => b.onclick = () => bookModal({ date: d, time: b.dataset.free, doctorId: did }));

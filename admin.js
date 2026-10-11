@@ -61,6 +61,8 @@ export async function renderSettings() {
         <label class="check"><input type="checkbox" name="on${d}" ${h.on ? "checked" : ""}><span>${DAYS[d]}</span></label>
         <input type="time" name="from${d}" value="${esc(h.from)}" aria-label="من"><span>—</span><input type="time" name="to${d}" value="${esc(h.to)}" aria-label="إلى"></div>`; }).join("")}
       ${select("مدة الموعد الافتراضية", "slotMinutes", [[10, "10 دقائق"], [15, "15 دقيقة"], [20, "20 دقيقة"], [30, "30 دقيقة"], [45, "45 دقيقة"], [60, "ساعة"]], c.slotMinutes || 20)}
+      ${select("طريقة عرض المواعيد", "apptView", [["list", "قائمة (كما هي)"], ["grid", "جدول (الأيام والأوقات)"]], c.apptView || "list")}
+      <p class="muted small">الجدول: الأيام أعمدة والأوقات صفوف، مثل جدول الإكسل. وفيه لنقل أي موعد: ضغطة مطولة على اسم المريض ثم اختيار الخانة الجديدة، أو السحب بالفأرة.</p>
     </section>
     <section class="card stack"><h3>الخدمات والأسعار</h3>
       <div class="svc-list"></div><button type="button" class="btn small add-svc">+ خدمة</button>
@@ -132,7 +134,7 @@ export async function renderSettings() {
       address: f.address.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(), accent: f.accent.value, mapUrl: f.mapUrl.value.trim(),
       logo: newLogo === undefined ? (c.logo || null) : newLogo,
       specialty: f.specialty.value, modules: multiSpec() ? Object.keys(MODULES).filter((k) => f[`mod_${k}`].checked) : specMods(f.specialty.value),
-      currency: f.currency.value.trim() || "ل.س", hours: h, slotMinutes: Number(f.slotMinutes.value),
+      currency: f.currency.value.trim() || "ل.س", hours: h, slotMinutes: Number(f.slotMinutes.value), apptView: f.apptView.value,
       services: services.filter((s) => s.name.trim()), consentText: f.consentText.value, rxFooter: f.rxFooter.value,
       doctors: doctorsArr, listed: f.listed.checked, city: f.city.value,
       ...(feat("booking") ? { bookingEnabled: f.bookingEnabled.checked, showPrices: f.showPrices.checked } : {}),

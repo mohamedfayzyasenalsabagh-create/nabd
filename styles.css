@@ -801,3 +801,22 @@ a.stat { color: inherit; text-decoration: none; }
 .mday i{font-style:normal;font-weight:700}.mday em{font-style:normal;font-size:11px;background:#fff;border-radius:99px;padding:0 6px;margin-top:2px}
 
 .plan-preview{white-space:pre-wrap;font-family:inherit;background:var(--bg2,#f2f6f5);border-radius:12px;padding:10px 12px;max-height:280px;overflow:auto;font-size:14px;margin:0}
+
+/* جدول المواعيد */
+.wd-bar .pill.today{border-color:var(--accent,#0d6b66)}
+.grid-wrap{overflow:auto;max-height:72vh;border:1px solid var(--line,#dde);border-radius:14px;background:var(--card,#fff);margin-top:8px}
+.agrid{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+.agrid th,.agrid td{border-bottom:1px solid var(--line,#e3e8e7);border-inline-start:1px solid var(--line,#e3e8e7);padding:0;min-width:110px;height:46px;text-align:center;vertical-align:middle}
+.agrid thead th{position:sticky;top:0;background:var(--card,#fff);z-index:2;padding:6px 4px;font-weight:700}
+.agrid thead tr:nth-child(2) th{top:44px}
+.agrid thead th a{color:inherit;text-decoration:none;display:flex;flex-direction:column}.agrid thead th small{font-weight:400;color:var(--muted,#678)}
+.agrid thead th.today{background:#e3f2f0}
+.agrid th.tm{position:sticky;right:0;background:var(--card,#fff);z-index:3;min-width:64px;font-size:12px;color:var(--muted,#678)}
+.agrid th.dh{font-size:12px;background:var(--dcb,#eef6f5);color:var(--dcf,#0b5e5b)}
+.g-free{cursor:pointer}.g-free:hover{background:#f0f8f7}.g-free.off{background:repeating-linear-gradient(45deg,#f6f6f6,#f6f6f6 6px,#fff 6px,#fff 12px);color:#bbb;cursor:default}
+.g-free.over,body.moving .g-free:not(.off){background:#fff7d6;outline:2px dashed #e0b400;outline-offset:-3px}
+.g-chip{margin:3px;padding:4px 6px;border-radius:9px;background:var(--dcb,#e3f1ef);color:var(--dcf,#0b5e5b);cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;text-align:right;line-height:1.25}
+.g-chip b{display:block;font-size:13px}.g-chip small{font-size:11px;opacity:.85}.g-chip i{font-style:normal;font-size:10px;background:#fff;border-radius:6px;padding:0 4px;margin-inline-start:4px}
+.g-chip.sel{outline:3px solid #e0b400;box-shadow:0 6px 16px rgba(0,0,0,.2)}
+.g-a.st-arrived .g-chip{background:#fff3cd;color:#7a5600}.g-a.st-in .g-chip{background:#d7f0ea}.g-a.st-done .g-chip{opacity:.6}.g-a.st-noshow .g-chip{background:#fde2e2;color:#a33}
+.move-bar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:8px;background:#ffd166;color:#08403d;border-radius:12px;padding:8px 12px;margin-top:8px;font-weight:600}

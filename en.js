@@ -3079,5 +3079,19 @@ export const EN = {
 "ثلاثاء": "Tue",
 "أربعاء": "Wed",
 "خميس": "Thu",
-"جمعة": "Fri"
+"جمعة": "Fri",
+"☰ قائمة": "☰ List",
+"▦ جدول": "▦ Grid",
+"طريقة عرض المواعيد": "Appointments view",
+"قائمة (كما هي)": "List (as it is)",
+"جدول (الأيام والأوقات)": "Grid (days × times)",
+"الجدول: الأيام أعمدة والأوقات صفوف، مثل جدول الإكسل. وفيه لنقل أي موعد: ضغطة مطولة على اسم المريض ثم اختيار الخانة الجديدة، أو السحب بالفأرة.": "Grid: days are columns and times are rows, like a spreadsheet. To move an appointment, long-press the patient's name then pick the new slot, or drag it with the mouse.",
+"لنقل موعد: ضغطة مطولة على الاسم ثم اختر الخانة الجديدة، أو اسحبه بالفأرة.": "To move: long-press the name then pick the new slot, or drag it with the mouse.",
+"نقل الموعد": "Move appointment",
+"نقل": "Move",
+"تم نقل الموعد": "Appointment moved",
+"📦 نقل موعد": "📦 Moving",
+"اختر خانة فارغة": "pick an empty slot",
+"نقل موعد": "Move appointment",
+"عرض كقائمة أو جدول أسبوعي مثل الإكسل، ونقل الموعد بضغطة مطولة أو بالسحب، أرقام دور، شاشة انتظار، وتذكير عبر واتساب.": "List or weekly spreadsheet-style grid, move appointments by long-press or drag, queue numbers, waiting screen and WhatsApp reminders."
 };
