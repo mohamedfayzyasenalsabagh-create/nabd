@@ -10,6 +10,7 @@ store = window.__fs = load();
 export const serverTimestamp = () => SERVER_TS;
 export const arrayUnion = (...v) => ({ __union: v });
 export const arrayRemove = (...v) => ({ __remove: v });
+export const increment = (n) => ({ __inc: n });
 export function initializeFirestore() { return { t: "db" }; }
 export const persistentLocalCache = () => ({}); export const persistentMultipleTabManager = () => ({});
 const rid = () => Math.random().toString(36).slice(2, 12);
@@ -21,6 +22,7 @@ export function doc(base, ...segs) {
 }
 function resolve(v, old) {
   if (v === SERVER_TS) return Timestamp.now();
+  if (v && typeof v.__inc === "number") return (Number(old) || 0) + v.__inc;
   if (v && v.__remove) { const rm = v.__remove.map((x) => JSON.stringify(x)); return (Array.isArray(old) ? old : []).filter((x) => !rm.includes(JSON.stringify(x))); }
   if (v && v.__union) return [...new Set([...(Array.isArray(old) ? old : []), ...v.__union.map((x) => typeof x === "object" ? JSON.stringify(x) : x)])].map((x) => { try { return typeof x === "string" && x.startsWith("{") ? JSON.parse(x) : x; } catch { return x; } });
   if (Array.isArray(v)) return v.map((x) => resolve(x));

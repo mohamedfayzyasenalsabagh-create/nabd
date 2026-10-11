@@ -2,7 +2,7 @@
 import { P, list, one, setDoc, updateDoc, addDoc, query, where, serverTimestamp, audit, randId, DEFAULT_VACCINES } from "./fb.js";
 import {
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, money, toast, errMsg, modal, confirmBox, field, select, empty,
-  printDoc, daysBetween, lineChart
+  printDoc, daysBetween, lineChart, waLink
 } from "./ui.js";
 import { S } from "./app.js";
 import { hasMod, cur, paymentModal, ageText, docPub } from "./staff.js";
@@ -182,6 +182,7 @@ export async function dental(p, el, refresh) {
           <button class="btn small primary payplan">دفعة على الخطة</button>
           <button class="btn small prplan">طباعة الخطة</button>
           <button class="btn small quote">💰 عرض سعر للمريض</button>
+          <button class="btn small primary sendplan">📤 إرسال الخطة للمريض</button>
           <button class="btn small closeplan">إنهاء الخطة</button>
         </div>` : empty("لا توجد خطة علاج حالية")}
       ${plans.filter((x) => x.status !== "active").length ? `<details><summary class="muted">خطط سابقة (${plans.filter((x) => x.status !== "active").length})</summary>${plans.filter((x) => x.status !== "active").map((x) => `<div class="visit-mini"><b>${esc(x.name || "خطة")}</b> · ${esc(x.date)}<div class="muted small">${(x.items || []).length} إجراء</div></div>`).join("")}</details>` : ""}
@@ -216,6 +217,7 @@ export async function dental(p, el, refresh) {
   $(".payplan", el).onclick = () => paymentModal(p.id, `خطة علاج: ${plan.name || ""}`, { total: Math.max(0, tot.remaining), paid: "", planId: plan.id, note: "قسط على خطة العلاج" });
   $(".prplan", el).onclick = () => printPlan(p, plan, tot, chart);
   $(".quote", el)?.addEventListener("click", () => printQuote(p, plan, tot));
+  $(".sendplan", el)?.addEventListener("click", () => sendPlan(p, plan, tot));
   $(".closeplan", el).onclick = async () => {
     if (!(await confirmBox("إنهاء الخطة", tot.remaining > 0 ? `ما زال على المريض ${money(tot.remaining, cur())}. هل تريد إنهاء الخطة؟` : "نقل الخطة إلى الخطط السابقة؟", "إنهاء"))) return;
     await updateDoc(planRef, { status: "done" }); refresh();
@@ -608,4 +610,38 @@ export async function summaryBits(p) {
     pk.forEach((x) => out.push(`<section class="card"><div class="row-between"><h3>${esc(x.name)}</h3><a class="btn small" href="#/p/${p.id}/physio">فتح</a></div><p>${(x.sessions || []).length}/${esc(x.total)} جلسة</p><div class="progress"><i style="width:${Math.min(100, (x.sessions || []).length / (x.total || 1) * 100)}%"></i></div></section>`));
   }
   return out.join("");
+}
+
+// إرسال خطة العلاج للمريض: واتساب أو رسالة SMS أو داخل تطبيق المريض
+function planText(p, plan, tot) {
+  const c = cur();
+  const lines = (plan.items || []).map((i) => `• ${i.proc}${i.tooth ? ` (السن ${i.tooth})` : ""}${Number(i.cost) ? ` — ${money(i.cost, c)}` : ""}${i.status === "done" ? " ✓" : ""}`);
+  return [`مرحباً ${p.name}،`, `هذه ${plan.name || "خطة العلاج"} المقترحة لك في ${S.pub?.name || "العيادة"}:`, "", ...lines, "",
+    Number(plan.discount) ? `الخصم: ${money(plan.discount, c)}` : "",
+    `الكلفة الإجمالية: ${money(tot.total, c)}`, tot.paid ? `المدفوع: ${money(tot.paid, c)}` : "", tot.paid ? `المتبقي: ${money(tot.remaining, c)}` : "",
+    plan.note ? `ملاحظات: ${plan.note}` : "", "", "نتمنى لكم الشفاء العاجل 🌿"].filter((x, i, a) => x !== "" || (a[i - 1] !== "" && i > 0)).join("\n");
+}
+async function sendPlan(p, plan, tot) {
+  const text = planText(p, plan, tot);
+  const phone = p.phone || "";
+  const smsHref = `sms:${phone}?body=${encodeURIComponent(text)}`;
+  const w = await new Promise((res) => modal("إرسال خطة العلاج", `<div class="stack">
+      <pre class="plan-preview" dir="rtl">${esc(text)}</pre>
+      <div class="btn-grid">
+        ${phone ? `<a class="btn primary" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">💬 واتساب</a>
+        <a class="btn" href="${esc(smsHref)}">✉️ رسالة SMS</a>` : `<p class="muted small">لا يوجد رقم جوال مسجل للمريض.</p>`}
+        <button class="btn ${p.uid ? "" : "disabled"}" data-app ${p.uid ? "" : "disabled"}>📱 عبر تطبيق المريض</button>
+      </div>
+      ${p.uid ? `<p class="muted small">عبر التطبيق: تصل الخطة رسالةً في «الرسائل» عند المريض، وتظهر أيضاً في ملفه.</p>` : `<p class="muted small">ليس للمريض حساب في التطبيق. يمكن إنشاؤه من «الحساب».</p>`}
+    </div>`, { ok: null, cancel: "إغلاق", onOpen: res }));
+  w.querySelector("[data-app]")?.addEventListener("click", async (e) => {
+    e.target.disabled = true;
+    try {
+      await addDoc(P.sub(p.id, "messages"), { from: "clinic", text, at: serverTimestamp(), byName: S.profile?.name || "العيادة", kind: "plan" });
+      await updateDoc(P.patient(p.id), { lastMsgAt: serverTimestamp(), lastMsgFrom: "clinic" });
+      await updateDoc(P.subDoc(p.id, "plans", plan.id), { sentAt: serverTimestamp() });
+      await audit("إرسال خطة العلاج للمريض عبر التطبيق", p.name);
+      toast("أُرسلت الخطة إلى تطبيق المريض"); w.remove();
+    } catch (err) { e.target.disabled = false; toast(err.message || String(err), true); }
+  });
 }

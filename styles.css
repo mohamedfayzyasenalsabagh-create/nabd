@@ -790,3 +790,14 @@ a.stat { color: inherit; text-decoration: none; }
 .smart{border:1px solid var(--accent,#0d6b66);background:linear-gradient(180deg,rgba(13,107,102,.06),transparent)}
 .smart ul{margin:6px 0 0;padding-inline-start:18px}.smart li{margin:3px 0}
 .med-intake{border:1px solid var(--line,#dde);border-radius:12px;padding:8px 12px}.med-intake summary{cursor:pointer;font-weight:700}.med-intake .stack{margin-top:8px}
+
+/* عرض المواعيد الأسبوعي والشهري */
+.view-seg{margin:8px 0}.wk-day.today{border-color:var(--accent,#0d6b66);box-shadow:0 0 0 2px rgba(13,107,102,.15)}
+.mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center}
+.mcal .mh{font-size:12px;color:var(--muted,#667)}
+.mday{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:52px;border-radius:12px;background:var(--bg2,#f2f6f5);color:inherit;text-decoration:none;position:relative}
+.mday.has{background:color-mix(in srgb,var(--accent,#0d6b66) calc(15% + var(--h)*55%),#fff);color:#06302e}
+.mday.today{outline:2px solid var(--accent,#0d6b66)}
+.mday i{font-style:normal;font-weight:700}.mday em{font-style:normal;font-size:11px;background:#fff;border-radius:99px;padding:0 6px;margin-top:2px}
+
+.plan-preview{white-space:pre-wrap;font-family:inherit;background:var(--bg2,#f2f6f5);border-radius:12px;padding:10px 12px;max-height:280px;overflow:auto;font-size:14px;margin:0}

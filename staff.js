@@ -631,24 +631,105 @@ export function searchPatients(q) {
 }
 
 // ---------- المواعيد ----------
+// عرض المواعيد: يومي (الافتراضي) أو أسبوعي أو شهري
+const VIEWS = [["day", "يوم"], ["week", "أسبوع"], ["month", "شهر"]];
+const viewBar = (v, d) => `<div class="seg-scroll view-seg">${VIEWS.map(([k, t]) => `<a class="pill ${v === k ? "on" : ""}" href="#/appts?v=${k}&d=${d}">${t}</a>`).join("")}</div>`;
+const weekStart = (d) => { const x = parseYmd(d); return addDays(d, -((x.getDay() + 1) % 7)); }; // الأسبوع يبدأ السبت
+async function renderApptsRange(v, d) {
+  if (multiDoc() && !S.docFilter) S.docFilter = "all";
+  let from, to, prev, next, title;
+  if (v === "week") {
+    from = weekStart(d); to = addDays(from, 6); prev = addDays(from, -7); next = addDays(from, 7);
+    title = `${fmtDate(from, false)} ← ${fmtDate(to, false)}`;
+  } else {
+    const x = parseYmd(d); const y = x.getFullYear(), m = x.getMonth();
+    from = `${y}-${String(m + 1).padStart(2, "0")}-01`; to = ymd(new Date(y, m + 1, 0));
+    prev = ymd(new Date(y, m - 1, 1)); next = ymd(new Date(y, m + 1, 1));
+    title = x.toLocaleDateString("ar-SY-u-nu-latn", { month: "long", year: "numeric" });
+  }
+  const appts = byDoc(await list(query(P.col("appointments"), where("date", ">=", from), where("date", "<=", to))))
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const live = appts.filter((a) => a.status !== "cancelled");
+  const byDay = {}; live.forEach((a) => (byDay[a.date] ||= []).push(a));
+  const today = ymd();
+  let body = "";
+  if (v === "week") {
+    body = Array.from({ length: 7 }, (_, i) => addDays(from, i)).map((day) => {
+      const arr = byDay[day] || [], dt = parseYmd(day);
+      return `<section class="card wk-day ${day === today ? "today" : ""}"><div class="row-between"><a href="#/appts?d=${day}"><b>${esc(DAYS[dt.getDay()])} ${dt.getDate()}/${dt.getMonth() + 1}</b></a><span class="chip">${arr.length} موعد</span></div>
+        ${arr.length ? `<ul class="appt-list compact">${arr.map(apptRow).join("")}</ul>` : `<p class="muted small">لا توجد مواعيد</p>`}</section>`;
+    }).join("");
+  } else {
+    const first = parseYmd(from), lead = (first.getDay() + 1) % 7, days = parseYmd(to).getDate();
+    const max = Math.max(1, ...Object.values(byDay).map((a) => a.length));
+    const heads = ["سبت", "أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة"];
+    const cells = [...Array(lead).fill(""), ...Array.from({ length: days }, (_, i) => addDays(from, i))];
+    body = `<section class="card"><div class="mcal">${heads.map((h) => `<b class="mh">${h}</b>`).join("")}
+      ${cells.map((day) => { if (!day) return `<span></span>`; const n = (byDay[day] || []).length;
+        return `<a class="mday ${day === today ? "today" : ""} ${n ? "has" : ""}" style="--h:${n / max}" href="#/appts?d=${day}"><i>${parseYmd(day).getDate()}</i>${n ? `<em>${n}</em>` : ""}</a>`; }).join("")}</div>
+      <p class="muted small">اضغط على أي يوم لفتح جدوله.</p></section>`;
+  }
+  main().innerHTML = `
+    <div class="row-between">
+      <a class="icon-btn" href="#/appts?v=${v}&d=${prev}" aria-label="السابق">→</a>
+      <b>${esc(title)}</b>
+      <a class="icon-btn" href="#/appts?v=${v}&d=${next}" aria-label="التالي">←</a>
+    </div>
+    ${viewBar(v, d)}
+    ${docFilterBar()}
+    <div class="stats"><div class="stat"><b>${live.length}</b><span>مواعيد ${v === "week" ? "الأسبوع" : "الشهر"}</span></div>
+      <div class="stat"><b>${live.filter((a) => a.status === "done").length}</b><span>انتهت</span></div>
+      <div class="stat"><b>${live.filter((a) => a.status === "noshow").length}</b><span>لم يحضر</span></div>
+      <div class="stat"><b>${appts.length - live.length}</b><span>ملغاة</span></div></div>
+    <div class="row gap"><a class="btn small" href="#/appts?v=${v}&d=${today}">${v === "week" ? "هذا الأسبوع" : "هذا الشهر"}</a><button class="btn primary small new">+ موعد</button></div>
+    ${body}`;
+  bindDocFilter(() => renderApptsRange(v, d));
+  $(".new").onclick = () => bookModal({});
+  bindApptButtons(live);
+}
 async function renderAppts() {
   const d = params().get("d") || ymd();
-  if (multiDoc() && (!S.docFilter || S.docFilter === "all")) S.docFilter = defaultDoc();
-  const did = multiDoc() ? S.docFilter : defaultDoc();
+  const v = params().get("v") || "day";
+  if (v === "week" || v === "month") return renderApptsRange(v, d);
+  if (multiDoc() && !S.docFilter) S.docFilter = defaultDoc();
   const all = (await list(query(P.col("appointments"), where("date", "==", d)))).sort((a, b) => a.time.localeCompare(b.time));
+  // في المراكز: «كل الأطباء» يعرض كل المواعيد معاً مرتبة حسب الوقت
+  if (multiDoc() && S.docFilter === "all") {
+    const live = all.filter((a) => a.status !== "cancelled"), canc = all.filter((a) => a.status === "cancelled");
+    main().innerHTML = `
+      <div class="row-between">
+        <a class="icon-btn" href="#/appts?d=${addDays(d, -1)}" aria-label="اليوم السابق">→</a>
+        <label class="date-pick"><b>${esc(fmtDate(d))}</b><input type="date" value="${d}" aria-label="اختيار التاريخ"></label>
+        <a class="icon-btn" href="#/appts?d=${addDays(d, 1)}" aria-label="اليوم التالي">←</a>
+      </div>
+      ${viewBar("day", d)}
+      ${docFilterBar()}
+      <div class="row gap"><a class="btn small" href="#/appts?d=${ymd()}">اليوم</a><button class="btn primary small new">+ موعد</button></div>
+      <section class="card"><h3>كل مواعيد المركز · ${live.length}</h3>
+        ${live.length ? `<ul class="appt-list">${live.map(apptRow).join("")}</ul>` : empty("لا توجد مواعيد في هذا اليوم")}
+        ${canc.length ? `<details><summary class="muted">ملغاة (${canc.length})</summary><ul class="appt-list">${canc.map(apptRow).join("")}</ul></details>` : ""}
+      </section>`;
+    bindDocFilter(renderAppts);
+    $(".date-pick input").onchange = (e) => go(`#/appts?d=${e.target.value}`);
+    $(".new").onclick = () => bookModal({ date: d });
+    bindApptButtons(all);
+    return;
+  }
+  const did = multiDoc() ? S.docFilter : defaultDoc();
   const appts = all.filter((a) => apptDoc(a) === did);
   const byTime = {};
   appts.filter((a) => a.status !== "cancelled").forEach((a) => byTime[a.time] = a);
   const slots = slotsFor(d);
   const extra = appts.filter((a) => a.status !== "cancelled" && !slots.includes(a.time));
   const cancelled = appts.filter((a) => a.status === "cancelled" && !byTime[a.time]);
-  const docOpts = multiDoc() ? `<div class="seg-scroll">${doctors().map((x) => `<button class="pill ${did === x.id ? "on" : ""}" data-doc="${x.id}">د. ${esc(x.name)}</button>`).join("")}</div>` : "";
+  const docOpts = docFilterBar();
   main().innerHTML = `
     <div class="row-between">
       <a class="icon-btn" href="#/appts?d=${addDays(d, -1)}" aria-label="اليوم السابق">→</a>
       <label class="date-pick"><b>${esc(fmtDate(d))}</b><input type="date" value="${d}" aria-label="اختيار التاريخ"></label>
       <a class="icon-btn" href="#/appts?d=${addDays(d, 1)}" aria-label="اليوم التالي">←</a>
     </div>
+    ${viewBar("day", d)}
     ${docOpts}
     <div class="row gap"><a class="btn small" href="#/appts?d=${ymd()}">اليوم</a><button class="btn primary small new">+ موعد</button></div>
     <section class="card">
