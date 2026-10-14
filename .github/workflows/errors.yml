@@ -1,0 +1,25 @@
+name: تقرير أعطال التطبيق اليومي
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * *"
+permissions:
+  contents: write
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - name: قراءة سجل الأعطال (دون بيانات مرضى)
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node tests/ops/errors-report.mjs
+      - name: حفظ التقرير
+        run: |
+          git config user.name "nabd-ci"; git config user.email "ci@nabd.app"
+          git fetch origin ci-results || true
+          git checkout -B ci-results
+          git add -f .results/errors.txt && git commit -m "تقرير الأعطال" && git push -f origin ci-results || true

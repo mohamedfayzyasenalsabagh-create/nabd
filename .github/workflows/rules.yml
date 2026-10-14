@@ -3,6 +3,8 @@ on:
   push:
     paths: ["firestore.rules", "tests/**", ".github/workflows/rules.yml"]
   workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
 jobs:
   rules:
     runs-on: ubuntu-latest

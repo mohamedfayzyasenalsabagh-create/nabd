@@ -352,6 +352,16 @@ test("الدور الحي: المريض يؤكد حضوره ويسجله بال�
   await assertFails(getDoc(doc(as("pat_B"), "clinics/A/live/queue")));
 });
 
+test("سجل الأعطال: يُكتب بحقول محددة فقط، ويقرؤه صاحب المنصة وحده", async () => {
+  const e = { msg: "x is not a function", stack: "at f (app.js:1)", route: "#/appts", role: "doctor", cid: "A", v: "", ua: "test", at: serverTimestamp(), n: 1 };
+  await assertSucceeds(setDoc(doc(as("doc_A"), "errors/e1"), e));
+  await assertSucceeds(setDoc(doc(anon(), "errors/e2"), { ...e, role: "guest", cid: null }));
+  await assertFails(setDoc(doc(anon(), "errors/e3"), { ...e, patient: "name" }));
+  await assertFails(setDoc(doc(anon(), "errors/e4"), { ...e, msg: "x".repeat(400) }));
+  await assertFails(getDoc(doc(as("doc_A"), "errors/e1")));
+  await assertSucceeds(getDoc(doc(as("own1"), "errors/e1")));
+});
+
 test("نشاط العيادة: يكتبه فريقها أرقاماً فقط، ويقرؤه صاحب المنصة", async () => {
   const ok = { lastAt: serverTimestamp(), patients: 12, apptsMonth: 30, day: "2026-10-14" };
   await assertSucceeds(setDoc(doc(as("sec_A"), "activity/A"), ok));

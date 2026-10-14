@@ -640,5 +640,10 @@
  "✓ حضورك مسجّل": "✓ You're checked in",
  "سجّل دخولك لتسجيل حضورك في العيادة": "Sign in to check in at the clinic",
  "عند وصولك امسح رمز QR على باب العيادة بكاميرا جوالك لتسجيل حضورك وأخذ رقم الدور.": "When you arrive, scan the QR code on the clinic door with your phone camera to check in and get a queue number.",
- "المرضى المعايَنون": "Patients seen"
+ "المرضى المعايَنون": "Patients seen",
+ "الأعطال": "Errors",
+ "أعطال التطبيق": "App errors",
+ "تُسجَّل تلقائياً من أجهزة المستخدمين خلال آخر 14 يوماً: رسالة الخطأ ومكانه فقط، دون أي بيانات مرضى.": "Logged automatically from users' devices over the last 14 days: the error message and where it happened only, no patient data.",
+ "لا توجد أعطال مسجلة ✓": "No errors logged ✓",
+ "التفاصيل التقنية": "Technical details"
 }

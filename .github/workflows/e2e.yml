@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths: ["*.js", "*.html", "styles.css", "firestore.rules", "demo/**", "tests/e2e/**", ".github/workflows/e2e.yml"]
   workflow_dispatch:
+  schedule:
+    - cron: "30 3 * * *"
 permissions:
   contents: write
 jobs:

@@ -25,12 +25,12 @@ const baseUrl = () => location.origin + location.pathname;
 export function start() {
   document.documentElement.style.setProperty("--accent", "#0E7C7B");
   document.title = `لوحة المالك · ${PLATFORM()}`;
-  const nav = [["clinics", "العيادات", "M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"], ["payments", "الدفعات", "M3 6h18v12H3zM3 10h18"], ["settings", "الإعدادات", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"]];
+  const nav = [["clinics", "العيادات", "M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"], ["payments", "الدفعات", "M3 6h18v12H3zM3 10h18"], ["errors", "الأعطال", "M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"], ["settings", "الإعدادات", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"]];
   $("#app").innerHTML = `
     <header class="topbar"><div class="tb-brand">${platformMark(34)}<span>${esc(PLATFORM())} · لوحة المالك</span></div>
       <div class="row gap"><span class="muted small hide-sm">${esc(S.profile.name || "")}</span><button class="btn small ghost out">خروج</button></div></header>
     <main id="main" class="page"></main>
-    <nav class="bottomnav cols-3" aria-label="التنقل">${nav.map(([k, t, d]) => `<a href="#/${k}" data-r="${k}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg><span>${t}</span><b class="badge hidden" data-badge="${k}"></b></a>`).join("")}</nav>`;
+    <nav class="bottomnav" aria-label="التنقل">${nav.map(([k, t, d]) => `<a href="#/${k}" data-r="${k}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg><span>${t}</span><b class="badge hidden" data-badge="${k}"></b></a>`).join("")}</nav>`;
   $(".out").onclick = logout;
   window.onhashchange = render;
   render();
@@ -44,10 +44,25 @@ async function render() {
   try {
     const pend = await list(query(P.subPays(), where("status", "==", "pending")));
     const b = $('[data-badge="payments"]'); if (b) { b.textContent = pend.length; b.classList.toggle("hidden", !pend.length); }
+    list(query(collection(db, "errors"), where("at", ">=", Timestamp.fromMillis(Date.now() - 864e5)))).then((e) => { const x = $('[data-badge="errors"]'); if (x) { x.textContent = e.length; x.classList.toggle("hidden", !e.length); } }).catch(() => {});
     if (r === "payments") return await renderPayments();
     if (r === "settings") return renderSettings();
+    if (r === "errors") return await renderErrors();
     return await renderClinics();
   } catch (e) { console.error(e); main().innerHTML = `<p class="alert">${esc(errMsg(e))}</p>`; }
+}
+
+// ---------- أعطال التطبيق (تُسجَّل تلقائياً من أجهزة المستخدمين، دون بيانات مرضى) ----------
+async function renderErrors() {
+  const arr = (await list(query(collection(db, "errors"), where("at", ">=", Timestamp.fromMillis(Date.now() - 14 * 864e5))))).sort((a, b) => tsMs(b.at) - tsMs(a.at));
+  const groups = {};
+  arr.forEach((e) => { const g = (groups[e.msg] ||= { msg: e.msg, n: 0, last: e, routes: new Set(), roles: new Set(), clinics: new Set() }); g.n++; g.routes.add(e.route); g.roles.add(e.role); if (e.cid) g.clinics.add(e.cid); });
+  const gs = Object.values(groups).sort((a, b) => tsMs(b.last.at) - tsMs(a.last.at));
+  main().innerHTML = `<h2 class="page-title">أعطال التطبيق</h2>
+    <p class="muted small">تُسجَّل تلقائياً من أجهزة المستخدمين خلال آخر 14 يوماً: رسالة الخطأ ومكانه فقط، دون أي بيانات مرضى.</p>
+    ${gs.length ? gs.map((g) => `<section class="card"><div class="row-between"><b class="notr" dir="ltr" style="word-break:break-word">${esc(g.msg)}</b><span class="chip ${g.n > 3 ? "danger" : ""}">${g.n} مرة</span></div>
+      <p class="muted small">آخر مرة: ${esc(tsDate(g.last.at))} · الصفحات: <span dir="ltr">${esc([...g.routes].join(" ، "))}</span> · الأدوار: ${esc([...g.roles].join("، "))} · عدد العيادات: ${g.clinics.size}</p>
+      <details><summary class="small">التفاصيل التقنية</summary><pre dir="ltr" class="small" style="white-space:pre-wrap">${esc(g.last.stack || "")}\n${esc(g.last.ua || "")}</pre></details></section>`).join("") : empty("لا توجد أعطال مسجلة ✓")}`;
 }
 
 // ---------- العيادات ----------

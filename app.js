@@ -273,6 +273,26 @@ function startIdleTimer() {
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
+// ---------- تسجيل الأعطال تلقائياً (دون بيانات مرضى) ليُصلَح أي خطأ بسرعة ----------
+const ERR = { n: 0, seen: new Set() };
+async function reportError(msg, stack) {
+  try {
+    msg = String(msg || "").slice(0, 300);
+    if (!msg || ERR.n >= 8 || ERR.seen.has(msg) || /ResizeObserver|Script error|extension:\/\/|chrome-extension/i.test(msg + stack)) return;
+    if (!configured || /\/demo\//.test(location.pathname) || location.hostname === "localhost") return;
+    ERR.seen.add(msg); ERR.n++;
+    const { collection, addDoc, serverTimestamp, db } = await import("./fb.js");
+    await addDoc(collection(db, "errors"), {
+      msg, stack: String(stack || "").replace(/https?:\/\/[^\s)]+\//g, "").slice(0, 1500),
+      route: (location.hash.split("?")[0] || "#/").replace(/\/[A-Za-z0-9_-]{15,}/g, "/:id").slice(0, 80),
+      role: S.owner ? "owner" : S.profile?.role || "guest", cid: S.profile?.clinicId || null,
+      v: (document.querySelector('meta[name="nabd-v"]')?.content || ""), ua: navigator.userAgent.slice(0, 160), at: serverTimestamp(), n: 1,
+    });
+  } catch {}
+}
+window.addEventListener("error", (e) => reportError(e.message, e.error?.stack || `${e.filename || ""}:${e.lineno || ""}`));
+window.addEventListener("unhandledrejection", (e) => { const r = e.reason || {}; if (r.code === "permission-denied" || /offline|network/i.test(r.message || "")) return; reportError(r.message || String(r), r.stack || ""); });
+
 // ---------- شريط الاتصال: العمل دون إنترنت والمزامنة الفورية عند عودته ----------
 function netBar() {
   let b = document.getElementById("netbar");
