@@ -3174,5 +3174,5 @@ export const EN = {
 "✓ حضورك مسجّل": "✓ You're checked in",
 "سجّل دخولك لتسجيل حضورك في العيادة": "Sign in to check in at the clinic",
 "عند وصولك امسح رمز QR على باب العيادة بكاميرا جوالك لتسجيل حضورك وأخذ رقم الدور.": "When you arrive, scan the QR code on the clinic door with your phone camera to check in and get a queue number.",
-"مريضاً عوين اليوم": "patients seen today"
+"المرضى المعايَنون": "Patients seen"
 };
