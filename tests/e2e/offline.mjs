@@ -86,7 +86,7 @@ try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });
   const pg = await ctx.newPage();
   const errs = []; pg.on("pageerror", (e) => errs.push(String(e)));
-  await pg.goto(B + "app.html#/login");
+  await pg.goto(B + "#/login");
   await pg.waitForSelector("#lf", { timeout: 30000 });
   await pg.fill('#lf [name="id"]', "demo@nabd.app"); await pg.fill('#lf [name="pw"]', "demo1234");
   await pg.click('#lf [type="submit"]');
@@ -170,7 +170,7 @@ try {
   const pctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });
   const pp = await pctx.newPage();
   const perrs = []; pp.on("pageerror", (e) => perrs.push(String(e)));
-  await pp.goto(B + "app.html#/login"); await pp.waitForSelector("#lf", { timeout: 30000 });
+  await pp.goto(B + "#/login"); await pp.waitForSelector("#lf", { timeout: 30000 });
   await pp.fill('#lf [name="id"]', patientUser.email); await pp.fill('#lf [name="pw"]', patientUser.pw);
   await pp.click('#lf [type="submit"]');
   await pp.waitForSelector(".bottomnav, .ag", { timeout: 30000 });
