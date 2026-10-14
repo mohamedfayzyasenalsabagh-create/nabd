@@ -829,3 +829,6 @@ a.stat { color: inherit; text-decoration: none; }
 .bottomnav a .nb[hidden]{display:none}
 
 .cm-box textarea{width:100%;box-sizing:border-box}
+
+.imp .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:520px){.imp .grid2{grid-template-columns:1fr}}
+.imp-prev .tbl{font-size:13px}

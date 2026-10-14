@@ -1,9 +1,9 @@
 // يفتح التطبيق بسرعة ودون إنترنت (البيانات تتزامن عند عودة الاتصال)
-const CACHE = "nabd-v59";
+const CACHE = "nabd-v60";
 const LIBS = "nabd-libs-v1"; // مكتبات Firebase والخطوط: عناوينها ثابتة بالإصدار فلا تتغير
 const SHELL = ["./", "index.html", "app.html", "styles.css", "app.js", "fb.js", "ui.js", "staff.js", "admin.js", "card.js", "mods.js",
   "patient.js", "public.js", "owner.js", "legal.js", "config.js", "i18n.js", "en.js", "qrcode.js", "smart.js", "medref.js", "drugs.js",
-  "drugsafety.js", "diseases.js", "faq.js", "manifest.json", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png"];
+  "drugsafety.js", "diseases.js", "faq.js", "importx.js", "lib/xlsx.full.min.js", "manifest.json", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png"];
 const FB = "https://www.gstatic.com/firebasejs/10.14.1/";
 const SDK = ["firebase-app.js", "firebase-auth.js", "firebase-firestore.js", "firebase-storage.js"].map((f) => FB + f);
 const FONT_CSS = "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap";

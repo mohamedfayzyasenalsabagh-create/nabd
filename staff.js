@@ -916,13 +916,14 @@ function renderPatients() {
   if (existing) { $("#pt-results").innerHTML = html; return; }
   main().innerHTML = `
     <div class="row-between"><h2 class="page-title">المرضى <span class="muted small">(${PC.list.filter((p) => !p.archived).length})</span></h2>
-      <button class="btn primary new">+ مريض جديد</button></div>
+      <div class="row gap"><button class="btn imp-x">📥 استيراد من إكسل</button><button class="btn primary new">+ مريض جديد</button></div></div>
     <input id="pt-q" class="search" type="search" placeholder="البحث بالاسم أو رقم الجوال" value="${esc(ptFilter)}" aria-label="بحث">
     <label class="check small"><input type="checkbox" class="arch" ${showArchived ? "checked" : ""}><span>عرض المؤرشفين</span></label>
     <div id="pt-results">${html}</div>`;
   $("#pt-q").oninput = debounce((e) => { ptFilter = e.target.value; renderPatients(); }, 120);
   $(".arch").onchange = (e) => { showArchived = e.target.checked; renderPatients(); };
   $(".new").onclick = () => newPatientModal();
+  $(".imp-x").onclick = async () => (await import("./importx.js")).importPatients();
 }
 
 export function ageText(p) {
