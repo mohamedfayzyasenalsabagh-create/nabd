@@ -612,7 +612,6 @@
  "اطبع هذا الرمز وعلّقه على باب العيادة أو عند الاستقبال. عند وصول المريض يمسحه بكاميرا جواله فيُسجَّل حضوره ويأخذ رقم دور تلقائياً، ويرى في تطبيقه كم شخصاً قبله.": "Print this code and put it on the clinic door or at reception. When patients arrive they scan it with their phone camera: they are checked in, get a queue number automatically, and see in the app how many are ahead of them.",
  "🌙 ملخص اليوم": "🌙 Today's summary",
  "إشعار الساعة 9 مساءً": "Notify at 9 pm",
- "مريض شفته": "patients seen",
  "غياب": "No-shows",
  "مواعيد الغد": "Tomorrow's appointments",
  "دخل اليوم": "Today's income",
@@ -640,5 +639,6 @@
  "تعذّر تسجيل الحضور": "Couldn't check in",
  "✓ حضورك مسجّل": "✓ You're checked in",
  "سجّل دخولك لتسجيل حضورك في العيادة": "Sign in to check in at the clinic",
- "عند وصولك امسح رمز QR على باب العيادة بكاميرا جوالك لتسجيل حضورك وأخذ رقم الدور.": "When you arrive, scan the QR code on the clinic door with your phone camera to check in and get a queue number."
+ "عند وصولك امسح رمز QR على باب العيادة بكاميرا جوالك لتسجيل حضورك وأخذ رقم الدور.": "When you arrive, scan the QR code on the clinic door with your phone camera to check in and get a queue number.",
+ "مريضاً عوين اليوم": "patients seen today"
 }

@@ -310,7 +310,7 @@ async function fillDaySummary() {
     const m = await import("./live.js"), x = await m.daySummary();
     el.innerHTML = `<section class="card daysum"><div class="row-between"><h3>🌙 ملخص اليوم</h3>
       <label class="check small"><input type="checkbox" class="ds-on" ${m.summaryOn() ? "checked" : ""}><span>إشعار الساعة 9 مساءً</span></label></div>
-      <div class="stats"><div class="stat"><b>${x.seen}</b><span>مريض شفته</span></div><div class="stat"><b>${money(x.income, cur())}</b><span>دخل اليوم</span></div>
+      <div class="stats"><div class="stat"><b>${x.seen}</b><span>مريضاً عوين اليوم</span></div><div class="stat"><b>${money(x.income, cur())}</b><span>دخل اليوم</span></div>
       <div class="stat"><b>${x.noshow}</b><span>غياب</span></div><div class="stat"><b>${x.tomorrow}</b><span>مواعيد الغد</span></div></div></section>`;
     el.querySelector(".ds-on").onchange = (e) => { m.setSummaryOn(e.target.checked); toast(e.target.checked ? "سيصلك ملخص اليوم الساعة 9 مساءً" : "أُوقف إشعار ملخص اليوم"); };
   } catch (e) { console.warn(e); }

@@ -83,7 +83,7 @@ export async function daySummary(day = ymd()) {
     tomorrow: tm.filter(mine).filter((x) => x.status !== "cancelled").length,
   };
 }
-export const summaryText = (x) => `شفت اليوم ${x.seen} مريض · الدخل ${money(x.income, cur())}${x.noshow ? ` · غياب ${x.noshow}` : ""} · مواعيد الغد ${x.tomorrow}`;
+export const summaryText = (x) => `المرضى المعايَنون اليوم: ${x.seen} · الدخل: ${money(x.income, cur())}${x.noshow ? ` · الغياب: ${x.noshow}` : ""} · مواعيد الغد: ${x.tomorrow}`;
 const SUM_ON = () => { try { return localStorage.getItem("daySum") !== "off"; } catch { return true; } };
 export function setSummaryOn(on) { try { localStorage.setItem("daySum", on ? "on" : "off"); } catch {} scheduleSummary(); }
 export const summaryOn = SUM_ON;
