@@ -146,6 +146,16 @@ try {
     return true;
   }).catch((e) => String(e));
   log(paid === true && Date.now() - t3 < 5000, "تسجيل دفعة دون إنترنت", `${Date.now() - t3} ms`);
+  await pg.evaluate(() => (location.hash = "#/patients")); await sleep(1500);
+  await pg.locator("button:has-text('مريض جديد'), .new").first().click(); await sleep(500);
+  const nm = pg.locator(".modal").last();
+  await nm.locator('[name="name"]').fill("مريض سُجّل دون إنترنت");
+  if (await nm.locator('[name="noAccount"]').count()) await nm.locator('[name="noAccount"]').check();
+  const t5 = Date.now();
+  await nm.locator(".ok").click();
+  const regOk = await pg.waitForFunction(() => document.body.innerText.includes("مريض سُجّل دون إنترنت"), null, { timeout: 8000 }).then(() => true, () => false);
+  log(regOk, "تسجيل مريض جديد دون إنترنت", `${Date.now() - t5} ms`);
+  await pg.evaluate(() => document.querySelectorAll(".modal-wrap").forEach((w) => w.remove()));
   const before = await getDocREST(`clinics/demo/appointments/${tDay}_${tTime.replace(":", "")}_${tDoc}`);
   log(!before, "لم تصل التعديلات للخادم بعد (طبيعي دون إنترنت)");
 
@@ -161,6 +171,8 @@ try {
   log(onServer && oldCancelled, "الموعد المنقول وصل للخادم والقديم أُلغي");
   const msgs = await rest("GET", `${FS}/clinics/demo/patients/p01/messages?pageSize=300`);
   log((msgs.documents || []).some((d) => sv(d, "text") === "رسالة أُرسلت دون إنترنت"), "الرسالة وصلت للخادم بعد المزامنة");
+  const pts = await rest("POST", `${FS}/clinics/demo:runQuery`, { structuredQuery: { from: [{ collectionId: "patients" }], where: { fieldFilter: { field: { fieldPath: "name" }, op: "EQUAL", value: { stringValue: "مريض سُجّل دون إنترنت" } } } } });
+  log(pts.some((x) => x.document), "المريض الجديد وصل للخادم بعد المزامنة");
   const pays = await rest("GET", `${FS}/clinics/demo/payments?pageSize=1000`);
   log((pays.documents || []).some((d) => sv(d, "note") === "e2e offline"), "الدفعة وصلت للخادم بعد المزامنة");
   await pg.screenshot({ path: path.join(OUT, "3-synced.png") });
