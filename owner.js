@@ -75,11 +75,22 @@ async function renderClinics() {
   // استخدام العيادات: آخر نشاط وعدد المرضى ومواعيد الشهر (أرقام فقط)
   const acts = Object.fromEntries((await list(collection(db, "activity")).catch(() => [])).map((a) => [a.id, a]));
   const ago = (id) => { const a = acts[id]; return a?.lastAt ? Math.floor((Date.now() - tsMs(a.lastAt)) / 864e5) : null; };
+  // الاستخدام السابق من الحسابات (موجود منذ البداية): حسابات المرضى وآخر إضافة ودخول الفريق — أرقام فقط
+  const H = {};
+  (await list(P.users()).catch(() => [])).forEach((u) => {
+    if (!u.clinicId) return;
+    const h = (H[u.clinicId] ||= { pts: 0, ptsOpened: 0, staff: 0, staffIn: 0, last: 0 });
+    if (u.role === "patient") { h.pts++; if (u.consentAt) h.ptsOpened++; }
+    else { h.staff++; if (!u.mustChangePassword) h.staffIn++; }
+    h.last = Math.max(h.last, tsMs(u.createdAt) || 0);
+  });
+  const hist = (id) => { const h = H[id]; if (!h) return ""; const d = h.last ? Math.floor((Date.now() - h.last) / 864e5) : null;
+    return `<br><small class="muted">منذ البداية: ${h.pts} حساب مريض${d !== null ? ` · آخر إضافة ${d ? `منذ ${d} يوم` : "اليوم"}` : ""}</small>`; };
   const usage = (id) => {
     const a = acts[id], d = ago(id);
-    if (d === null) return `<span class="chip">⚪ لم تُستخدم بعد</span>`;
+    if (d === null) return `<span class="chip">⚪ لا نشاط مسجل بعد</span>${hist(id)}`;
     const lbl = d === 0 ? "🟢 اليوم" : d <= 3 ? `🟢 منذ ${d} يوم` : d <= 14 ? `🟡 منذ ${d} يوم` : `🔴 منذ ${d} يوم`;
-    return `<span class="chip">${lbl}</span><br><small class="muted">${a.patients || 0} مريض · ${a.apptsMonth || 0} موعد هذا الشهر</small>`;
+    return `<span class="chip">${lbl}</span><br><small class="muted">${a.patients || 0} مريض · ${a.apptsMonth || 0} موعد هذا الشهر</small>${hist(id)}`;
   };
   const usedWeek = all.filter((c) => { const d = ago(c.id); return d !== null && d <= 7; }).length;
   const F = { all: st, active, trial, expired, soon };
@@ -118,7 +129,7 @@ async function renderClinics() {
   loadDownloads(); loadVisits();
   $$(".stat.f").forEach((b) => b.onclick = () => { filter = b.dataset.f; renderClinics(); });
   $("#cq").oninput = debounce((e) => { q = e.target.value; renderClinics().then(() => { const i = $("#cq"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 250);
-  $$(".man").forEach((b) => b.onclick = () => manageClinic(all.find((c) => c.id === b.dataset.id)));
+  $$(".man").forEach((b) => b.onclick = () => manageClinic(all.find((c) => c.id === b.dataset.id), { act: acts[b.dataset.id], h: H[b.dataset.id] }));
   $$(".rn").forEach((b) => b.addEventListener("click", () => {
     b.closest("li").classList.add("done");
     updateDoc(P.clinic(b.dataset.id), { renewRemindedAt: Timestamp.now() }).catch(() => {});
@@ -134,7 +145,7 @@ function renewText(c, days) {
   return `مرحباً د. ${c.doctorName || ""} 👋\n${when}.\n\nللتجديد اختر الباقة المناسبة:\n${ps}\n\nيمكنك الدفع من داخل التطبيق: المزيد ← الاشتراك والفواتير${pay.syriatel ? `\nأو عبر سيريتل كاش: ${pay.syriatel}` : ""}\n\nبياناتكم محفوظة بالكامل. لأي استفسار نحن بالخدمة.`;
 }
 
-async function manageClinic(c) {
+async function manageClinic(c, use = {}) {
   const s = clinicState(c);
   const link = `${baseUrl()}#/c/${c.slug}`;
   await modal(c.name, `
@@ -146,6 +157,8 @@ async function manageClinic(c) {
       <tr><th>الجوال</th><td dir="ltr">${esc(c.ownerPhone || "")}</td></tr>
       <tr><th>رابط الدخول</th><td dir="ltr" class="small">${esc(link)}</td></tr>
       <tr><th>تاريخ التسجيل</th><td>${esc(tsDate(c.createdAt))}</td></tr>
+      <tr><th>آخر استخدام</th><td>${use.act?.lastAt ? esc(tsDate(use.act.lastAt)) + ` · ${use.act.patients || 0} مريض · ${use.act.apptsMonth || 0} موعد هذا الشهر` : "لا نشاط مسجل بعد"}</td></tr>
+      ${use.h ? `<tr><th>منذ البداية</th><td>${use.h.pts} حساب مريض (فتح التطبيق منهم ${use.h.ptsOpened}) · فريق العيادة ${use.h.staff} (دخل منهم ${use.h.staffIn})${use.h.last ? ` · آخر إضافة ${esc(tsDate(use.h.last))}` : ""}</td></tr>` : ""}
     </table>
     <form class="stack act">
       <h4>تفعيل أو تمديد الاشتراك</h4>

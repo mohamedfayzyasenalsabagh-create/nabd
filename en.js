@@ -3125,5 +3125,9 @@ export const EN = {
 "⚪ لم تُستخدم بعد": "⚪ Not used yet",
 "🟢 اليوم": "🟢 Today",
 "عيادات تستخدم التطبيق هذا الأسبوع": "Clinics using the app this week",
-"موعد هذا الشهر": "appointments this month"
+"موعد هذا الشهر": "appointments this month",
+"⚪ لا نشاط مسجل بعد": "⚪ No activity recorded yet",
+"لا نشاط مسجل بعد": "No activity recorded yet",
+"آخر استخدام": "Last used",
+"منذ البداية": "Since the start"
 };
