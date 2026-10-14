@@ -820,3 +820,12 @@ a.stat { color: inherit; text-decoration: none; }
 .g-chip.sel{outline:3px solid #e0b400;box-shadow:0 6px 16px rgba(0,0,0,.2)}
 .g-a.st-arrived .g-chip{background:#fff3cd;color:#7a5600}.g-a.st-in .g-chip{background:#d7f0ea}.g-a.st-done .g-chip{opacity:.6}.g-a.st-noshow .g-chip{background:#fde2e2;color:#a33}
 .move-bar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:8px;background:#ffd166;color:#08403d;border-radius:12px;padding:8px 12px;margin-top:8px;font-weight:600}
+
+/* شريط الاتصال */
+.netbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:9999;max-width:min(560px,calc(100vw - 24px));padding:9px 14px;border-radius:14px;font-size:13px;font-weight:600;line-height:1.5;box-shadow:0 8px 24px rgba(0,0,0,.18);text-align:center}
+.netbar.off{background:#3a2f00;color:#ffe9a6}.netbar.sync{background:#0b4f4c;color:#e6f4f3}.netbar.ok{background:#0e7c5b;color:#fff}.netbar.hidden{display:none}
+
+.bottomnav a{position:relative}.bottomnav a .nb{position:absolute;top:2px;inset-inline-start:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#d64545;color:#fff;font:700 11px/18px system-ui;font-style:normal;text-align:center}
+.bottomnav a .nb[hidden]{display:none}
+
+.cm-box textarea{width:100%;box-sizing:border-box}

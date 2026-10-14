@@ -1,6 +1,7 @@
 import { t as tr } from "./i18n.js";
 // تطبيق المريض
-import { addFileDoc, fileData, P, list, one, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, audit, clinicState } from "./fb.js";
+import { addFileDoc, fileData, P, list, one, updateDoc, addDoc, query, where, serverTimestamp, onSnapshot, audit, clinicState, auth, C } from "./fb.js";
+import { firebaseConfig } from "./config.js";
 import { makeThumb, tileImg, isImg, showFile,
   parseYmd, $, $$, esc, ymd, addDays, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info, field, select,
   logoHtml, empty, compressImage, pickFile,
@@ -89,6 +90,50 @@ function shell() {
   S.unsub.push(onSnapshot(query(P.col("appointments"), where("patientId", "==", T.pid)), () => {
     clearTimeout(rt); rt = setTimeout(scheduleDoseReminders, 1500);
   }, () => {}));
+  watchInbox();
+}
+
+// ---------- رسائل العيادة: شارة على «رسائل» وإشعار على الجوال ----------
+const seenKey = () => `msgSeen:${T.pid}`;
+const seenAt = () => { try { return Number(localStorage.getItem(seenKey()) || 0); } catch { return 0; } };
+const msMs = (m) => m.at?.toMillis?.() || (m.at?.seconds || 0) * 1000 || Date.now();
+function setBadge(n) {
+  const a = $('.bottomnav a[data-r="msgs"]'); if (!a) return;
+  let b = a.querySelector(".nb"); if (!b) { b = document.createElement("i"); b.className = "nb"; a.appendChild(b); }
+  b.textContent = n > 9 ? "9+" : n; b.hidden = !n;
+}
+function markMsgsSeen() { try { localStorage.setItem(seenKey(), String(Date.now())); } catch {} setBadge(0); try { window.AndroidApp?.inboxSeen?.(); } catch {} }
+const KIND = { reminder: "تذكير بموعدك", debt: "رسالة من العيادة", plan: "خطة العلاج", appt: "موعدك" };
+function notifyMsg(m) {
+  const title = tr(KIND[m.kind] || "رسالة من العيادة") + ` · ${S.pub.name || ""}`;
+  const body = T.me?.hideSensitive ? tr("لديك رسالة جديدة من العيادة") : m.text;
+  if (!document.hidden) { toast(`💬 ${title}`); return; }
+  try {
+    if (NATIVE && window.AndroidApp.notifyNow) return AndroidApp.notifyNow("msg-" + T.pid, title, body, "#/msgs");
+    if ("Notification" in window && Notification.permission === "granted") navigator.serviceWorker?.getRegistration().then((reg) => {
+      const o = { body, icon: "icon-192.png", tag: "msg-" + T.pid, data: { url: "./app.html#/msgs" } };
+      if (reg) reg.showNotification(title, o); else new Notification(title, o);
+    });
+  } catch {}
+}
+function watchInbox() {
+  try { if (!localStorage.getItem(seenKey())) localStorage.setItem(seenKey(), String(Date.now())); } catch {}
+  const known = new Set(); let first = true;
+  S.unsub.push(onSnapshot(P.sub(T.pid, "messages"), (s) => {
+    const arr = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((m) => m.from === "clinic");
+    if (routeName() === "msgs") markMsgsSeen();
+    else setBadge(arr.filter((m) => msMs(m) > seenAt()).length);
+    arr.forEach((m) => { if (!first && !known.has(m.id) && routeName() !== "msgs") notifyMsg(m); known.add(m.id); });
+    first = false;
+  }, () => {}));
+  // تطبيق أندرويد: متابعة الرسائل في الخلفية والتطبيق مغلق
+  try {
+    if (NATIVE && window.AndroidApp.setInbox && auth?.currentUser?.refreshToken) AndroidApp.setInbox(JSON.stringify({
+      key: firebaseConfig.apiKey, project: firebaseConfig.projectId, refresh: auth.currentUser.refreshToken,
+      paths: T.patients.map((p) => `clinics/${C}/patients/${p.id}`), clinic: S.pub.name || PLATFORM(),
+      hide: !!T.me?.hideSensitive, fallback: tr("لديك رسالة جديدة من العيادة"),
+    }));
+  } catch {}
 }
 function routeName() { return (location.hash.replace(/^#\/?/, "").split(/[/?]/)[0]) || "home"; }
 
@@ -482,6 +527,7 @@ async function msgs() {
     <form class="send row gap"><input name="t" placeholder="اكتب سؤالك…" required aria-label="الرسالة" class="grow"><button class="btn primary">إرسال</button></form>
     <p class="muted small">للحالات الطارئة اتصل مباشرة${S.pub.phone ? `: <a href="tel:${esc(S.pub.phone)}" dir="ltr">${esc(S.pub.phone)}</a>` : ""}.</p></section>`;
   const box = $(".msgs");
+  markMsgsSeen();
   const un = onSnapshot(P.sub(T.pid, "messages"), (s) => {
     if (!document.body.contains(box)) return un();
     const arr = s.docs.map((d) => d.data()).sort((a, b) => (a.at?.seconds || 0) - (b.at?.seconds || 0));

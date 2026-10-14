@@ -109,9 +109,21 @@ public class MainActivity extends Activity {
             }
         });
 
-        if (b != null) web.restoreState(b); else web.loadUrl(HOME);
+        String h = getIntent() != null ? getIntent().getStringExtra("hash") : null;
+        if (b != null && h == null) web.restoreState(b); else web.loadUrl(HOME + (h != null ? h : ""));
         web.postDelayed(this::hideSplash, 8000);
     }
+
+    // فتح الإشعار والتطبيق مفتوح: الانتقال مباشرة إلى الصفحة المطلوبة (مثل الرسائل)
+    @Override
+    protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        String h = i.getStringExtra("hash");
+        if (h != null && web != null) web.evaluateJavascript("location.hash=" + org.json.JSONObject.quote(h), null);
+    }
+    static boolean visible = false;
+    @Override protected void onResume() { super.onResume(); visible = true; }
+    @Override protected void onPause() { super.onPause(); visible = false; }
 
     void openExternal(Uri u) {
         try {
@@ -248,6 +260,13 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface
         public void setReminders(String json) { Reminders.setAll(getApplicationContext(), json); }
+        // رسائل العيادة: إشعار فوري، ومتابعة في الخلفية والتطبيق مغلق
+        @JavascriptInterface
+        public void notifyNow(String id, String title, String body, String hash) { Reminders.show(getApplicationContext(), id, title, body, hash); }
+        @JavascriptInterface
+        public void setInbox(String json) { Inbox.setup(getApplicationContext(), json); }
+        @JavascriptInterface
+        public void inboxSeen() { Inbox.checkAsync(getApplicationContext(), false); }
         @JavascriptInterface
         public String notifyState() { return MainActivity.this.notifyState(); }
         @JavascriptInterface

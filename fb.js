@@ -7,8 +7,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs,
-  onSnapshot, serverTimestamp, arrayUnion, arrayRemove, runTransaction, writeBatch, limit, orderBy, Timestamp, increment
+  doc, getDoc, setDoc as _setDoc, updateDoc as _updateDoc, collection, query, where, getDocs,
+  onSnapshot, serverTimestamp, arrayUnion, arrayRemove, runTransaction as _runTransaction, writeBatch as _writeBatch, limit, orderBy, Timestamp, increment,
+  waitForPendingWrites, enableNetwork
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig, USE_STORAGE } from "./config.js";
 
@@ -19,6 +20,31 @@ export const auth = configured ? getAuth(app) : null;
 export const db = configured
   ? initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })
   : null;
+
+// ---------- العمل دون إنترنت ----------
+// Firestore يحفظ كل تعديل على الجهاز فوراً ويرسله تلقائياً عند عودة الاتصال، لكن وعد الحفظ لا يكتمل
+// إلا بعد وصوله للخادم. لذلك لا ننتظر الخادم دون إنترنت (أو عند ضعف الشبكة) كي لا تتعلق الشاشات.
+export const pending = { n: 0 };
+const offline = () => typeof navigator !== "undefined" && navigator.onLine === false;
+function settle(p) {
+  if (offline()) { pending.n++; p.then(() => pending.n--, (e) => { pending.n--; console.warn("تعذّر حفظ تعديل بعد المزامنة", e); window.dispatchEvent(new CustomEvent("nabd-sync-error", { detail: e })); }); return Promise.resolve(); }
+  return Promise.race([p, new Promise((r) => setTimeout(r, 12000))]);
+}
+const setDoc = (...a) => settle(_setDoc(...a));
+const updateDoc = (...a) => settle(_updateDoc(...a));
+async function addDoc(col, data) { const ref = doc(col); await setDoc(ref, data); return ref; }
+function writeBatch(...a) { const b = _writeBatch(...a); const c = b.commit.bind(b); b.commit = () => settle(c()); return b; }
+// المعاملات تحتاج الخادم؛ دون إنترنت نقرأ النسخة المحفوظة على الجهاز ونكتب مباشرة
+async function runTransaction(d, fn) {
+  if (!offline()) return _runTransaction(d, fn);
+  const w = [];
+  const tx = { get: (r) => getDoc(r), set: (r, v, o) => { w.push(() => setDoc(r, v, o)); return tx; }, update: (r, v) => { w.push(() => updateDoc(r, v)); return tx; } };
+  const res = await fn(tx);
+  for (const f of w) await f();
+  return res;
+}
+export const isOffline = offline;
+export async function syncNow() { if (!db) return; try { await enableNetwork(db); await waitForPendingWrites(db); } catch (e) { console.warn(e); } }
 
 export {
   doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, onSnapshot,

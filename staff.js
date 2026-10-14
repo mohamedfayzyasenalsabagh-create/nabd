@@ -330,7 +330,7 @@ export async function apptActions(a) {
         ${doc_ ? `<button class="btn primary" data-act="visit">تسجيل زيارة</button>` : ""}
         <button class="btn" data-act="card">${canMed() ? "السجل الطبي" : "بيانات المريض"}</button>
         <button class="btn" data-act="pay">تسجيل دفعة</button>
-        <a class="btn" target="_blank" rel="noopener" href="${esc(waLink(a.phone || p.phone, reminderText(a)))}">تذكير عبر واتساب</a>
+        <button class="btn" data-act="remind">📲 تذكير المريض</button>
         <a class="btn" href="tel:${esc(a.phone || p.phone || "")}">اتصال</a>
         ${!["done", "cancelled"].includes(a.status) ? `<button class="btn" data-act="move">تأجيل</button><button class="btn danger" data-act="cancel">إلغاء الموعد</button>` : ""}
       </div>`, { ok: null, cancel: "إغلاق", onOpen: (wrap) => resolve(wrap) });
@@ -354,12 +354,15 @@ export async function apptActions(a) {
         return go(`#/p/${a.patientId}/${canMed() ? "summary" : "info"}`);
       } else if (act === "pay") {
         return paymentModal(a.patientId, a.type);
+      } else if (act === "remind") {
+        updateDoc(P.colDoc("appointments", a.id), { remindedAt: serverTimestamp() }).catch(() => {});
+        return offerNotify(a.phone || p.phone, reminderText(a), "", a.patientId);
       } else if (act === "move") {
         const nb = await bookModal({ pid: a.patientId, type: a.type, note: a.note, title: "تأجيل الموعد", doctorId: apptDoc(a) });
         if (nb) {
           await updateDoc(P.colDoc("appointments", a.id), { status: "cancelled", cancelReason: "تأجيل", updatedAt: serverTimestamp() });
           await markBusy(a.date, a.time, apptDoc(a), false);
-          offerNotify(a.phone || p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، تم تغيير موعدك في ${S.pub.name} إلى ${fmtDate(nb.date)} الساعة ${fmtTime(nb.time)}.`);
+          offerNotify(a.phone || p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، تم تغيير موعدك في ${S.pub.name} إلى ${fmtDate(nb.date)} الساعة ${fmtTime(nb.time)}.`, "", a.patientId);
         }
       } else if (act === "cancel") {
         if (!(await confirmBox("إلغاء الموعد", `إلغاء موعد ${a.patientName}؟`, "إلغاء الموعد", true))) return;
@@ -368,7 +371,7 @@ export async function apptActions(a) {
         await audit("إلغاء موعد", a.patientName);
         const wl = await list(query(P.col("waitlist"), where("status", "==", "waiting")));
         offerNotify(a.phone || p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، نعتذر، تم إلغاء موعدك في ${S.pub.name} بتاريخ ${fmtDate(a.date)}. يرجى التواصل معنا لتحديد موعد جديد.`,
-          wl.length ? `<p class="alert">يوجد ${wl.length} في قائمة الانتظار الاحتياطية. <a href="#/waitlist">افتحها</a> لإعطاء الموعد لأحدهم.</p>` : "");
+          wl.length ? `<p class="alert">يوجد ${wl.length} في قائمة الانتظار الاحتياطية. <a href="#/waitlist">افتحها</a> لإعطاء الموعد لأحدهم.</p>` : "", a.patientId);
       }
     } catch (e) { toast(errMsg(e), true); }
     render();
@@ -377,9 +380,58 @@ export async function apptActions(a) {
 function reminderText(a) {
   return `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، تذكير بموعدك في ${S.pub.name} يوم ${fmtDate(a.date)} الساعة ${fmtTime(a.time)}.${S.pub.address ? " العنوان: " + S.pub.address : ""}\nللتأكيد أو الاعتذار يرجى الرد على هذه الرسالة.`;
 }
-export function offerNotify(phone, text, extra = "") {
-  if (!phone) { if (extra) info("تنبيه", extra); return; }
-  info("إبلاغ المريض", `${extra}<p>${esc(text)}</p><a class="btn primary" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">إرسال على واتساب</a>`);
+// ---------- الإرسال للمريض: واتساب أو SMS أو إشعار في التطبيق ----------
+export const smsLink = (phone, text) => `sms:${phone || ""}?body=${encodeURIComponent(text)}`;
+const hasApp = (pid) => !!(pid && PC.byId[pid]?.uid);
+export function sendBtns(phone, text, pid, { small = false, id = "", kind = "note" } = {}) {
+  const s = small ? "small" : "";
+  if (!phone && !hasApp(pid)) return "";
+  return `<span class="send-btns" data-id="${esc(id)}">
+    ${phone ? `<a class="btn ${s} primary sb-wa" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">💬 واتساب</a><a class="btn ${s} sb-sms" href="${esc(smsLink(phone, text))}">✉️ SMS</a>` : ""}
+    ${hasApp(pid) ? `<button type="button" class="btn ${s} sb-app" data-pid="${esc(pid)}" data-kind="${esc(kind)}" data-text="${esc(text)}">📱 التطبيق</button>` : ""}</span>`;
+}
+// إرسال رسالة إلى تطبيق المريض: تظهر في «الرسائل» ويصله إشعار على جواله
+export async function sendToApp(pid, text, kind = "note") {
+  await addDoc(P.sub(pid, "messages"), { from: "clinic", text, kind, at: serverTimestamp(), byName: S.profile?.name || S.pub?.name || "العيادة" });
+  await updateDoc(P.patient(pid), { lastMsgAt: serverTimestamp(), lastMsgFrom: "clinic" });
+}
+export function bindSend(root, onSent) {
+  (root || document).querySelectorAll(".send-btns").forEach((g) => {
+    if (g.dataset.bound) return; g.dataset.bound = "1";
+    g.querySelectorAll(".sb-wa,.sb-sms").forEach((a) => a.addEventListener("click", () => onSent?.(g, a.classList.contains("sb-wa") ? "wa" : "sms")));
+    g.querySelector(".sb-app")?.addEventListener("click", async (e) => {
+      const b = e.currentTarget; b.disabled = true;
+      try { await sendToApp(b.dataset.pid, b.dataset.text, b.dataset.kind); b.textContent = "✓ وصل للتطبيق"; toast("أُرسلت إلى تطبيق المريض"); onSent?.(g, "app"); }
+      catch (err) { b.disabled = false; toast(errMsg(err), true); }
+    });
+  });
+}
+// رسالة حرّة للمريض: يكتبها الطبيب أو السكرتيرة ثم يختار طريقة الإرسال
+export function composeToPatient(p) {
+  const app = !!p.uid;
+  if (!p.phone && !app) return info("مراسلة المريض", "لا يوجد رقم جوال ولا حساب في التطبيق لهذا المريض.");
+  modal(`مراسلة ${p.name}`, `<div class="stack"><div class="cm-box"><textarea class="cm-t" rows="4" aria-label="نص الرسالة">${esc(`مرحباً ${p.name}، `)}</textarea></div>
+    <p class="muted small">اختر طريقة الإرسال:</p>
+    <div class="btn-grid">${p.phone ? `<a class="btn primary cm-wa" target="_blank" rel="noopener" href="#">💬 واتساب</a><a class="btn cm-sms" href="#">✉️ SMS</a>` : ""}
+      ${app ? `<button type="button" class="btn cm-app">📱 التطبيق (إشعار)</button>` : ""}</div>
+    ${app ? "" : `<p class="muted small">ليس للمريض حساب في التطبيق، لذلك لا يتوفر الإرسال عبر التطبيق.</p>`}</div>`, {
+    ok: null, cancel: "إغلاق", onOpen: (w) => {
+      const t = () => w.querySelector(".cm-t").value.trim();
+      w.querySelector(".cm-wa")?.addEventListener("click", (e) => { e.currentTarget.href = waLink(p.phone, t()); });
+      w.querySelector(".cm-sms")?.addEventListener("click", (e) => { e.currentTarget.href = smsLink(p.phone, t()); });
+      w.querySelector(".cm-app")?.addEventListener("click", async (e) => {
+        const b = e.currentTarget; if (!t()) return; b.disabled = true;
+        try { await sendToApp(p.id, t()); b.textContent = "✓ وصلت للتطبيق"; toast("أُرسلت إلى تطبيق المريض"); }
+        catch (err) { b.disabled = false; toast(errMsg(err), true); }
+      });
+    }
+  });
+}
+export function offerNotify(phone, text, extra = "", pid = null) {
+  if (!phone && !hasApp(pid)) { if (extra) info("تنبيه", extra); return; }
+  modal("إبلاغ المريض", `${extra}<p class="pre">${esc(text)}</p><p class="muted small">اختر طريقة الإرسال:</p><div class="btn-grid">${sendBtns(phone, text, pid)}</div>
+    ${pid && !hasApp(pid) ? `<p class="muted small">ليس للمريض حساب في التطبيق، لذلك لا يتوفر الإرسال عبر التطبيق.</p>` : ""}`,
+  { ok: "حسناً", cancel: null, onOpen: (w) => bindSend(w) });
 }
 // رقم الدور: في المراكز لكل طبيب تسلسل مستقل يبدأ من 1
 async function nextQueueNo(date, doctorId) {
@@ -408,21 +460,21 @@ async function renderRemind() {
     ${docFilterBar()}
     <section class="card">
       <div class="row-between"><h3>${esc(fmtDate(date))}</h3><span class="chip ${sent === arr.length && arr.length ? "ok" : ""}">أُرسل ${sent} من ${arr.length}</span></div>
-      <p class="muted small">اضغط «تذكير» بجانب كل مريض فيفتح واتساب برسالة جاهزة، ثم ارجع إلى التطبيق للمريض التالي.</p>
+      <p class="muted small">بجانب كل مريض: واتساب أو SMS برسالة جاهزة، أو «التطبيق» فيصله إشعار على جواله إن كان لديه حساب.</p>
       ${arr.length ? `<ul class="remind-list">${arr.map((a) => `<li class="${a.remindedAt ? "done" : ""}">
         <span class="t">${esc(fmtTime(a.time))}</span>
         <span class="n">${esc(a.patientName)}<small dir="ltr">${esc(a.phone || PC.byId[a.patientId]?.phone || "")}</small></span>
-        <a class="btn small ${a.remindedAt ? "" : "primary"} wa" data-id="${a.id}" target="_blank" rel="noopener" href="${esc(waLink(a.phone || PC.byId[a.patientId]?.phone || "", reminderText(a)))}">${a.remindedAt ? "✓ أُرسل" : "📲 تذكير"}</a>
+        ${a.remindedAt ? `<span class="chip ok">✓ أُرسل</span>` : ""}${sendBtns(a.phone || PC.byId[a.patientId]?.phone || "", reminderText(a), a.patientId, { small: true, id: a.id, kind: "reminder" })}
       </li>`).join("")}</ul>` : empty("لا توجد مواعيد مؤكدة في هذا اليوم")}
     </section>`;
   bindDocFilter(renderRemind);
   $(".rd").onchange = (e) => go(`#/remind?d=${e.target.value}`);
-  $$(".wa").forEach((b) => b.addEventListener("click", () => {
-    const li = b.closest("li");
-    li.classList.add("done"); b.classList.remove("primary"); b.textContent = "✓ أُرسل";
-    updateDoc(P.colDoc("appointments", b.dataset.id), { remindedAt: serverTimestamp() }).catch(() => {});
+  bindSend(main(), (g) => {
+    const li = g.closest("li");
+    if (!li.classList.contains("done")) { li.classList.add("done"); g.insertAdjacentHTML("beforebegin", `<span class="chip ok">✓ أُرسل</span>`); }
+    updateDoc(P.colDoc("appointments", g.dataset.id), { remindedAt: serverTimestamp() }).catch(() => {});
     const n = $$(".remind-list li.done").length; const c = $(".chip"); if (c) c.textContent = `أُرسل ${n} من ${arr.length}`;
-  }));
+  });
 }
 
 // ---------- خصم المواد من المخزون تلقائياً عند إنجاز الخدمة ----------
@@ -497,17 +549,18 @@ async function renderDebts() {
       <div class="stat"><b>${rows.length}</b><span>مريض عليه مبلغ</span></div>
     </div>
     <section class="card">
-      <p class="muted small">رسالة لطيفة جاهزة بالمبلغ المتبقي. يظهر «✓ ذُكّر» لمدة أسبوع بعد الإرسال حتى لا تُكرَّر الرسالة.</p>
+      <p class="muted small">رسالة لطيفة جاهزة بالمبلغ المتبقي عبر واتساب أو SMS أو التطبيق. يظهر «✓ ذُكّر» لمدة أسبوع بعد الإرسال حتى لا تُكرَّر الرسالة.</p>
       ${rows.length ? `<ul class="remind-list">${rows.map((x) => `<li class="${recent(x) ? "done" : ""}">
         <span class="t debt">${esc(money(x.d, cur()))}</span>
         <span class="n"><a href="#/p/${x.id}/money">${esc(x.name)}</a><small>آخر دفعة: ${esc(x.last)}</small></span>
-        ${PC.byId[x.id]?.phone ? `<a class="btn small ${recent(x) ? "" : "primary"} wa" data-id="${x.id}" target="_blank" rel="noopener" href="${esc(waLink(PC.byId[x.id].phone, txt(x)))}">${recent(x) ? "✓ ذُكّر" : "📲 تذكير"}</a>` : ""}
+        ${recent(x) ? `<span class="chip ok">✓ ذُكّر</span>` : ""}${sendBtns(PC.byId[x.id]?.phone || "", txt(x), x.id, { small: true, id: x.id, kind: "debt" })}
       </li>`).join("")}</ul>` : empty("لا توجد دفعات مستحقة، كل الحسابات مسددة ✓")}
     </section>`;
-  $$(".wa").forEach((b) => b.addEventListener("click", () => {
-    b.closest("li").classList.add("done"); b.classList.remove("primary"); b.textContent = "✓ ذُكّر";
-    updateDoc(P.patient(b.dataset.id), { debtRemindedAt: serverTimestamp() }).catch(() => {});
-  }));
+  bindSend(main(), (g) => {
+    const li = g.closest("li");
+    if (!li.classList.contains("done")) { li.classList.add("done"); g.insertAdjacentHTML("beforebegin", `<span class="chip ok">✓ ذُكّر</span>`); }
+    updateDoc(P.patient(g.dataset.id), { debtRemindedAt: serverTimestamp() }).catch(() => {});
+  });
 }
 
 // ---------- الحجز ----------
@@ -617,7 +670,7 @@ export async function bookModal({ pid = "", date = ymd(), time = "", type = "", 
       if (requestId) await updateDoc(P.colDoc("requests", requestId), { status: "done", apptId: r.id });
       toast("تم الحجز");
       const p = PC.byId[f.pid];
-      if (p) offerNotify(p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${p.name}، تم تثبيت موعدك في ${S.pub.name} يوم ${fmtDate(f.date)} الساعة ${fmtTime(t)}${multiDoc() ? ` مع د. ${docName(r.doctorId)}` : ""}.`);
+      if (p) offerNotify(p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${p.name}، تم تثبيت موعدك في ${S.pub.name} يوم ${fmtDate(f.date)} الساعة ${fmtTime(t)}${multiDoc() ? ` مع د. ${docName(r.doctorId)}` : ""}.`, "", p.id);
       setTimeout(render, 100);
       return r;
     }
@@ -749,7 +802,7 @@ async function renderApptsGrid(v, d) {
       await audit("نقل موعد", `${a.patientName}: ${a.date} ${a.time} → ${day} ${t}`);
       stopMove(); toast("تم نقل الموعد");
       const p = PC.byId[a.patientId] || {};
-      offerNotify(a.phone || p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، تم تغيير موعدك في ${S.pub.name} إلى ${fmtDate(day)} الساعة ${fmtTime(t)}${multiDoc() ? ` مع د. ${docName(docId)}` : ""}.`);
+      offerNotify(a.phone || p.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${a.patientName}، تم تغيير موعدك في ${S.pub.name} إلى ${fmtDate(day)} الساعة ${fmtTime(t)}${multiDoc() ? ` مع د. ${docName(docId)}` : ""}.`, "", a.patientId);
       renderApptsGrid(v, d);
     } catch (e) { stopMove(); toast(errMsg(e), true); }
   };
@@ -927,7 +980,7 @@ export function showCredentials(phone, temp, name, shared = false, guardian = fa
   info("حساب المريض جاهز", `
     <div class="cred"><div>رقم الدخول: <b dir="ltr">${esc(phone)}</b></div><div>كلمة المرور المؤقتة: <b class="big" dir="ltr">${esc(temp)}</b></div></div>
     <p class="muted small">سلّمها للمريض، وسيُطلب منه تغييرها عند أول دخول. لن تظهر مرة أخرى.</p>
-    <a class="btn primary block" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">إرسال على واتساب</a>`);
+    <div class="btn-grid">${sendBtns(phone, text, null)}</div>`);
 }
 
 // ---------- الدفعات ----------
@@ -1107,7 +1160,7 @@ async function renderRequests() {
   $$(".req .no").forEach((b) => b.onclick = async () => {
     const r = reqs.find((x) => x.id === b.dataset.id);
     await updateDoc(P.colDoc("requests", r.id), { status: "rejected" });
-    offerNotify(r.phone, `مرحباً ${r.patientName}، نعتذر، لا يوجد موعد متاح في التاريخ الذي طلبته (${fmtDate(r.date)}). يرجى التواصل معنا لإيجاد وقت آخر.`);
+    offerNotify(r.phone, `مرحباً ${r.patientName}، نعتذر، لا يوجد موعد متاح في التاريخ الذي طلبته (${fmtDate(r.date)}). يرجى التواصل معنا لإيجاد وقت آخر.`, "", r.patientId);
     render();
   });
   $$(".pok").forEach((b) => b.onclick = () => confirmPublic(pubs.find((x) => x.id === b.dataset.id)));
@@ -1142,7 +1195,7 @@ async function confirmPublic(r) {
     const ap = await bookAppointment({ pid, date: r.date, time: r.time, type: r.service, note: r.note, doctorId: r.doctorId && doctors().some((d) => d.id === r.doctorId) ? r.doctorId : defaultDoc() });
     await updateDoc(P.colDoc("publicRequests", r.id), { status: "done", apptId: ap.id, patientId: pid });
     toast("تم تأكيد الموعد");
-    if (choice !== "new") offerNotify(r.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${r.name}، تم تأكيد موعدك في ${S.pub.name} يوم ${fmtDate(r.date)} الساعة ${fmtTime(r.time)}.`);
+    if (choice !== "new") offerNotify(r.phone, `أهلاً بك في تطبيق ${PLATFORM()} 👋\nمرحباً ${r.name}، تم تأكيد موعدك في ${S.pub.name} يوم ${fmtDate(r.date)} الساعة ${fmtTime(r.time)}.`, "", pid);
   } catch (e) { toast(errMsg(e), true); }
   render();
 }

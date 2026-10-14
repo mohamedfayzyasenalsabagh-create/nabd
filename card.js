@@ -9,7 +9,7 @@ import { makeThumb, tileImg, isImg, showFile, shareImages, CASH_METHODS, freqTex
 } from "./ui.js";
 import { S } from "./app.js";
 import { isEn as isEnL } from "./i18n.js";
-import { PC, isDoctor, isNurse, specMods, mySpec, myDoctor, docPub, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName } from "./staff.js";
+import { PC, isDoctor, isNurse, specMods, mySpec, myDoctor, docPub, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName, composeToPatient } from "./staff.js";
 const mods = () => import("./mods.js");
 const women = () => hasMod("preg") || hasMod("gyn");
 
@@ -67,13 +67,14 @@ export async function renderCard() {
       ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button><button class="btn small q-doc">📄 ورقة طبية</button><button class="btn small q-lab">🧪 طلب تحاليل وأشعة</button>${hasMod("dental") ? `<button class="btn small q-dlab">🦷 طلب للمخبر</button>` : ""}<button class="btn small q-file">🖨 السجل الطبي</button>` : ""}
       <button class="btn small q-pay">دفعة</button>
       <a class="btn small" href="tel:${esc(p.phone)}">اتصال</a>
-      <a class="btn small" target="_blank" rel="noopener" href="${esc(waLink(p.phone, `مرحباً ${p.name}، `))}">واتساب</a>
+      <button class="btn small q-msg">📨 مراسلة</button>
     </div>
     <nav class="tabs" aria-label="أقسام البطاقة">${tabs.map(([k, t]) => `<a href="#/p/${pid}/${k}" class="${k === tab ? "on" : ""}">${esc(t)}</a>`).join("")}</nav>
     <div id="tab" class="tab-body"><div class="loading">جارٍ التحميل…</div></div>`;
   $(".tabs .on")?.scrollIntoView({ inline: "center", block: "nearest" });
   $(".q-book").onclick = () => bookModal({ pid });
   $(".q-pay").onclick = () => paymentModal(pid);
+  $(".q-msg").onclick = () => composeToPatient(p);
   $(".q-visit")?.addEventListener("click", () => visitModal(pid));
   $(".q-rx")?.addEventListener("click", () => rxModal(pid));
   $(".q-doc")?.addEventListener("click", () => medDocModal(pid));

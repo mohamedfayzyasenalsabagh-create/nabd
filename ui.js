@@ -52,7 +52,7 @@ export function errMsg(e) {
   const c = e?.code || "";
   if (c.includes("invalid-credential") || c.includes("wrong-password") || c.includes("user-not-found")) return "الرقم أو كلمة المرور غير صحيحة";
   if (c.includes("too-many-requests")) return "محاولات كثيرة، يرجى المحاولة بعد قليل";
-  if (c.includes("network")) return "لا يوجد اتصال بالإنترنت";
+  if (c.includes("network") || c === "unavailable" || /client is offline/i.test(e?.message || "")) return "هذه المعلومة غير محفوظة على الجهاز بعد، وتحتاج اتصالاً بالإنترنت";
   if (c.includes("permission-denied")) return window.__readOnly ? "اشتراك العيادة غير فعّال، النظام للقراءة فقط" : "ليست لديك صلاحية لهذا الإجراء";
   if (c.includes("weak-password")) return "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل";
   if (c.includes("email-already-in-use")) return "الحساب موجود مسبقاً";

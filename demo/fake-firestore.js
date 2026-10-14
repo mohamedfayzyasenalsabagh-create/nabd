@@ -11,6 +11,7 @@ export const serverTimestamp = () => SERVER_TS;
 export const arrayUnion = (...v) => ({ __union: v });
 export const arrayRemove = (...v) => ({ __remove: v });
 export const increment = (n) => ({ __inc: n });
+export const waitForPendingWrites = async () => {}; export const enableNetwork = async () => {};
 export function initializeFirestore() { return { t: "db" }; }
 export const persistentLocalCache = () => ({}); export const persistentMultipleTabManager = () => ({});
 const rid = () => Math.random().toString(36).slice(2, 12);

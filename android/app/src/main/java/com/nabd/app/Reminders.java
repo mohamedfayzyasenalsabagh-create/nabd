@@ -69,24 +69,30 @@ public class Reminders extends BroadcastReceiver {
             scheduleSaved(c);
             return;
         }
+        show(c, intent.getStringExtra("id"), intent.getStringExtra("title"), intent.getStringExtra("body"));
+    }
+
+    // إظهار إشعار فوراً (يُستخدم للتذكيرات ولرسائل العيادة)
+    static void show(Context c, String id, String title, String body) { show(c, id, title, body, null); }
+    static void show(Context c, String id, String title, String body, String hash) {
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
             NotificationChannel ch = new NotificationChannel(CHANNEL, "تذكير الأدوية والمواعيد", NotificationManager.IMPORTANCE_HIGH);
             nm.createNotificationChannel(ch);
         }
         Intent open = new Intent(c, MainActivity.class);
-        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pi = PendingIntent.getActivity(c, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (hash != null) open.putExtra("hash", hash);
+        PendingIntent pi = PendingIntent.getActivity(c, id == null ? 0 : id.hashCode(), open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder nb = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CHANNEL) : new Notification.Builder(c);
         nb.setSmallIcon(R.drawable.ic_stat)
           .setColor(0xFF0E7C7B)
-          .setContentTitle(intent.getStringExtra("title"))
-          .setContentText(intent.getStringExtra("body"))
-          .setStyle(new Notification.BigTextStyle().bigText(intent.getStringExtra("body")))
+          .setContentTitle(title)
+          .setContentText(body)
+          .setStyle(new Notification.BigTextStyle().bigText(body))
           .setAutoCancel(true)
           .setContentIntent(pi);
         if (Build.VERSION.SDK_INT < 26) nb.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
-        String id = intent.getStringExtra("id");
         try { nm.notify(id == null ? 1 : id.hashCode(), nb.build()); } catch (SecurityException ignored) {}
     }
 }

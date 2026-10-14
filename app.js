@@ -2,7 +2,8 @@
 import { langBtn } from "./i18n.js";
 import {
   configured, auth, P, one, smartLogin, saveLoginIdx, dropLoginIdx, lastLogin, onAuthStateChanged, signOut, setClinic, C,
-  updatePassword, sendPasswordResetEmail, updateDoc, setActor, onSnapshot, audit, pickBrand, DEFAULT_PLANS
+  updatePassword, sendPasswordResetEmail, updateDoc, setActor, onSnapshot, audit, pickBrand, DEFAULT_PLANS,
+  syncNow, isOffline, pending
 } from "./fb.js";
 import { COPYRIGHT, $, esc, toast, errMsg, field, logoHtml, info, applyTheme, platformMark, modal } from "./ui.js";
 
@@ -248,6 +249,7 @@ export async function logout() {
   if (S.profile && !S.owner) { try { await audit("تسجيل خروج"); } catch {} }
   window.onhashchange = null;
   try { window.AndroidApp?.setReminders?.("[]"); } catch {}
+  try { window.AndroidApp?.setInbox?.(""); } catch {}
   await signOut(auth);
   history.replaceState(null, "", location.pathname);
 }
@@ -269,4 +271,25 @@ function startIdleTimer() {
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
+// ---------- شريط الاتصال: العمل دون إنترنت والمزامنة الفورية عند عودته ----------
+function netBar() {
+  let b = document.getElementById("netbar");
+  if (!b) { b = document.createElement("div"); b.id = "netbar"; b.setAttribute("role", "status"); document.body.appendChild(b); }
+  return b;
+}
+function showOffline() {
+  const b = netBar(); b.className = "netbar off";
+  b.textContent = "📴 لا يوجد إنترنت · يمكنك متابعة العمل، وتُحفظ التعديلات على الجهاز وتُرسل تلقائياً عند عودة الاتصال";
+}
+async function backOnline() {
+  const b = netBar(); b.className = "netbar sync"; b.textContent = "🔄 عاد الاتصال · جارٍ المزامنة…";
+  await syncNow();
+  b.className = "netbar ok"; b.textContent = "✓ تمت المزامنة، كل التعديلات وصلت";
+  setTimeout(() => { if (b.classList.contains("ok")) b.className = "netbar hidden"; }, 2500);
+}
+window.addEventListener("offline", showOffline);
+window.addEventListener("online", backOnline);
+window.addEventListener("nabd-sync-error", () => toast("تعذّر حفظ أحد التعديلات بعد المزامنة (قد لا تكون لديك صلاحية)", true));
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !isOffline() && pending.n) backOnline(); });
+if (isOffline()) setTimeout(showOffline, 0);
 boot();
