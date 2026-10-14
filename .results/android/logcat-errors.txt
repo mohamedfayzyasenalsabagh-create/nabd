@@ -1,0 +1,8 @@
+10-14 20:13:12.762  1702  2176 W A       : 	at org.chromium.net.impl.CronetUrlRequest.onError(:com.google.android.gms.dynamite_cronetdynamite@231818047@23.18.18 (190800-0):5)
+10-14 20:13:49.091   484   567 W WindowManager: Exception thrown during dispatchAppVisibility Window{efde81e u0 com.nabd.app/com.nabd.app.MainActivity}
+10-14 20:14:17.639   484   923 W ActivityManager: Exception when unbinding service com.nabd.app/org.chromium.content.app.SandboxedProcessService0:0
+10-14 20:14:22.771  6188  6225 E chromium: [ERROR:simple_version_upgrade.cc(152)] Failed to write a new fake index.
+10-14 20:14:52.841   484  1945 W WindowManager: Exception thrown during dispatchAppVisibility Window{b70aa76 u0 com.nabd.app/com.nabd.app.MainActivity}
+10-14 20:14:54.496  6922  6964 E chromium: [ERROR:simple_file_enumerator.cc(21)] opendir /data/user/0/com.nabd.app/cache/WebView/Default/HTTP Cache/Code Cache/wasm: No such file or directory (2)
+10-14 20:14:54.496  6922  6964 E chromium: [ERROR:simple_index_file.cc(614)] Could not reconstruct index from disk
+10-14 20:16:33.749  7654  7695 E chromium: [ERROR:simple_version_upgrade.cc(152)] Failed to write a new fake index.
