@@ -54,6 +54,15 @@ service cloud.firestore {
         && existsAfter(/databases/$(database)/documents/owners/$(request.auth.uid));
       allow update, delete: if false;
     }
+    // نشاط العيادات لصاحب المنصة: أرقام فقط (آخر استخدام وعدد المرضى ومواعيد الشهر)، دون أي بيانات مرضى
+    match /activity/{cid} {
+      allow read: if isOwner();
+      allow create, update: if isStaff(cid)
+        && request.resource.data.keys().hasOnly(['lastAt', 'patients', 'apptsMonth', 'day'])
+        && request.resource.data.patients is int && request.resource.data.apptsMonth is int
+        && request.resource.data.day is string && request.resource.data.lastAt == request.time;
+      allow delete: if false;
+    }
     // عدّاد زوار الموقع: لكل يوم مستند، والزيادة بمقدار 1 فقط، والقراءة لصاحب المنصة
     match /visits/{day} {
       allow read: if isOwner();

@@ -57,8 +57,19 @@ function watchPatients() {
     PC.byId = Object.fromEntries(PC.list.map((p) => [p.id, p]));
     if (routeName() === "patients") renderPatients();
     // أول تحميل لقائمة المرضى: تحديث الرئيسية حتى يظهر عدد المرضى الجدد صحيحاً
-    if (!PC._ready) { PC._ready = true; if (routeName() === "home") render(); }
+    if (!PC._ready) { PC._ready = true; if (routeName() === "home") render(); reportActivity(); }
   }));
+}
+// نشاط العيادة لصاحب المنصة: أرقام فقط، مرة كل ساعة على الأكثر من كل جهاز
+async function reportActivity() {
+  try {
+    const k = `actRep:${S.profile?.clinicId}`, last = Number(localStorage.getItem(k) || 0);
+    if (Date.now() - last < 3600e3 || readOnly()) return;
+    localStorage.setItem(k, String(Date.now()));
+    const m0 = ymd().slice(0, 8) + "01";
+    const n = (await list(query(P.col("appointments"), where("date", ">=", m0)))).filter((a) => a.status !== "cancelled").length;
+    await setDoc(doc(db, "activity", S.profile.clinicId), { lastAt: serverTimestamp(), patients: PC.list.length, apptsMonth: n, day: ymd() });
+  } catch (e) { console.warn(e); }
 }
 
 // ---------- الهيكل والتنقل ----------

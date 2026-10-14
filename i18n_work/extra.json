@@ -575,5 +575,10 @@
  "موعدك": "Your appointment",
  "لديك رسالة جديدة من العيادة": "You have a new message from the clinic",
  "عرض كقائمة أو جدول أسبوعي مثل الإكسل، ونقل الموعد بضغطة مطولة أو بالسحب، أرقام دور، شاشة انتظار، وتذكير عبر واتساب أو SMS أو إشعار في التطبيق. ويعمل دون إنترنت.": "List or weekly spreadsheet-style grid, move appointments by long-press or drag, queue numbers, waiting screen, reminders via WhatsApp, SMS or app notification. Works offline too.",
- "يفتح التطبيق ويستمر العمل دون إنترنت، ويظهر شريط «لا يوجد إنترنت». تُحفظ التعديلات على الجهاز وتتزامن فور عودة الاتصال.": "The app opens and keeps working offline, with a “No internet” bar. Changes are saved on the device and sync as soon as the connection returns."
+ "يفتح التطبيق ويستمر العمل دون إنترنت، ويظهر شريط «لا يوجد إنترنت». تُحفظ التعديلات على الجهاز وتتزامن فور عودة الاتصال.": "The app opens and keeps working offline, with a “No internet” bar. Changes are saved on the device and sync as soon as the connection returns.",
+ "الاستخدام": "Usage",
+ "⚪ لم تُستخدم بعد": "⚪ Not used yet",
+ "🟢 اليوم": "🟢 Today",
+ "عيادات تستخدم التطبيق هذا الأسبوع": "Clinics using the app this week",
+ "موعد هذا الشهر": "appointments this month"
 }

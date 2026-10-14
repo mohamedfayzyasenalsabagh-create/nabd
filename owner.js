@@ -72,6 +72,16 @@ async function renderClinics() {
   // عيادات تحتاج متابعة: تنتهي قريباً أو انتهت خلال آخر 30 يوماً
   const follow = st.filter((x) => x.c.plan !== "gift" && x.c.status !== "suspended" && x.s.days <= 7 && x.s.days > -30)
     .sort((a, b) => a.s.days - b.s.days);
+  // استخدام العيادات: آخر نشاط وعدد المرضى ومواعيد الشهر (أرقام فقط)
+  const acts = Object.fromEntries((await list(collection(db, "activity")).catch(() => [])).map((a) => [a.id, a]));
+  const ago = (id) => { const a = acts[id]; return a?.lastAt ? Math.floor((Date.now() - tsMs(a.lastAt)) / 864e5) : null; };
+  const usage = (id) => {
+    const a = acts[id], d = ago(id);
+    if (d === null) return `<span class="chip">⚪ لم تُستخدم بعد</span>`;
+    const lbl = d === 0 ? "🟢 اليوم" : d <= 3 ? `🟢 منذ ${d} يوم` : d <= 14 ? `🟡 منذ ${d} يوم` : `🔴 منذ ${d} يوم`;
+    return `<span class="chip">${lbl}</span><br><small class="muted">${a.patients || 0} مريض · ${a.apptsMonth || 0} موعد هذا الشهر</small>`;
+  };
+  const usedWeek = all.filter((c) => { const d = ago(c.id); return d !== null && d <= 7; }).length;
   const F = { all: st, active, trial, expired, soon };
   let rows = F[filter] || st;
   if (q) rows = rows.filter((x) => [x.c.name, x.c.doctorName, x.c.slug, x.c.ownerEmail, x.c.ownerPhone].join(" ").toLowerCase().includes(q.toLowerCase()));
@@ -83,6 +93,7 @@ async function renderClinics() {
       <button class="stat f ${filter === "trial" ? "sel" : ""}" data-f="trial"><b>${trial.length}</b><span>في التجربة</span></button>
       <button class="stat f ${filter === "soon" ? "sel" : ""}" data-f="soon"><b>${soon.length}</b><span>تنتهي خلال 7 أيام</span></button>
       <button class="stat f ${filter === "expired" ? "sel" : ""}" data-f="expired"><b>${expired.length}</b><span>منتهية أو موقوفة</span></button>
+      <div class="stat"><b>${usedWeek}</b><span>عيادات تستخدم التطبيق هذا الأسبوع</span></div>
       <div class="stat"><b>${mrr}$</b><span>الدخل الشهري المتوقع</span></div>
       <div class="stat"><b>${gotThis}$</b><span>المقبوض هذا الشهر${gotLast ? ` (السابق ${gotLast}$)` : ""}</span></div>
       <div class="stat dl-stat"><b>…</b><span>تحميلات تطبيق أندرويد</span></div>
@@ -97,9 +108,9 @@ async function renderClinics() {
         ${c.ownerPhone ? `<a class="btn small primary rn" data-id="${c.id}" target="_blank" rel="noopener" href="${esc(waLink(c.ownerPhone, renewText(c, x.days)))}">📲 تذكير</a>` : ""}
       </li>`).join("")}</ul></section>` : ""}
     <input class="search" type="search" id="cq" placeholder="بحث بالاسم أو الرمز أو البريد" value="${esc(q)}" aria-label="بحث">
-    <section class="card">${rows.length ? `<div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>العيادة</th><th>الاختصاص</th><th>الحالة</th><th>الباقة</th><th>ينتهي</th><th></th></tr></thead><tbody>
+    <section class="card">${rows.length ? `<div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>العيادة</th><th>الاختصاص</th><th>الحالة</th><th>الاستخدام</th><th>الباقة</th><th>ينتهي</th><th></th></tr></thead><tbody>
       ${rows.map(({ c, s }) => `<tr><td><b>${esc(c.name)}</b><br><small class="muted" dir="ltr">${esc(c.slug || c.id)}</small></td>
-        <td>${esc(SPECIALTIES[c.specialty]?.name || c.specialty || "")}</td><td>${statusChip(c)}</td>
+        <td>${esc(SPECIALTIES[c.specialty]?.name || c.specialty || "")}</td><td>${statusChip(c)}</td><td>${usage(c.id)}</td>
         <td>${esc(c.plan === "trial" ? "تجربة" : c.plan === "gift" ? "هدية" : planOf(c.plan)?.name || c.plan || "")}</td>
         <td>${c.plan === "gift" ? "مدى الحياة" : `${esc(fmtDate(ymd(new Date(tsMs(c.expiresAt))), false))}<br><small class="${s.days <= 7 ? "danger-t" : "muted"}">${s.days > 0 ? `بعد ${s.days} يوم` : "انتهى"}</small>`}</td>
         <td><button class="btn small man" data-id="${c.id}">إدارة</button></td></tr>`).join("")}

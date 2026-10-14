@@ -3,7 +3,7 @@ import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, getDocs, collection, query, where, writeBatch, Timestamp, arrayUnion, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, getDocs, collection, query, where, writeBatch, Timestamp, arrayUnion, increment, serverTimestamp } from "firebase/firestore";
 
 let env;
 const DAY = 864e5;
@@ -331,6 +331,16 @@ test("مسارات حساب المريض الفعلية: إخوة على نفس 
   await assertSucceeds(updateDoc(doc(sec, "users/pat_A2"), { patientIds: ["p1"] }));
   // تعديل بيانات عادية للملف دون تغيير الرقم
   await assertSucceeds(updateDoc(doc(sec, "clinics/A/patients/p1"), { address: "دمشق" }));
+});
+
+test("نشاط العيادة: يكتبه فريقها أرقاماً فقط، ويقرؤه صاحب المنصة", async () => {
+  const ok = { lastAt: serverTimestamp(), patients: 12, apptsMonth: 30, day: "2026-10-14" };
+  await assertSucceeds(setDoc(doc(as("sec_A"), "activity/A"), ok));
+  await assertFails(setDoc(doc(as("sec_A"), "activity/X"), ok));
+  await assertFails(setDoc(doc(as("pat_A"), "activity/A"), ok));
+  await assertFails(setDoc(doc(as("sec_A"), "activity/A"), { ...ok, names: ["x"] }));
+  await assertFails(getDoc(doc(as("adm_A"), "activity/A")));
+  await assertSucceeds(getDoc(doc(as("own1"), "activity/A")));
 });
 
 test("عدّاد الزوار: زيادة بمقدار 1 فقط، والقراءة لصاحب المنصة", async () => {
