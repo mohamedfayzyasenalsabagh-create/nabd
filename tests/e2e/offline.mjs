@@ -146,6 +146,7 @@ try {
     return true;
   }).catch((e) => String(e));
   log(paid === true && Date.now() - t3 < 5000, "تسجيل دفعة دون إنترنت", `${Date.now() - t3} ms`);
+  await pg.evaluate(() => document.querySelectorAll(".modal-wrap").forEach((w) => w.remove()));
   await pg.evaluate(() => (location.hash = "#/patients")); await sleep(1500);
   await pg.locator("button:has-text('مريض جديد'), .new").first().click(); await sleep(500);
   const nm = pg.locator(".modal").last();
