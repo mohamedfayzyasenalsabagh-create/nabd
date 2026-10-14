@@ -21,7 +21,7 @@ jobs:
         run: |
           mkdir -p .results && cp rules-result.txt .results/ || true
           git config --global user.name "nabd-ci"; git config --global user.email "ci@nabd.app"
-          git fetch origin ci-results || true
+          git fetch origin ci-results:refs/remotes/origin/ci-results || true
           if git rev-parse -q --verify origin/ci-results >/dev/null; then git worktree add -B ci-results /tmp/ci origin/ci-results; else git worktree add --orphan -b ci-results /tmp/ci; fi
           mkdir -p /tmp/ci/.results && cp -r .results/. /tmp/ci/.results/ 2>/dev/null || true
           cd /tmp/ci && git add -f .results && git commit -m "نتيجة اختبار القواعد" && for i in 1 2 3; do git push origin ci-results && break; git pull --rebase origin ci-results; done || true
