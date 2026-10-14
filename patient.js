@@ -111,7 +111,7 @@ function notifyMsg(m) {
   try {
     if (NATIVE && window.AndroidApp.notifyNow) return AndroidApp.notifyNow("msg-" + T.pid, title, body, "#/msgs");
     if ("Notification" in window && Notification.permission === "granted") navigator.serviceWorker?.getRegistration().then((reg) => {
-      const o = { body, icon: "icon-192.png", tag: "msg-" + T.pid, data: { url: "./app.html#/msgs" } };
+      const o = { body, icon: "icon-192.png", tag: "msg-" + T.pid, data: { url: "./#/msgs" } };
       if (reg) reg.showNotification(title, o); else new Notification(title, o);
     });
   } catch {}

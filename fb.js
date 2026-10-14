@@ -38,7 +38,7 @@ function writeBatch(...a) { const b = _writeBatch(...a); const c = b.commit.bind
 async function runTransaction(d, fn) {
   if (!offline()) return _runTransaction(d, fn);
   const w = [];
-  const tx = { get: (r) => getDoc(r), set: (r, v, o) => { w.push(() => setDoc(r, v, o)); return tx; }, update: (r, v) => { w.push(() => updateDoc(r, v)); return tx; } };
+  const tx = { get: async (r) => { try { return await getDoc(r); } catch { return { exists: () => false, data: () => undefined, id: r.id }; } }, set: (r, v, o) => { w.push(() => setDoc(r, v, o)); return tx; }, update: (r, v) => { w.push(() => updateDoc(r, v)); return tx; } };
   const res = await fn(tx);
   for (const f of w) await f();
   return res;
