@@ -28,3 +28,4 @@ export async function updatePassword(user, pw) { const u = Object.values(users).
 export async function sendPasswordResetEmail() {}
 export async function setPersistence() {}
 export const inMemoryPersistence = {};
+export function connectAuthEmulator() {}

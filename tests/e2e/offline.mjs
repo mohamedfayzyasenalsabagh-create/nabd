@@ -70,6 +70,7 @@ try {
   {
     const ctx = await browser.newContext({ serviceWorkers: "block" });
     const pg = await ctx.newPage();
+    pg.on("pageerror", (e) => console.log("demo pageerror:", String(e)));
     await pg.goto(B + "demo/?as=doctor"); await pg.waitForSelector(".stats", { timeout: 30000 });
     const { docs, users } = await pg.evaluate(() => ({ docs: JSON.parse(localStorage.getItem("demo-fs") || "[]"), users: JSON.parse(localStorage.getItem("demo-users") || "{}") }));
     await ctx.close();
@@ -193,6 +194,7 @@ try {
   log(!perrs.length, "لا أخطاء في الصفحة (المريض)", perrs.slice(0, 3).join(" | ").slice(0, 200));
 } catch (e) {
   log(false, "توقف الاختبار بخطأ", String(e?.stack || e).slice(0, 600));
+  for (const c of browser.contexts()) for (const p of c.pages()) await p.screenshot({ path: path.join(OUT, `fail-${Date.now()}.png`) }).catch(() => {});
 } finally {
   await browser.close(); server.close();
   const pass = results.filter((r) => r.ok).length;
