@@ -234,7 +234,13 @@ service cloud.firestore {
         allow update: if clinicOK(c) && (isStaff(c)
           || (isPatient(c, resource.data.patientId)
               && (onlyChanged(['rating', 'ratingNote'])
-                  || (onlyChanged(['status']) && request.resource.data.status == 'cancelled'))));
+                  || (onlyChanged(['status', 'cancelledBy']) && request.resource.data.status == 'cancelled')
+                  // تأكيد الحضور من التطبيق
+                  || (onlyChanged(['patientConfirm', 'patientConfirmAt']) && request.resource.data.patientConfirm == 'yes')
+                  // تسجيل الحضور بمسح رمز QR على باب العيادة: الرمز يجب أن يطابق رمز العيادة الحالي
+                  || (onlyChanged(['status', 'checkin', 'arrivedAt']) && resource.data.status == 'confirmed'
+                      && request.resource.data.status == 'arrived'
+                      && request.resource.data.checkin == get(/databases/$(database)/documents/clinics/$(c)/live/checkin).data.code))));
         allow delete: if false;
       }
 
@@ -285,7 +291,8 @@ service cloud.firestore {
         allow delete: if false;
       }
       match /live/{d} {
-        allow read: if isStaff(c);
+        // لوحة الدور (أرقام فقط دون أسماء) يراها مرضى العيادة ليعرفوا كم شخصاً قبلهم؛ رمز الحضور للفريق فقط
+        allow read: if isStaff(c) || (d == 'queue' && inClinic(c));
         allow create, update: if isStaff(c) && clinicOK(c);
         allow delete: if false;
       }

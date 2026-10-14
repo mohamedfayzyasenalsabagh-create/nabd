@@ -333,6 +333,25 @@ test("مسارات حساب المريض الفعلية: إخوة على نفس 
   await assertSucceeds(updateDoc(doc(sec, "clinics/A/patients/p1"), { address: "دمشق" }));
 });
 
+test("الدور الحي: المريض يؤكد حضوره ويسجله بالرمز الصحيح فقط", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "clinics/A/live/checkin"), { code: "good123" });
+    await setDoc(doc(db, "clinics/A/live/queue"), { number: "3", wait: { d1: [4, 5] } });
+    await setDoc(doc(db, "clinics/A/appointments/q1"), { patientId: "p1", status: "confirmed", date: "2026-10-14" });
+    await setDoc(doc(db, "clinics/A/appointments/q2"), { patientId: "p2", status: "confirmed", date: "2026-10-14" });
+  });
+  const p = as("pat_A");
+  await assertSucceeds(getDoc(doc(p, "clinics/A/live/queue")));
+  await assertFails(getDoc(doc(p, "clinics/A/live/checkin")));
+  await assertSucceeds(updateDoc(doc(p, "clinics/A/appointments/q1"), { patientConfirm: "yes", patientConfirmAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(p, "clinics/A/appointments/q1"), { status: "arrived", checkin: "wrong", arrivedAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(p, "clinics/A/appointments/q1"), { status: "arrived", checkin: "good123", arrivedAt: serverTimestamp(), queueNo: 1 }));
+  await assertSucceeds(updateDoc(doc(p, "clinics/A/appointments/q1"), { status: "arrived", checkin: "good123", arrivedAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(p, "clinics/A/appointments/q2"), { status: "arrived", checkin: "good123", arrivedAt: serverTimestamp() }));
+  await assertFails(getDoc(doc(as("pat_B"), "clinics/A/live/queue")));
+});
+
 test("نشاط العيادة: يكتبه فريقها أرقاماً فقط، ويقرؤه صاحب المنصة", async () => {
   const ok = { lastAt: serverTimestamp(), patients: 12, apptsMonth: 30, day: "2026-10-14" };
   await assertSucceeds(setDoc(doc(as("sec_A"), "activity/A"), ok));

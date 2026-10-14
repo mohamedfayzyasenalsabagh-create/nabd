@@ -86,6 +86,7 @@ try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });
   const pg = await ctx.newPage();
   const errs = []; pg.on("pageerror", (e) => errs.push(String(e)));
+  const syncErrs = []; pg.on("console", (m) => { if (/تعذّر حفظ|permission|PERMISSION/i.test(m.text())) syncErrs.push(m.text().slice(0, 160)); });
   await pg.goto(B + "#/login");
   await pg.waitForSelector("#lf", { timeout: 30000 });
   await pg.fill('#lf [name="id"]', "demo@nabd.app"); await pg.fill('#lf [name="pw"]', "demo1234");
@@ -174,8 +175,12 @@ try {
   log((msgs.documents || []).some((d) => sv(d, "text") === "رسالة أُرسلت دون إنترنت"), "الرسالة وصلت للخادم بعد المزامنة");
   const pts = await rest("POST", `${FS}/clinics/demo:runQuery`, { structuredQuery: { from: [{ collectionId: "patients" }], where: { fieldFilter: { field: { fieldPath: "name" }, op: "EQUAL", value: { stringValue: "مريض سُجّل دون إنترنت" } } } } });
   log(pts.some((x) => x.document), "المريض الجديد وصل للخادم بعد المزامنة");
-  const pays = await rest("GET", `${FS}/clinics/demo/payments?pageSize=1000`);
-  log((pays.documents || []).some((d) => sv(d, "note") === "e2e offline"), "الدفعة وصلت للخادم بعد المزامنة");
+  let payOk = false;
+  for (let k = 0; k < 10 && !payOk; k++) {
+    const r = await rest("POST", `${FS}/clinics/demo:runQuery`, { structuredQuery: { from: [{ collectionId: "payments" }], where: { fieldFilter: { field: { fieldPath: "note" }, op: "EQUAL", value: { stringValue: "e2e offline" } } } } });
+    payOk = r.some((x) => x.document); if (!payOk) await sleep(1000);
+  }
+  log(payOk, "الدفعة وصلت للخادم بعد المزامنة", syncErrs.join(" | ").slice(0, 200));
   await pg.screenshot({ path: path.join(OUT, "3-synced.png") });
   log(!errs.length, "لا أخطاء في الصفحة (الطبيب)", errs.slice(0, 3).join(" | ").slice(0, 200));
 

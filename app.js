@@ -92,6 +92,8 @@ async function publicRoute() {
   if (r === "owner") return pub.ownerLogin();
   if (r === "signup") return pub.signupPage();
   if (r === "c" && arg) return openClinic(arg);
+  // رمز QR على باب العيادة: نفتح دخول تلك العيادة، وبعد الدخول يُسجَّل الحضور تلقائياً
+  if (r === "checkin" && arg) { const cid = arg.split(".")[0]; setClinic(cid); LS.set("clinic", cid); return showLogin("سجّل دخولك لتسجيل حضورك في العيادة"); }
   if (r === "home") return pub.landing();
   if (r === "login") { applyBrand({}); return showLogin(); }
   const last = LS.get("clinic");

@@ -36,13 +36,13 @@ export const doctors = () => (S.clinic?.doctors || []).filter((d) => d.active !=
 export const multiDoc = () => doctors().length > 1;
 export const docName = (id) => doctors().find((d) => d.id === id)?.name || (S.clinic?.doctors || []).find((d) => d.id === id)?.name || "";
 const defaultDoc = () => (isDoctor() && S.profile.doctorId && doctors().some((d) => d.id === S.profile.doctorId) ? S.profile.doctorId : doctors()[0]?.id || "main");
-const apptDoc = (a) => a.doctorId || doctors()[0]?.id || "main";
+export const apptDoc = (a) => a.doctorId || doctors()[0]?.id || "main";
 // لون ثابت لكل طبيب في المراكز، واسمه مع اختصاصه
 const docIdx = (id) => Math.max(0, doctors().findIndex((d) => d.id === id)) % 6;
 const docSpecName = (id) => { const d = (S.clinic?.doctors || []).find((x) => x.id === id); return d ? (SPECIALTIES[d.spec]?.name || "") : ""; };
 // حرف الدور: لكل طبيب حرف ثابت (A، B، C...) حسب ترتيب إضافته، حتى لا تتكرر أرقام الدور في المركز
 export const docLetter = (id) => { const i = (S.clinic?.doctors || []).findIndex((d) => d.id === id); return i < 0 ? "" : String.fromCharCode(65 + (i % 26)); };
-const qLab = (n, did) => (n ? (multiDoc() ? docLetter(did) + n : String(n)) : "");
+export const qLab = (n, did) => (n ? (multiDoc() ? docLetter(did) + n : String(n)) : "");
 const docTag = (id) => `<span class="dtag dc${docIdx(id)}"><span class="notr" dir="ltr">${docLetter(id)}</span> · د. ${esc(docName(id))}${docSpecName(id) ? ` · ${esc(docSpecName(id))}` : ""}</span>`;
 export const STATUS = { confirmed: "مؤكد", arrived: "في الانتظار", in: "لدى الطبيب", done: "انتهى", noshow: "لم يحضر", cancelled: "ملغى" };
 export const cur = () => S.clinic?.currency || "ل.س";
@@ -102,6 +102,7 @@ export function start() {
   window.addEventListener("clinic-updated", subBar);
   watchPatients();
   watchBadges();
+  import("./live.js").then((m) => { m.watchToday(); m.startSummary(); }).catch((e) => console.warn(e));
   window.onhashchange = render;
   render();
 }
@@ -150,6 +151,7 @@ async function render() {
       case "requests": return await renderRequests();
       case "waitlist": return await renderWaitlist();
       case "remind": return await renderRemind();
+      case "checkin-qr": return isAcct() ? renderMore() : (await import("./live.js")).renderCheckinQr();
       case "debts": return await renderDebts();
       case "closing": return await renderClosing();
       case "messages": return await renderMessages();
@@ -247,6 +249,7 @@ async function renderHome() {
       ${doctorBits}
     </div>
     ${centerBits}
+    ${isDoctor() ? `<div class="daysum-slot"></div>` : ""}
     ${alerts.length ? `<section class="card alerts"><h3>تنبيهات</h3><ul class="plain">${alerts.join("")}</ul></section>` : ""}
     ${waiting ? `<button class="btn primary block call-next">📢 استدعاء الدور التالي · ${waiting} بالانتظار</button>` : ""}
     <section class="card">
@@ -263,6 +266,7 @@ async function renderHome() {
   $$("[data-cdoc]").forEach((b) => b.onclick = () => { S.docFilter = b.dataset.cdoc; renderHome(); });
   $(".new").onclick = () => bookModal({});
   $(".call-next")?.addEventListener("click", async () => { await callNext(); render(); });
+  if (isDoctor()) fillDaySummary();
   bindApptButtons([...appts, ...week]);
 }
 
@@ -299,11 +303,25 @@ async function backfillDoctorIds() {
   } catch (e) { console.warn(e); }
 }
 
+// بطاقة ملخص اليوم للطبيب (بعد الرابعة عصراً) مع خيار إشعار الساعة 9 مساءً
+async function fillDaySummary() {
+  const el = $(".daysum-slot"); if (!el || new Date().getHours() < 16) return;
+  try {
+    const m = await import("./live.js"), x = await m.daySummary();
+    el.innerHTML = `<section class="card daysum"><div class="row-between"><h3>🌙 ملخص اليوم</h3>
+      <label class="check small"><input type="checkbox" class="ds-on" ${m.summaryOn() ? "checked" : ""}><span>إشعار الساعة 9 مساءً</span></label></div>
+      <div class="stats"><div class="stat"><b>${x.seen}</b><span>مريض شفته</span></div><div class="stat"><b>${money(x.income, cur())}</b><span>دخل اليوم</span></div>
+      <div class="stat"><b>${x.noshow}</b><span>غياب</span></div><div class="stat"><b>${x.tomorrow}</b><span>مواعيد الغد</span></div></div></section>`;
+    el.querySelector(".ds-on").onchange = (e) => { m.setSummaryOn(e.target.checked); toast(e.target.checked ? "سيصلك ملخص اليوم الساعة 9 مساءً" : "أُوقف إشعار ملخص اليوم"); };
+  } catch (e) { console.warn(e); }
+}
+// تأكيد المريض لحضوره من التطبيق، أو تسجيل حضوره بمسح QR
+const pcChip = (a) => (a.checkin ? ` <span class="pc-chip">📲 سجّل حضوره</span>` : a.patientConfirm === "yes" && a.status === "confirmed" ? ` <span class="pc-chip">✓ أكّد حضوره</span>` : "");
 function apptRow(a) {
   const quick = a.status === "confirmed" && a.date === ymd();
   return `<li class="appt-li"><button class="appt st-${a.status}" data-a="${a.id}">
     <span class="t">${esc(fmtTime(a.time))}${a.queueNo ? ` <span class="q" dir="ltr">${multiDoc() ? "" : "#"}${qLab(a.queueNo, apptDoc(a))}</span>` : ""}</span>
-    <span class="n">${esc(a.patientName)}<small>${esc(a.type || "")}</small>${multiDoc() ? docTag(apptDoc(a)) : ""}</span>
+    <span class="n">${esc(a.patientName)}<small>${esc(a.type || "")}${pcChip(a)}</small>${multiDoc() ? docTag(apptDoc(a)) : ""}</span>
     ${quick ? `<span class="chip st ghost-chip"></span>` : `<span class="chip st">${esc(STATUS[a.status] || a.status)}</span>`}</button>${quick ? `<button class="arrive" data-arr="${a.id}" aria-label="تسجيل الحضور">حضر ✓</button>` : ""}</li>`;
 }
 function bindApptButtons(arr) {
@@ -445,7 +463,7 @@ export function offerNotify(phone, text, extra = "", pid = null) {
   { ok: "حسناً", cancel: null, onOpen: (w) => bindSend(w) });
 }
 // رقم الدور: في المراكز لكل طبيب تسلسل مستقل يبدأ من 1
-async function nextQueueNo(date, doctorId) {
+export async function nextQueueNo(date, doctorId) {
   let arr = await list(query(P.col("appointments"), where("date", "==", date)));
   if (multiDoc() && doctorId) arr = arr.filter((x) => apptDoc(x) === doctorId);
   return arr.reduce((m, x) => Math.max(m, x.queueNo || 0), 0) + 1;
@@ -474,7 +492,7 @@ async function renderRemind() {
       <p class="muted small">بجانب كل مريض: واتساب أو SMS برسالة جاهزة، أو «التطبيق» فيصله إشعار على جواله إن كان لديه حساب.</p>
       ${arr.length ? `<ul class="remind-list">${arr.map((a) => `<li class="${a.remindedAt ? "done" : ""}">
         <span class="t">${esc(fmtTime(a.time))}</span>
-        <span class="n">${esc(a.patientName)}<small dir="ltr">${esc(a.phone || PC.byId[a.patientId]?.phone || "")}</small></span>
+        <span class="n">${esc(a.patientName)}${pcChip(a)}<small dir="ltr">${esc(a.phone || PC.byId[a.patientId]?.phone || "")}</small></span>
         ${a.remindedAt ? `<span class="chip ok">✓ أُرسل</span>` : ""}${sendBtns(a.phone || PC.byId[a.patientId]?.phone || "", reminderText(a), a.patientId, { small: true, id: a.id, kind: "reminder" })}
       </li>`).join("")}</ul>` : empty("لا توجد مواعيد مؤكدة في هذا اليوم")}
     </section>`;
@@ -773,7 +791,7 @@ async function renderApptsGrid(v, d) {
   const cell = (c, t) => {
     const a = at[`${c.day}|${t}|${c.doc.id}`];
     const open = slotsFor(c.day).includes(t);
-    if (a) return `<td class="g-a st-${a.status} dc${docIdx(apptDoc(a))}"><div class="g-chip" draggable="true" data-a="${a.id}"><b>${esc(a.patientName)}</b>${a.type ? `<small>${esc(a.type)}</small>` : ""}${a.queueNo ? `<i>${esc(qLab(a.queueNo, apptDoc(a)))}</i>` : ""}</div></td>`;
+    if (a) return `<td class="g-a st-${a.status} dc${docIdx(apptDoc(a))}"><div class="g-chip" draggable="true" data-a="${a.id}"><b>${a.patientConfirm === "yes" && a.status === "confirmed" ? "✓ " : ""}${esc(a.patientName)}</b>${a.type ? `<small>${esc(a.type)}</small>` : ""}${a.queueNo ? `<i>${esc(qLab(a.queueNo, apptDoc(a)))}</i>` : ""}</div></td>`;
     return `<td class="g-free ${open ? "" : "off"}" data-day="${c.day}" data-t="${t}" data-doc="${c.doc.id}">${open ? "" : "·"}</td>`;
   };
   main().innerHTML = `
@@ -1116,6 +1134,7 @@ function renderMore() {
       ["#/debts", "تحصيل الدفعات المستحقة"],
       ["#/waitlist", "الحالات الإسعافية (أقرب موعد يتوفر)"],
       ["#/tv", "شاشة الانتظار (للتلفاز)"],
+      ...(!acct ? [["#/checkin-qr", "📲 تسجيل الحضور بمسح QR"]] : []),
       ...(feat("inventory") ? [["#/inventory", "المخزون"]] : []),
     ]],
     ...(d ? [["المرجع الطبي", [["#/assistant", "🤖 المساعد الطبي الذكي"], ["#/library", "نماذج وصفات دوائية جاهزة حسب التشخيص"], ["#/druged", "التثقيف الدوائي"]]]] : []),

@@ -91,6 +91,7 @@ function shell() {
     clearTimeout(rt); rt = setTimeout(scheduleDoseReminders, 1500);
   }, () => {}));
   watchInbox();
+  watchQueue();
 }
 
 // ---------- رسائل العيادة: شارة على «رسائل» وإشعار على الجوال ----------
@@ -145,7 +146,7 @@ async function render() {
   if (!main()) return;
   main().innerHTML = `<div class="loading">جارٍ التحميل…</div>`;
   try {
-    const V = { home, appts, meds, file, msgs, settings, learn };
+    const V = { home, appts, meds, file, msgs, settings, learn, checkin };
     await (V[r] || home)();
   } catch (e) { console.error(e); main().innerHTML = `<div class="card"><p class="alert">${esc(errMsg(e))}</p></div>`; }
 }
@@ -176,9 +177,11 @@ async function home() {
     <section class="card hero">
       <h3>موعدك القادم</h3>
       ${next ? `<div class="big-date">${esc(fmtDate(next.date))}</div><div class="big-time">${esc(fmtTime(next.time))}</div><p>${esc(next.type || "")}</p>
-        <div class="row gap"><button class="btn small cx" data-id="${next.id}">إلغاء الموعد</button><a class="btn small" href="#/appts">جميع المواعيد</a></div>`
+        ${confirmBits(next)}
+        <div class="row gap">${next.status === "confirmed" ? `<button class="btn small cx" data-id="${next.id}">إلغاء الموعد</button>` : ""}<a class="btn small" href="#/appts">جميع المواعيد</a></div>`
       : `<p class="muted">لا يوجد لديك موعد حالياً.</p><button class="btn primary ask-appt">طلب موعد</button>`}
     </section>
+    <div class="q-slot"></div>
     ${NATIVE && AndroidApp.notifyState() !== "granted" && AndroidApp.notifyState() !== "denied" ? `<section class="card alert-card"><h3>🔔 فعّل التذكير</h3><p>يصلك تنبيه على جوالك قبل موعدك بيوم وقبله بساعتين، وبوقت كل جرعة دواء.</p><button class="btn primary en-home">تفعيل التذكير</button></section>` : ""}
     ${needSign.length ? needSign.map((x) => `<section class="card alert-card"><h3>موافقة بانتظار توقيعك</h3><p>${esc(x.name)}</p><button class="btn primary small sign" data-id="${x.id}">قراءة وتوقيع</button></section>`).join("") : ""}
     ${toRate ? `<section class="card"><h3>كيف كانت زيارتك يوم ${esc(fmtDate(toRate.date, false))}؟</h3><div class="stars" role="group" aria-label="التقييم">${[1, 2, 3, 4, 5].map((n) => `<button class="star" data-n="${n}" data-id="${toRate.id}" aria-label="${n} من 5">★</button>`).join("")}</div></section>` : ""}
@@ -197,6 +200,7 @@ async function home() {
     AndroidApp.requestNotify();
   });
   $$(".cx").forEach((b) => b.onclick = () => cancelAppt(apps.find((a) => a.id === b.dataset.id)));
+  bindConfirm(apps); drawQueue();
   $$(".sign").forEach((b) => b.onclick = () => signConsent(procs.find((x) => x.id === b.dataset.id)));
   $$(".show-s").forEach((b) => b.onclick = async () => { T.me.hideSensitive = false; await home(); T.me.hideSensitive = true; });
   $$(".star").forEach((b) => b.onclick = () => rate(b.dataset.id, Number(b.dataset.n)));
@@ -264,10 +268,95 @@ async function appts() {
   main().innerHTML = `<div class="row-between"><h2 class="page-title">مواعيدي</h2><button class="btn primary ask-appt">طلب موعد</button></div>
     ${pend.length ? `<section class="card"><h3>طلبات بانتظار التأكيد</h3>${pend.map((r) => `<p>${esc(fmtDate(r.date))} · ${esc(r.period || "")}</p>`).join("")}<p class="muted small">ستؤكد العيادة الوقت لك.</p></section>` : ""}
     <section class="card"><h3>القادمة</h3>${up.length ? `<ul class="plain">${up.map((a) => `<li class="req"><b>${esc(fmtDate(a.date))}</b> · ${esc(fmtTime(a.time))}<br><span class="muted">${esc(a.type || "")}</span>
-      <div><button class="btn small cx" data-id="${a.id}">إلغاء</button></div></li>`).join("")}</ul>` : empty("لا توجد مواعيد قادمة")}</section>
+      ${confirmBits(a)}<div><button class="btn small cx" data-id="${a.id}">إلغاء</button></div></li>`).join("")}</ul>` : empty("لا توجد مواعيد قادمة")}</section>
     <section class="card"><h3>السابقة</h3>${past.length ? `<ul class="plain">${past.map((a) => `<li class="row-between"><span>${esc(a.date)} · ${esc(a.type || "")}</span><span class="chip">${esc(STATUS[a.status] || "")}</span></li>`).join("")}</ul>` : empty("لا يوجد")}</section>`;
   $(".ask-appt").onclick = requestModal;
   $$(".cx").forEach((b) => b.onclick = () => cancelAppt(apps.find((a) => a.id === b.dataset.id)));
+  bindConfirm(apps);
+}
+
+// ---------- تأكيد الحضور أو الاعتذار (قبل الموعد بيوم أو يومه) ----------
+function confirmBits(a) {
+  if (a.status !== "confirmed" || a.date > addDays(ymd(), 1)) return "";
+  if (a.patientConfirm === "yes") return `<p class="pc-done">✓ أكّدت حضورك، بانتظارك</p>`;
+  return `<div class="pc-ask"><span>هل ستحضر؟</span><button class="btn small primary pc-yes" data-id="${a.id}">✓ سأحضر</button><button class="btn small pc-no" data-id="${a.id}">✕ أعتذر</button></div>`;
+}
+function bindConfirm(apps) {
+  $$(".pc-yes").forEach((b) => b.onclick = async () => {
+    b.disabled = true;
+    try { await updateDoc(P.colDoc("appointments", b.dataset.id), { patientConfirm: "yes", patientConfirmAt: serverTimestamp() }); toast("شكراً، أُبلغت العيادة بحضورك"); render(); }
+    catch (e) { b.disabled = false; toast(errMsg(e), true); }
+  });
+  $$(".pc-no").forEach((b) => b.onclick = () => cancelAppt(apps.find((a) => a.id === b.dataset.id)));
+}
+
+// ---------- الدور الحي: رقمك وكم شخصاً قبلك ----------
+const Q = { appt: null, live: null, warned: {} };
+function watchQueue() {
+  const today = ymd();
+  S.unsub.push(onSnapshot(query(P.col("appointments"), where("patientId", "==", T.pid)), (s) => {
+    const arr = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.date === today && ["confirmed", "arrived", "in"].includes(a.status)).sort((a, b) => a.time.localeCompare(b.time));
+    const prev = Q.appt; Q.appt = arr.find((a) => a.status !== "confirmed") || arr[0] || null;
+    if (Q.appt && prev && prev.id === Q.appt.id) {
+      if (prev.status !== "in" && Q.appt.status === "in") queueNotify("in", "👋 دورك الآن", "تفضّل إلى غرفة الطبيب");
+      if (!prev.queueNo && Q.appt.queueNo) toast(`تم تسجيل حضورك · رقمك ${qNum(Q.appt)}`);
+    }
+    drawQueue();
+  }, () => {}));
+  S.unsub.push(onSnapshot(P.colDoc("live", "queue"), (d) => { Q.live = d.data() || null; drawQueue(); }, () => {}));
+}
+const qNum = (a) => {
+  if (!a.queueNo) return "";
+  const ds = S.clinic?.doctors || [], multi = ds.filter((d) => d.active !== false).length > 1, k = ds.findIndex((d) => d.id === a.doctorId);
+  return (multi && k >= 0 ? String.fromCharCode(65 + (k % 26)) : "") + a.queueNo;
+};
+function queueNotify(key, title, body) {
+  if (Q.warned[key + Q.appt?.id]) return; Q.warned[key + Q.appt?.id] = 1;
+  toast(`${title} · ${body}`);
+  try {
+    if (!document.hidden) return;
+    if (NATIVE && window.AndroidApp.notifyNow) return AndroidApp.notifyNow("q-" + T.pid, title, body, "#/");
+    if ("Notification" in window && Notification.permission === "granted") navigator.serviceWorker?.getRegistration().then((reg) => { const o = { body, icon: "icon-192.png", tag: "q-" + T.pid, data: { url: "./#/" } }; reg ? reg.showNotification(title, o) : new Notification(title, o); });
+  } catch {}
+}
+function drawQueue() {
+  const el = $(".q-slot"); const a = Q.appt;
+  let before = null, cur = "";
+  if (a && a.status === "arrived" && a.queueNo && Q.live?.waitDay === ymd()) {
+    const w = (Q.live.wait || {})[a.doctorId || Object.keys(Q.live.wait || {})[0]] || [];
+    before = w.filter((n) => n < a.queueNo).length;
+    cur = (a.doctorId && Q.live.docs?.[a.doctorId]?.number) || Q.live.number || "";
+    if (before <= 1) queueNotify("near", "⏰ اقترب دورك", before === 0 ? "أنت التالي، استعد للدخول" : "بقي شخص واحد قبلك");
+  }
+  if (!el) return;
+  if (!a) { el.innerHTML = ""; return; }
+  el.innerHTML = `<section class="card q-card">${
+    a.status === "in" ? `<h3>👋 دورك الآن</h3><p>تفضّل إلى غرفة الطبيب.</p>`
+    : a.status === "arrived" ? (a.queueNo ? `<h3>دورك</h3><div class="q-row"><div><span>رقمك</span><b>${esc(qNum(a))}</b></div>${cur ? `<div><span>الدور الحالي</span><b>${esc(String(cur))}</b></div>` : ""}${before !== null ? `<div><span>قبلك</span><b>${before}</b></div>` : ""}</div>
+        <p class="muted small">${before === 0 ? "أنت التالي، استعد للدخول." : "يتحدّث تلقائياً، ويصلك تنبيه عند اقتراب دورك. يمكنك الانتظار في مكان قريب."}</p>`
+      : `<h3>✓ تم تسجيل حضورك</h3><p class="muted">سيظهر رقم دورك هنا خلال لحظات.</p>`)
+    : `<h3>موعدك اليوم الساعة ${esc(fmtTime(a.time))}</h3><p class="muted small">عند وصولك امسح رمز QR على باب العيادة بكاميرا جوالك لتسجيل حضورك وأخذ رقم الدور.</p>`
+  }</section>`;
+}
+
+// ---------- تسجيل الحضور بمسح رمز QR على باب العيادة ----------
+async function checkin() {
+  const raw = (location.hash.split("/checkin/")[1] || "").split(/[?#]/)[0];
+  const [cid, code] = raw.split(".");
+  const box = (h) => { main().innerHTML = `<section class="card stack center">${h}<a class="btn primary" href="#/">الرئيسية</a></section>`; };
+  if (!code || cid !== C) return box(`<h3>رمز غير صالح</h3><p class="muted">هذا الرمز لعيادة أخرى أو انتهت صلاحيته. راجع الاستقبال.</p>`);
+  const today = ymd();
+  const mine = (await myAppts()).filter((a) => a.date === today);
+  const done = mine.find((a) => ["arrived", "in"].includes(a.status));
+  if (done) { history.replaceState(null, "", "#/"); return box(`<h3>✓ حضورك مسجّل</h3><p>رقمك ${esc(qNum(done) || "سيظهر خلال لحظات")}</p>`); }
+  const a = mine.find((x) => x.status === "confirmed");
+  if (!a) return box(`<h3>لا يوجد لديك موعد اليوم</h3><p class="muted">يرجى مراجعة الاستقبال لتسجيلك.</p>`);
+  try {
+    await updateDoc(P.colDoc("appointments", a.id), { status: "arrived", checkin: code, arrivedAt: serverTimestamp() });
+    history.replaceState(null, "", "#/");
+    toast("✓ تم تسجيل حضورك");
+    render();
+  } catch (e) { box(`<h3>تعذّر تسجيل الحضور</h3><p class="muted">${esc(errMsg(e))}. راجع الاستقبال.</p>`); }
 }
 
 async function requestModal() {
@@ -290,7 +379,7 @@ async function requestModal() {
 async function cancelAppt(a) {
   if (!(await confirmBox("إلغاء الموعد", `هل تريد إلغاء موعد ${fmtDate(a.date)} الساعة ${fmtTime(a.time)}؟`, "إلغاء الموعد", true))) return;
   try {
-    await updateDoc(P.colDoc("appointments", a.id), { status: "cancelled" });
+    await updateDoc(P.colDoc("appointments", a.id), { status: "cancelled", cancelledBy: "patient" });
     scheduleDoseReminders();
     await sendMsg(`ألغيت موعدي يوم ${fmtDate(a.date)} الساعة ${fmtTime(a.time)}.`);
     toast("أُلغي الموعد");
