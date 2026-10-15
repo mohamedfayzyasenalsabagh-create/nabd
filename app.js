@@ -138,7 +138,7 @@ export async function route() {
       else window.dispatchEvent(new Event("clinic-updated"));
     }, () => { if (first) { first = false; resolve(); } }));
   });
-  startIdleTimer();
+  // أُلغي الخروج التلقائي بعد عدم الاستخدام بطلب صاحب المنصة
   const m = await import("./staff.js");
   m.start();
 }
