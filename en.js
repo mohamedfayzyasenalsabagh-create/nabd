@@ -3181,5 +3181,7 @@ export const EN = {
 "لا توجد أعطال مسجلة ✓": "No errors logged ✓",
 "التفاصيل التقنية": "Technical details",
 "حسم الاشتراك السنوي (%)": "Yearly subscription discount (%)",
-"🎁 سنوياً:": "🎁 Yearly:"
+"🎁 سنوياً:": "🎁 Yearly:",
+"📋 نسخ": "📋 Copy",
+"انسخ الرسالة": "Copy the message"
 };

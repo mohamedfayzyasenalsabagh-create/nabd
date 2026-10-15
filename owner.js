@@ -131,7 +131,7 @@ async function renderClinics() {
       <ul class="remind-list">${follow.map(({ c, s: x }) => `<li class="${c.renewRemindedAt && tsMs(c.renewRemindedAt) > Date.now() - 3 * 864e5 ? "done" : ""}">
         <span class="t ${x.days <= 0 ? "danger-t" : ""}">${x.days > 0 ? `${x.days} يوم` : x.days === 0 ? "اليوم" : `منذ ${-x.days} يوم`}</span>
         <span class="n">${esc(c.name)}<small>${c.status === "trial" ? "تجربة مجانية" : esc(planOf(c.plan)?.name || c.plan || "")} · <span dir="ltr">${esc(c.ownerPhone || "")}</span></small></span>
-        ${c.ownerPhone ? `<a class="btn small primary rn" data-id="${c.id}" target="_blank" rel="noopener" href="${esc(waLink(c.ownerPhone, renewText(c, x.days)))}">📲 تذكير</a>` : ""}
+        ${c.ownerPhone ? `<span class="row gap"><a class="btn small primary rn" data-id="${c.id}" target="_blank" rel="noopener" href="${esc(waLink(c.ownerPhone, renewText(c, x.days)))}">📲 تذكير</a><button class="btn small cpm" data-id="${c.id}" data-days="${x.days}" title="نسخ الرسالة لإرسالها من أي واتساب">📋 نسخ</button></span>` : ""}
       </li>`).join("")}</ul></section>` : ""}
     <input class="search" type="search" id="cq" placeholder="بحث بالاسم أو الرمز أو البريد" value="${esc(q)}" aria-label="بحث">
     <section class="card">${rows.length ? `<div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>العيادة</th><th>الاختصاص</th><th>الحالة</th><th>الاستخدام</th><th>الباقة</th><th>ينتهي</th><th></th></tr></thead><tbody>
@@ -145,6 +145,13 @@ async function renderClinics() {
   $$(".stat.f").forEach((b) => b.onclick = () => { filter = b.dataset.f; renderClinics(); });
   $("#cq").oninput = debounce((e) => { q = e.target.value; renderClinics().then(() => { const i = $("#cq"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 250);
   $$(".man").forEach((b) => b.onclick = () => manageClinic(all.find((c) => c.id === b.dataset.id), { act: acts[b.dataset.id], h: H[b.dataset.id] }));
+  $$(".cpm").forEach((b) => b.onclick = async () => {
+    const c = all.find((x) => x.id === b.dataset.id);
+    try { await navigator.clipboard.writeText(renewText(c, Number(b.dataset.days))); toast(`نُسخت الرسالة · الرقم: ${c.ownerPhone}`); }
+    catch { info("انسخ الرسالة", `<p dir="ltr">${esc(c.ownerPhone)}</p><textarea rows="8" data-novoice style="width:100%">${esc(renewText(c, Number(b.dataset.days)))}</textarea>`); }
+    b.closest("li").classList.add("done");
+    updateDoc(P.clinic(c.id), { renewRemindedAt: Timestamp.now() }).catch(() => {});
+  });
   $$(".rn").forEach((b) => b.addEventListener("click", () => {
     b.closest("li").classList.add("done");
     updateDoc(P.clinic(b.dataset.id), { renewRemindedAt: Timestamp.now() }).catch(() => {});

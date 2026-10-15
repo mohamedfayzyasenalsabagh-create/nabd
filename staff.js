@@ -416,7 +416,7 @@ export function sendBtns(phone, text, pid, { small = false, id = "", kind = "not
   const s = small ? "small" : "";
   if (!phone && !hasApp(pid)) return "";
   return `<span class="send-btns" data-id="${esc(id)}">
-    ${phone ? `<a class="btn ${s} primary sb-wa" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">💬 واتساب</a><a class="btn ${s} sb-sms" href="${esc(smsLink(phone, text))}">✉️ SMS</a>` : ""}
+    ${phone ? `<a class="btn ${s} primary sb-wa" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">💬 واتساب</a><a class="btn ${s} sb-sms" href="${esc(smsLink(phone, text))}">✉️ SMS</a><button type="button" class="btn ${s} sb-cp" data-text="${esc(text)}" data-phone="${esc(phone)}" title="نسخ الرسالة لإرسالها من أي تطبيق">📋 نسخ</button>` : ""}
     ${hasApp(pid) ? `<button type="button" class="btn ${s} sb-app" data-pid="${esc(pid)}" data-kind="${esc(kind)}" data-text="${esc(text)}">📱 التطبيق</button>` : ""}</span>`;
 }
 // إرسال رسالة إلى تطبيق المريض: تظهر في «الرسائل» ويصله إشعار على جواله
@@ -428,6 +428,11 @@ export function bindSend(root, onSent) {
   (root || document).querySelectorAll(".send-btns").forEach((g) => {
     if (g.dataset.bound) return; g.dataset.bound = "1";
     g.querySelectorAll(".sb-wa,.sb-sms").forEach((a) => a.addEventListener("click", () => onSent?.(g, a.classList.contains("sb-wa") ? "wa" : "sms")));
+    g.querySelector(".sb-cp")?.addEventListener("click", async (e) => {
+      const b = e.currentTarget;
+      try { await navigator.clipboard.writeText(b.dataset.text); toast(`نُسخت الرسالة · الرقم: ${b.dataset.phone}`); onSent?.(g, "copy"); }
+      catch { info("انسخ الرسالة", `<p dir="ltr">${esc(b.dataset.phone)}</p><textarea rows="8" data-novoice style="width:100%">${esc(b.dataset.text)}</textarea>`); }
+    });
     g.querySelector(".sb-app")?.addEventListener("click", async (e) => {
       const b = e.currentTarget; b.disabled = true;
       try { await sendToApp(b.dataset.pid, b.dataset.text, b.dataset.kind); b.textContent = "✓ وصل للتطبيق"; toast("أُرسلت إلى تطبيق المريض"); onSent?.(g, "app"); }
