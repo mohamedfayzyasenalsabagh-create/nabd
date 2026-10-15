@@ -163,8 +163,9 @@ function renewText(c, days) {
   const ps = plans().map((p) => `• ${p.name}: ${p.price}${p.currency || "$"} شهرياً${yearlyDisc(p) ? ` (أو ${periodPrice(p, 12)}${p.currency || "$"} سنوياً، بحسم ${yearlyDisc(p)}%)` : ""}`).join("\n");
   const tr = c.status === "trial";
   const subj = tr ? "تجربتكم المجانية" : "اشتراككم";
-  const when = days > 0 ? `${tr ? "تنتهي" : "ينتهي"} ${subj} في منصة ${PLATFORM()} بعد ${days === 1 ? "يوم واحد" : days === 2 ? "يومين" : `${days} أيام`}` : `${tr ? "انتهت" : "انتهى"} ${subj} في منصة ${PLATFORM()}، والعيادة الآن للقراءة فقط`;
-  return `مرحباً د. ${c.doctorName || ""} 👋\n${when}.\n\nللتجديد اختر الباقة المناسبة:\n${ps}\n\nيمكنك الدفع من داخل التطبيق: المزيد ← الاشتراك والفواتير${pay.syriatel ? `\nأو عبر سيريتل كاش: ${pay.syriatel}` : ""}\n\nبياناتكم محفوظة بالكامل. لأي استفسار نحن بالخدمة.`;
+  const dd = days === 1 ? "يوم واحد" : days === 2 ? "يومين" : days <= 10 ? `${days} أيام` : `${days} يوماً`;
+  const when = days > 0 ? `بانتهاء ${subj} بعد ${dd}` : `بانتهاء ${subj}، والعيادة الآن للقراءة فقط`;
+  return `مرحباً د. ${c.doctorName || ""} 👋\n\nأسعدنا وجودكم معنا، نأمل أن تكون منصة ${PLATFORM()} قد نالت إعجابكم ونأسف لإعلامكم ${when}.\n\nللتجديد يمكنكم اختيار الباقة المناسبة:\n${ps}\n\nيمكنكم الدفع من داخل التطبيق: المزيد ← الاشتراك والفواتير${pay.syriatel ? `\nأو عبر سيريتل كاش: ${pay.syriatel}` : ""}\n\nبياناتكم المدخلة محفوظة بالكامل لديكم وللأبد.\nلأي استفسار نتشرف بمساعدتكم\n\n${PLATFORM()} .. معاً نحو أنظمة أرقى`;
 }
 
 async function manageClinic(c, use = {}) {
