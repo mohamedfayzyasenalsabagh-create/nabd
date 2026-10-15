@@ -3,7 +3,7 @@ import { faqHtml, GUIDE_URL } from "./faq.js";
 import { langBtn } from "./i18n.js";
 import { query, where, collection, db, CITIES,
   auth, P, one, list, doc, addDoc, getDoc, setClinic, signupClinic, bootstrapOwner, login, cleanSlug,
-  SPECIALTIES, DEFAULT_PLANS, TRIAL_DAYS, serverTimestamp, normPhone, sendPasswordResetEmail, setDoc, increment
+  SPECIALTIES, DEFAULT_PLANS, TRIAL_DAYS, yearlyDisc, periodPrice, serverTimestamp, normPhone, sendPasswordResetEmail, setDoc, increment
 } from "./fb.js";
 import { waLink, specialtyMark, COPYRIGHT,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, toast, errMsg, modal, info, field, select,
@@ -135,6 +135,7 @@ export function landing() {
             ${i === 1 ? `<span class="badge-top">الأكثر طلباً</span>` : ""}
             <h3>${esc(p.name)}</h3>
             <div class="price"><b>${esc(p.price)}</b><span>${esc(p.currency || "$")} / شهرياً</span></div>
+            ${yearlyDisc(p) ? `<div class="yr-deal">🎁 سنوياً: <b>${esc(periodPrice(p, 12))} ${esc(p.currency || "$")}</b> <s>${esc(p.price * 12)}</s> · حسم ${yearlyDisc(p)}%</div>` : ""}
             <ul class="plain checks">${(p.perks || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
             <a class="btn ${i === 1 ? "primary" : ""} block" href="#/signup">ابدأ التجربة</a>
           </article>`).join("")}

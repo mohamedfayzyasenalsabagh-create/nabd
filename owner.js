@@ -1,7 +1,7 @@
 // لوحة مالك المنصة: العيادات، الاشتراكات، الدفعات، والإعدادات
 import {
   P, list, one, updateDoc, setDoc, query, where, orderBy, serverTimestamp, Timestamp, collection, db,
-  SPECIALTIES, DEFAULT_PLANS, ALL_FEATURES, tsMs, clinicState
+  SPECIALTIES, DEFAULT_PLANS, ALL_FEATURES, tsMs, clinicState, yearlyDisc, periodPrice
 } from "./fb.js";
 import {
   $, $$, esc, toast, errMsg, modal, confirmBox, info, field, select, empty, tsDate, fmtDate, ymd,
@@ -153,7 +153,7 @@ async function renderClinics() {
 
 function renewText(c, days) {
   const pay = S.platform?.payment || {};
-  const ps = plans().map((p) => `• ${p.name}: ${p.price}${p.currency || "$"} شهرياً`).join("\n");
+  const ps = plans().map((p) => `• ${p.name}: ${p.price}${p.currency || "$"} شهرياً${yearlyDisc(p) ? ` (أو ${periodPrice(p, 12)}${p.currency || "$"} سنوياً، بحسم ${yearlyDisc(p)}%)` : ""}`).join("\n");
   const tr = c.status === "trial";
   const subj = tr ? "تجربتكم المجانية" : "اشتراككم";
   const when = days > 0 ? `${tr ? "تنتهي" : "ينتهي"} ${subj} في منصة ${PLATFORM()} بعد ${days === 1 ? "يوم واحد" : days === 2 ? "يومين" : `${days} أيام`}` : `${tr ? "انتهت" : "انتهى"} ${subj} في منصة ${PLATFORM()}، والعيادة الآن للقراءة فقط`;
@@ -290,6 +290,7 @@ function renderSettings() {
         ${ps.map((p, i) => `<fieldset class="plan-edit"><legend>${esc(p.name)}</legend>
           <div class="grid2">${field("الاسم", `pn${i}`, { value: p.name, required: true })}${field("السعر الشهري", `pp${i}`, { type: "number", value: p.price, attrs: 'min="0" step="0.5"' })}</div>
           <div class="grid2">${field("العملة", `pc${i}`, { value: p.currency || "$" })}${field("أقصى عدد أطباء / موظفين", `pl${i}`, { type: "number", value: p.maxDoctors, attrs: 'min="1"' })}</div>
+          ${field("حسم الاشتراك السنوي (%)", `pd${i}`, { type: "number", value: yearlyDisc(p), attrs: 'min="0" max="90" step="1"' })}
           ${field("المزايا (سطر لكل ميزة)", `pk${i}`, { type: "textarea", value: (p.perks || []).join("\n"), attrs: "data-novoice" })}
           <div class="row gap wrap">${[["booking", "صفحة الحجز"], ["inventory", "المخزون"], ["qr", "وصفة QR"], ["multiDoctor", "تعدد الأطباء"], ["multiSpecialty", "تعدد الاختصاصات"]].map(([k, t]) => `<label class="check small"><input type="checkbox" name="pf${i}_${k}" ${p.features?.[k] ? "checked" : ""}><span>${t}</span></label>`).join("")}</div>
         </fieldset>`).join("")}
@@ -318,6 +319,7 @@ function renderSettings() {
     const newPlans = ps.map((p, i) => ({
       ...p, name: f[`pn${i}`].value.trim(), price: Number(f[`pp${i}`].value) || 0, currency: f[`pc${i}`].value.trim() || "$",
       maxDoctors: Number(f[`pl${i}`].value) || 1, maxStaff: Number(f[`pl${i}`].value) || 1,
+      yearlyDiscount: Math.max(0, Math.min(90, Number(f[`pd${i}`].value) || 0)),
       perks: f[`pk${i}`].value.split("\n").map((x) => x.trim()).filter(Boolean),
       features: Object.fromEntries(["booking", "inventory", "qr", "multiDoctor", "multiSpecialty"].map((k) => [k, f[`pf${i}_${k}`].checked])),
     }));

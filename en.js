@@ -3179,5 +3179,7 @@ export const EN = {
 "أعطال التطبيق": "App errors",
 "تُسجَّل تلقائياً من أجهزة المستخدمين خلال آخر 14 يوماً: رسالة الخطأ ومكانه فقط، دون أي بيانات مرضى.": "Logged automatically from users' devices over the last 14 days: the error message and where it happened only, no patient data.",
 "لا توجد أعطال مسجلة ✓": "No errors logged ✓",
-"التفاصيل التقنية": "Technical details"
+"التفاصيل التقنية": "Technical details",
+"حسم الاشتراك السنوي (%)": "Yearly subscription discount (%)",
+"🎁 سنوياً:": "🎁 Yearly:"
 };

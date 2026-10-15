@@ -3,7 +3,7 @@ import { t as tr } from "./i18n.js";
 import { CITIES,
   P, C, list, one, setDoc, updateDoc, addDoc, query, where, serverTimestamp, arrayUnion,
   createStaff, resetStaffPassword, normPhone, randId, publicCopy, clinicState, tsMs,
-  SPECIALTIES, MODULES, DEFAULT_PLANS, DEFAULT_VACCINES, audit
+  SPECIALTIES, MODULES, DEFAULT_PLANS, DEFAULT_VACCINES, audit, yearlyDisc, periodPrice
 } from "./fb.js";
 import { APP_URL,
   $, $$, esc, ymd, addDays, fmtDate, tsDate, money, toast, errMsg, modal, confirmBox, info,
@@ -271,6 +271,7 @@ export async function renderSubscription() {
     <div class="plans">${plans().map((p, i) => `<article class="plan ${p.id === c.plan ? "featured" : ""}">
       ${p.id === c.plan ? `<span class="badge-top">باقتك</span>` : ""}
       <h3>${esc(p.name)}</h3><div class="price"><b>${esc(p.price)}</b><span>${esc(p.currency || "$")} / شهرياً</span></div>
+      ${yearlyDisc(p) ? `<div class="yr-deal">🎁 سنوياً: <b>${esc(periodPrice(p, 12))} ${esc(p.currency || "$")}</b> <s>${esc(p.price * 12)}</s> · حسم ${yearlyDisc(p)}%</div>` : ""}
       <ul class="plain checks">${(p.perks || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
       <button class="btn ${p.id === c.plan || i === 1 ? "primary" : ""} block pick" data-id="${p.id}">${p.id === c.plan ? "تجديد" : "اختيار"}</button></article>`).join("")}</div>`}
     <section class="card stack"><h3>طرق الدفع</h3>
@@ -296,8 +297,8 @@ async function payModal(p) {
     .filter(([k]) => (k === "shamcash" ? hasSham : !["syriatel", "mtn", "bank"].includes(k) || pay[k]));
   let receipt = null;
   const r = await modal(`اشتراك ${p.name}`, `<form class="stack">
-    ${select("المدة", "months", [[1, "شهر"], [3, "3 أشهر"], [6, "6 أشهر"], [12, "سنة"]], 1)}
-    <p class="total">المبلغ: <b class="amt">${esc(p.price)} ${esc(p.currency || "$")}</b></p>
+    ${select("المدة", "months", [[1, "شهر"], [3, "3 أشهر"], [6, "6 أشهر"], [12, yearlyDisc(p) ? `سنة (حسم ${yearlyDisc(p)}%)` : "سنة"]], 1)}
+    <p class="total">المبلغ: <b class="amt">${esc(p.price)} ${esc(p.currency || "$")}</b> <span class="disc muted small"></span></p>
     ${select("طريقة الدفع", "method", methods, methods[0]?.[0])}
     <div class="pay-hint muted small"></div>
     <div class="sc-pay"></div>
@@ -311,7 +312,9 @@ async function payModal(p) {
     onOpen: (w) => {
       const f = w.querySelector("form");
       const upd = () => {
-        w.querySelector(".amt").textContent = `${(Number(p.price) * Number(f.months.value)).toLocaleString("en-US")} ${p.currency || "$"}`;
+        const mo = Number(f.months.value), full = Number(p.price) * mo, net = periodPrice(p, mo);
+        w.querySelector(".amt").textContent = `${net.toLocaleString("en-US")} ${p.currency || "$"}`;
+        w.querySelector(".disc").textContent = net < full ? `بدلاً من ${full.toLocaleString("en-US")} ${p.currency || "$"} (حسم ${yearlyDisc(p)}%)` : "";
         const m = f.method.value;
         w.querySelector(".pay-hint").textContent = m !== "shamcash" && pay[m] ? `حوّل إلى: ${pay[m]}` : "";
         w.querySelector(".sc-pay").innerHTML = m === "shamcash" ? `<div class="sc-box">${pay.shamcashQr ? `<img class="sc-qr" src="${esc(pay.shamcashQr)}" alt="رمز QR للدفع عبر شام كاش">` : ""}${pay.shamcash ? `<p>الحساب: <b dir="auto">${esc(pay.shamcash)}</b></p>` : ""}<p class="muted small">امسح الرمز من تطبيق شام كاش، ادفع المبلغ، ثم ارفع صورة الإيصال.</p></div>` : "";
@@ -332,7 +335,7 @@ async function payModal(p) {
       if (f.method !== "shamcash" && !receipt && !f.txn) { toast("اكتب رقم العملية أو ارفع صورة الإيصال", true); return false; }
       await addDoc(P.subPays(), {
         clinicId: C, clinicName: S.clinic.name, slug: S.clinic.slug, plan: p.id, months: Number(f.months),
-        amount: `${Number(p.price) * Number(f.months)} ${p.currency || "$"}`, method: f.method, txn: f.txn, note: f.note, receipt,
+        amount: `${periodPrice(p, Number(f.months))} ${p.currency || "$"}`, method: f.method, txn: f.txn, note: f.note, receipt,
         status: "pending", by: S.user.uid, createdAt: serverTimestamp()
       });
     }

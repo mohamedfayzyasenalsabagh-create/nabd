@@ -113,11 +113,14 @@ export const DEFAULT_PLANS = [
   { id: "pro", name: "احترافي", price: 30, currency: "$", maxDoctors: 3, maxStaff: 3,
     features: { booking: true, inventory: true, qr: true, multiDoctor: true, multiSpecialty: false },
     perks: ["حتى 3 أطباء و3 موظفين", "صفحة حجز عامة", "المخزون", "وصفة برمز QR", "كل ميزات الأساسي"] },
-  { id: "center", name: "مراكز طبية", price: 60, currency: "$", maxDoctors: 50, maxStaff: 50,
+  { id: "center", name: "مراكز طبية", price: 60, currency: "$", yearlyDiscount: 10, maxDoctors: 50, maxStaff: 50,
     features: { booking: true, inventory: true, qr: true, multiDoctor: true, multiSpecialty: true },
     perks: ["أطباء وموظفون بلا حدود عملياً", "عدة اختصاصات في مركز واحد", "كل ميزات الاحترافي", "دعم مخصص"] },
 ];
 export const TRIAL_DAYS = 14;
+// حسم الاشتراك السنوي (نسبة مئوية) يحدده صاحب المنصة لكل باقة؛ الافتراضي 10% لباقة المراكز
+export const yearlyDisc = (p) => Math.max(0, Math.min(90, Number(p?.yearlyDiscount ?? (p?.id === "center" ? 10 : 0)) || 0));
+export const periodPrice = (p, months) => { const base = (Number(p?.price) || 0) * months; const d = months >= 12 ? yearlyDisc(p) : 0; return Math.round(base * (100 - d)) / 100; };
 export const CITIES = ["دمشق", "ريف دمشق", "حلب", "حمص", "حماة", "اللاذقية", "طرطوس", "إدلب", "درعا", "السويداء", "القنيطرة", "دير الزور", "الرقة", "الحسكة"];
 export const ALL_FEATURES = { booking: true, inventory: true, qr: true, multiDoctor: true, multiSpecialty: true };
 // التجربة المجانية: كل الميزات ما عدا تعدد الاختصاصات (خاص بباقة المراكز الطبية)
