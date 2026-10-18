@@ -67,6 +67,7 @@ async function renderErrors() {
 
 // ---------- العيادات ----------
 let filter = "all", q = "";
+const FL = { active: "اشتراك فعّال", trial: "في التجربة", soon: "تنتهي خلال 7 أيام", expired: "منتهية أو موقوفة", used: "تستخدم التطبيق هذا الأسبوع" };
 async function renderClinics() {
   const all = (await list(P.clinics())).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
   const now = Date.now();
@@ -108,7 +109,8 @@ async function renderClinics() {
     return `<span class="chip">${lbl}</span><br><small class="muted">${a.patients || 0} مريض · ${a.apptsMonth || 0} موعد هذا الشهر</small>${hist(id)}`;
   };
   const usedWeek = all.filter((c) => { const d = ago(c.id); return d !== null && d <= 7; }).length;
-  const F = { all: st, active, trial, expired, soon };
+  const used = st.filter((x) => { const d = ago(x.c.id); return d !== null && d <= 7; });
+  const F = { all: st, active, trial, expired, soon, used };
   let rows = F[filter] || st;
   if (q) rows = rows.filter((x) => [x.c.name, x.c.doctorName, x.c.slug, x.c.ownerEmail, x.c.ownerPhone].join(" ").toLowerCase().includes(q.toLowerCase()));
   main().innerHTML = `
@@ -119,13 +121,13 @@ async function renderClinics() {
       <button class="stat f ${filter === "trial" ? "sel" : ""}" data-f="trial"><b>${trial.length}</b><span>في التجربة</span></button>
       <button class="stat f ${filter === "soon" ? "sel" : ""}" data-f="soon"><b>${soon.length}</b><span>تنتهي خلال 7 أيام</span></button>
       <button class="stat f ${filter === "expired" ? "sel" : ""}" data-f="expired"><b>${expired.length}</b><span>منتهية أو موقوفة</span></button>
-      <div class="stat"><b>${usedWeek}</b><span>عيادات تستخدم التطبيق هذا الأسبوع</span></div>
-      <div class="stat"><b>${mrr}$</b><span>الدخل الشهري المتوقع</span></div>
-      <div class="stat"><b>${gotThis}$</b><span>المقبوض هذا الشهر${gotLast ? ` (السابق ${gotLast}$)` : ""}</span></div>
-      <div class="stat dl-stat"><b>…</b><span>تحميلات تطبيق أندرويد</span></div>
-      <div class="stat vs-today"><b>…</b><span>زوار الموقع اليوم</span></div>
-      <div class="stat vs-month"><b>…</b><span>زوار الموقع هذا الشهر</span></div>
-      <div class="stat vs-all"><b>…</b><span>كل زوار الموقع (الزيارات)</span></div>
+      <button class="stat f ${filter === "used" ? "sel" : ""}" data-f="used"><b>${usedWeek}</b><span>عيادات تستخدم التطبيق هذا الأسبوع</span></button>
+      <button class="stat f" data-f="active"><b>${mrr}$</b><span>الدخل الشهري المتوقع</span></button>
+      <a class="stat" href="#/payments"><b>${gotThis}$</b><span>المقبوض هذا الشهر${gotLast ? ` (السابق ${gotLast}$)` : ""}</span></a>
+      <button class="stat dl-stat"><b>…</b><span>تحميلات تطبيق أندرويد</span></button>
+      <button class="stat vs vs-today"><b>…</b><span>زوار الموقع اليوم</span></button>
+      <button class="stat vs vs-month"><b>…</b><span>زوار الموقع هذا الشهر</span></button>
+      <button class="stat vs vs-all"><b>…</b><span>كل زوار الموقع (الزيارات)</span></button>
     </div>
     ${follow.length ? `<section class="card follow"><h3>⏰ تحتاج متابعة للتجديد</h3><p class="muted small">أرسل تذكيراً بالتجديد قبل انتهاء الاشتراك، فالعيادة المنتهية تصبح للقراءة فقط.</p>
       <ul class="remind-list">${follow.map(({ c, s: x }) => `<li class="${c.renewRemindedAt && tsMs(c.renewRemindedAt) > Date.now() - 3 * 864e5 ? "done" : ""}">
@@ -134,7 +136,7 @@ async function renderClinics() {
         ${c.ownerPhone ? `<span class="row gap"><a class="btn small primary rn" data-id="${c.id}" target="_blank" rel="noopener" href="${esc(waLink(c.ownerPhone, renewText(c, x.days)))}">📲 تذكير</a><button class="btn small cpm" data-id="${c.id}" data-days="${x.days}" title="نسخ الرسالة لإرسالها من أي واتساب">📋 نسخ</button></span>` : ""}
       </li>`).join("")}</ul></section>` : ""}
     <input class="search" type="search" id="cq" placeholder="بحث بالاسم أو الرمز أو البريد" value="${esc(q)}" aria-label="بحث">
-    <section class="card">${rows.length ? `<div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>العيادة</th><th>الاختصاص</th><th>الحالة</th><th>الاستخدام</th><th>الباقة</th><th>ينتهي</th><th></th></tr></thead><tbody>
+    <section class="card" id="ctbl">${filter !== "all" ? `<p class="row gap"><span class="chip">${esc(FL[filter] || "")} · ${rows.length}</span><button class="btn small ghost f-all">✕ عرض الكل</button></p>` : ""}${rows.length ? `<div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>العيادة</th><th>الاختصاص</th><th>الحالة</th><th>الاستخدام</th><th>الباقة</th><th>ينتهي</th><th></th></tr></thead><tbody>
       ${rows.map(({ c, s }) => `<tr><td><b>${esc(c.name)}</b><br><small class="muted" dir="ltr">${esc(c.slug || c.id)}</small></td>
         <td>${esc(SPECIALTIES[c.specialty]?.name || c.specialty || "")}</td><td>${statusChip(c)}</td><td>${usage(c.id)}</td>
         <td>${esc(c.plan === "trial" ? "تجربة" : c.plan === "gift" ? "هدية" : planOf(c.plan)?.name || c.plan || "")}</td>
@@ -142,7 +144,10 @@ async function renderClinics() {
         <td><button class="btn small man" data-id="${c.id}">إدارة</button></td></tr>`).join("")}
       </tbody></table></div>` : empty("لا توجد عيادات")}</section>`;
   loadDownloads(); loadVisits();
-  $$(".stat.f").forEach((b) => b.onclick = () => { filter = b.dataset.f; renderClinics(); });
+  $$(".stat.f").forEach((b) => b.onclick = async () => { filter = b.dataset.f; await renderClinics(); $("#ctbl")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $(".f-all")?.addEventListener("click", () => { filter = "all"; renderClinics(); });
+  $(".dl-stat").onclick = showDownloads;
+  $$(".stat.vs").forEach((b) => b.onclick = showVisits);
   $("#cq").oninput = debounce((e) => { q = e.target.value; renderClinics().then(() => { const i = $("#cq"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 250);
   $$(".man").forEach((b) => b.onclick = () => manageClinic(all.find((c) => c.id === b.dataset.id), { act: acts[b.dataset.id], h: H[b.dataset.id] }));
   $$(".cpm").forEach((b) => b.onclick = async () => {
@@ -358,6 +363,26 @@ async function loadDownloads() {
 }
 
 // زوار الموقع: الزائر الفريد يُحسب مرة واحدة يومياً لكل جهاز، والزيارات كل مرة تُفتح فيها الصفحة
+// تفاصيل التحميلات لكل إصدار من تطبيق أندرويد
+async function showDownloads() {
+  let body;
+  try {
+    const r = await fetch("https://api.github.com/repos/mohamedfayzyasenalsabagh-create/nabd/releases?per_page=100");
+    if (!r.ok) throw new Error(r.status);
+    const rows = (await r.json()).map((rel) => [rel.name || rel.tag_name, (rel.published_at || "").slice(0, 10), (rel.assets || []).filter((a) => /\.apk$/i.test(a.name)).reduce((s, a) => s + (a.download_count || 0), 0)]);
+    body = rows.length ? `<table class="tbl"><thead><tr><th>الإصدار</th><th>تاريخ النشر</th><th>التحميلات</th></tr></thead><tbody>${rows.map(([n, d, c]) => `<tr><td dir="ltr">${esc(n)}</td><td>${esc(d)}</td><td><b>${c}</b></td></tr>`).join("")}</tbody></table>` : empty("لا توجد إصدارات");
+  } catch { body = `<p class="alert">تعذّر جلب التحميلات، تحقق من الاتصال وحاول مجدداً.</p>`; }
+  info("تحميلات تطبيق أندرويد", body);
+}
+// زوار الموقع يوماً بيوم (آخر 30 يوماً)
+async function showVisits() {
+  let body;
+  try {
+    const all = (await list(collection(db, "visits"))).filter((x) => /^\d{4}-\d\d-\d\d$/.test(x.id || "")).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 30);
+    body = all.length ? `<p class="muted small">الزائر: جهاز مختلف في اليوم نفسه · الزيارات: عدد مرات فتح الموقع</p><table class="tbl"><thead><tr><th>اليوم</th><th>الزوار</th><th>الزيارات</th></tr></thead><tbody>${all.map((x) => `<tr><td>${esc(fmtDate(x.id, false))}</td><td><b>${x.uniq || 0}</b></td><td>${x.views || 0}</td></tr>`).join("")}</tbody></table>` : empty("لا توجد زيارات مسجلة بعد");
+  } catch (e) { body = `<p class="alert">${esc(errMsg(e))}</p>`; }
+  info("زوار الموقع", body);
+}
 async function loadVisits() {
   const set = (c, v) => { const el = document.querySelector(`.${c} b`); if (el) el.textContent = v; };
   try {

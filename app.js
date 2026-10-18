@@ -315,3 +315,12 @@ window.addEventListener("nabd-sync-error", () => toast("تعذّر حفظ أحد
 document.addEventListener("visibilitychange", () => { if (!document.hidden && !isOffline() && pending.n) backOnline(); });
 if (isOffline()) setTimeout(showOffline, 0);
 boot();
+
+// بطاقات الأرقام: كل بطاقة تأخذك إلى تفاصيلها؛ البطاقة التي تفاصيلها في الصفحة نفسها تنزل إلى القائمة تحتها
+document.addEventListener("click", (e) => {
+  const st = e.target.closest?.(".stats > div.stat");
+  if (!st) return;
+  let n = st.parentElement.nextElementSibling;
+  while (n && !(n.matches("section, .card, ul, table, .tbl-wrap") && n.offsetHeight)) n = n.nextElementSibling;
+  if (n) n.scrollIntoView({ behavior: "smooth", block: "start" });
+});

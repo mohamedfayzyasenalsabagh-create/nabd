@@ -3183,5 +3183,8 @@ export const EN = {
 "حسم الاشتراك السنوي (%)": "Yearly subscription discount (%)",
 "🎁 سنوياً:": "🎁 Yearly:",
 "📋 نسخ": "📋 Copy",
-"انسخ الرسالة": "Copy the message"
+"انسخ الرسالة": "Copy the message",
+"كل مواعيد اليوم": "All of today's appointments",
+"لا توجد مواعيد بهذه الحالة": "No appointments with this status",
+"✕ عرض الكل": "✕ Show all"
 };

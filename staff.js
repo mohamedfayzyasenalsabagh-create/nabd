@@ -236,16 +236,16 @@ async function renderHome() {
     const inbox = await list(query(P.col("inbox"), where("seen", "==", false)));
     inbox.forEach((i) => alerts.push(`<li><a href="#/p/${i.patientId}/files">📎 ${esc(i.patientName)} رفع ${esc(i.label || "ملفاً")}</a></li>`));
     if (isAdmin() && multiDoc()) centerBits = await centerSummary(today);
-    doctorBits = `<div class="stat"><b>${money(income, cur())}</b><span>دخل اليوم</span></div><div class="stat"><b>${newPts}</b><span>مرضى جدد هذا الشهر</span></div>`;
+    doctorBits = `<a class="stat" href="#/money"><b>${money(income, cur())}</b><span>دخل اليوم</span></a><a class="stat" href="#/patients?new=1"><b>${newPts}</b><span>مرضى جدد هذا الشهر</span></a>`;
   }
 
   main().innerHTML = `
     <h2 class="page-title">${esc(fmtDate(today))}</h2>
     ${docFilterBar()}
     <div class="stats">
-      <div class="stat"><b>${appts.length}</b><span>مواعيد اليوم</span></div>
-      <div class="stat"><b>${waiting}</b><span>في الانتظار</span></div>
-      <div class="stat"><b>${done}</b><span>انتهت</span></div>
+      <a class="stat" href="#/appts?d=${today}&v=day"><b>${appts.length}</b><span>مواعيد اليوم</span></a>
+      <a class="stat" href="#/appts?d=${today}&v=day&s=arrived"><b>${waiting}</b><span>في الانتظار</span></a>
+      <a class="stat" href="#/appts?d=${today}&v=day&s=done"><b>${done}</b><span>انتهت</span></a>
       ${doctorBits}
     </div>
     ${centerBits}
@@ -310,8 +310,8 @@ async function fillDaySummary() {
     const m = await import("./live.js"), x = await m.daySummary();
     el.innerHTML = `<section class="card daysum"><div class="row-between"><h3>🌙 ملخص اليوم</h3>
       <label class="check small"><input type="checkbox" class="ds-on" ${m.summaryOn() ? "checked" : ""}><span>إشعار الساعة 9 مساءً</span></label></div>
-      <div class="stats"><div class="stat"><b>${x.seen}</b><span>المرضى المعايَنون</span></div><div class="stat"><b>${money(x.income, cur())}</b><span>دخل اليوم</span></div>
-      <div class="stat"><b>${x.noshow}</b><span>غياب</span></div><div class="stat"><b>${x.tomorrow}</b><span>مواعيد الغد</span></div></div></section>`;
+      <div class="stats"><a class="stat" href="#/appts?d=${ymd()}&v=day&s=done"><b>${x.seen}</b><span>المرضى المعايَنون</span></a><a class="stat" href="#/money"><b>${money(x.income, cur())}</b><span>دخل اليوم</span></a>
+      <a class="stat" href="#/appts?d=${ymd()}&v=day&s=noshow"><b>${x.noshow}</b><span>غياب</span></a><a class="stat" href="#/appts?d=${ymd(new Date(Date.now() + 864e5))}&v=day"><b>${x.tomorrow}</b><span>مواعيد الغد</span></a></div></section>`;
     el.querySelector(".ds-on").onchange = (e) => { m.setSummaryOn(e.target.checked); toast(e.target.checked ? "سيصلك ملخص اليوم الساعة 9 مساءً" : "أُوقف إشعار ملخص اليوم"); };
   } catch (e) { console.warn(e); }
 }
@@ -865,6 +865,8 @@ async function renderApptsGrid(v, d) {
 async function renderAppts() {
   const d = params().get("d") || ymd();
   const v = params().get("v") || "day";
+  const sf = params().get("s");
+  if (sf) return renderApptsStatus(d, sf);
   if (apptMode() === "grid" && v !== "month") return renderApptsGrid(v, d);
   if (v === "week" || v === "month") return renderApptsRange(v, d);
   if (multiDoc() && !S.docFilter) S.docFilter = defaultDoc();
@@ -923,28 +925,44 @@ async function renderAppts() {
   bindApptButtons(appts);
 }
 
+// مواعيد يوم بحالة معينة (من بطاقات الأرقام): في الانتظار، انتهت، غياب
+const ST_LBL = { arrived: "في الانتظار", done: "انتهت", noshow: "غياب" };
+async function renderApptsStatus(d, sf) {
+  let arr = (await list(query(P.col("appointments"), where("date", "==", d)))).filter((a) => a.status === sf);
+  if (multiDoc() && S.docFilter && S.docFilter !== "all") arr = arr.filter((a) => apptDoc(a) === S.docFilter);
+  arr.sort((a, b) => sf === "arrived" ? (a.queueNo || 999) - (b.queueNo || 999) : a.time.localeCompare(b.time));
+  main().innerHTML = `
+    <div class="row-between"><h2 class="page-title">${esc(ST_LBL[sf] || sf)} · ${arr.length}</h2><a class="btn small" href="#/appts?d=${d}">كل مواعيد اليوم</a></div>
+    <p class="muted">${esc(fmtDate(d))}</p>
+    <section class="card">${arr.length ? `<ul class="appt-list">${arr.map(apptRow).join("")}</ul>` : empty("لا توجد مواعيد بهذه الحالة")}</section>`;
+  bindApptButtons(arr);
+}
+
 // ---------- المرضى ----------
 let ptFilter = "", showArchived = false;
 function renderPatients() {
   if (routeName() !== "patients") return;
   const q = ptFilter.trim();
   let arr = q ? PC.list.filter((p) => p.name.includes(q) || p.phone.includes(normPhone(q) || q)) : PC.list;
-  arr = arr.filter((p) => !!p.archived === showArchived);
+  const newOnly = params().get("new") === "1";
+  const m0 = new Date(); m0.setDate(1); m0.setHours(0, 0, 0, 0);
+  arr = newOnly ? arr.filter((p) => tsMs(p.createdAt) >= m0.getTime()) : arr.filter((p) => !!p.archived === showArchived);
   const existing = $("#pt-q");
   const html = `<ul class="pt-list">${arr.slice(0, 300).map((p) => `<li><a href="#/p/${p.id}/${canMed() ? "summary" : "info"}">
       <span class="avatar">${esc(p.name.trim()[0] || "؟")}</span>
       <span class="n">${esc(p.name)}<small dir="ltr">${esc(p.phone)}</small></span>
       ${ageText(p) ? `<span class="muted small">${esc(ageText(p))}</span>` : ""}</a></li>`).join("")}</ul>
       ${arr.length ? "" : empty(q ? "لا توجد نتائج" : "لا يوجد مرضى بعد")}`;
-  if (existing) { $("#pt-results").innerHTML = html; return; }
+  const chip = newOnly ? `<p class="row gap"><span class="chip">مرضى جدد هذا الشهر · ${arr.length}</span><a class="btn small ghost" href="#/patients">✕ عرض الكل</a></p>` : "";
+  if (existing) { $("#pt-results").innerHTML = chip + html; const c = $(".page-title .muted"); if (c) c.textContent = `(${PC.list.filter((p) => !p.archived).length})`; return; }
   main().innerHTML = `
     <div class="row-between"><h2 class="page-title">المرضى <span class="muted small">(${PC.list.filter((p) => !p.archived).length})</span></h2>
       <div class="row gap"><button class="btn imp-x">📥 استيراد من إكسل</button><button class="btn primary new">+ مريض جديد</button></div></div>
     <input id="pt-q" class="search" type="search" placeholder="البحث بالاسم أو رقم الجوال" value="${esc(ptFilter)}" aria-label="بحث">
-    <label class="check small"><input type="checkbox" class="arch" ${showArchived ? "checked" : ""}><span>عرض المؤرشفين</span></label>
-    <div id="pt-results">${html}</div>`;
+    ${newOnly ? "" : `<label class="check small"><input type="checkbox" class="arch" ${showArchived ? "checked" : ""}><span>عرض المؤرشفين</span></label>`}
+    <div id="pt-results">${chip}${html}</div>`;
   $("#pt-q").oninput = debounce((e) => { ptFilter = e.target.value; renderPatients(); }, 120);
-  $(".arch").onchange = (e) => { showArchived = e.target.checked; renderPatients(); };
+  $(".arch")?.addEventListener("change", (e) => { showArchived = e.target.checked; renderPatients(); });
   $(".new").onclick = () => newPatientModal();
   $(".imp-x").onclick = async () => (await import("./importx.js")).importPatients();
 }
@@ -1457,14 +1475,14 @@ async function renderReports() {
   const chart = Object.keys(daily).length > 1 ? lineChart([{ name: "المقبوض", color: "var(--accent)", points: Object.entries(daily).map(([date, v]) => ({ date, v })) }], { label: "المقبوض يومياً", unit: cur() }) : "";
   main().innerHTML = `<div class="row-between"><h2 class="page-title">التقارير</h2><div class="row gap"><button class="btn small primary pr-month">🖨 تقرير الشهر PDF</button><input type="month" class="mp" value="${m}" aria-label="الشهر"></div></div>
     <div class="stats">
-      <div class="stat"><b>${cnt("done")}</b><span>زيارات منجزة</span></div>
-      <div class="stat"><b>${newPts}</b><span>مرضى جدد</span></div>
-      <div class="stat"><b>${noshowRate}%</b><span>نسبة الغياب</span></div>
-      <div class="stat"><b>${esc(money(pays.reduce((s, p) => s + (p.paid || 0), 0), cur()))}</b><span>المقبوض</span></div>
-      <div class="stat"><b>${esc(money(pays.reduce((s, p) => s + (p.total || 0) - (p.paid || 0), 0), cur()))}</b><span>الدفعات المستحقة هذا الشهر</span></div>
-      <div class="stat"><b>${avgRating}</b><span>متوسط التقييم (${rated.length})</span></div>
+      <a class="stat" href="#/appts?v=month&d=${from}"><b>${cnt("done")}</b><span>زيارات منجزة</span></a>
+      <a class="stat" href="#/patients${m === ymd().slice(0, 7) ? "?new=1" : ""}"><b>${newPts}</b><span>مرضى جدد</span></a>
+      <a class="stat" href="#/appts?v=month&d=${from}"><b>${noshowRate}%</b><span>نسبة الغياب</span></a>
+      <a class="stat" href="#/money?from=${from}&to=${to}"><b>${esc(money(pays.reduce((s, p) => s + (p.paid || 0), 0), cur()))}</b><span>المقبوض</span></a>
+      <a class="stat" href="#/debts"><b>${esc(money(pays.reduce((s, p) => s + (p.total || 0) - (p.paid || 0), 0), cur()))}</b><span>الدفعات المستحقة هذا الشهر</span></a>
+      <a class="stat" href="#/appts?v=month&d=${from}"><b>${avgRating}</b><span>متوسط التقييم (${rated.length})</span></a>
       <a class="stat" href="#/expenses?m=${m}"><b>${esc(money(expTotal, cur()))}</b><span>المصاريف</span></a>
-      <div class="stat ${incTotal - expTotal < 0 ? "warn" : ""}"><b>${esc(money(incTotal - expTotal, cur()))}</b><span>صافي الربح</span></div>
+      <a class="stat ${incTotal - expTotal < 0 ? "warn" : ""}" href="#/money?from=${from}&to=${to}"><b>${esc(money(incTotal - expTotal, cur()))}</b><span>صافي الربح</span></a>
     </div>
     ${chart ? `<section class="card">${chart}</section>` : ""}
     ${perDoc.length ? `<section class="card"><h3>حسب الطبيب</h3><table class="tbl"><thead><tr><th>الطبيب</th><th>المواعيد</th><th>المنجزة</th></tr></thead><tbody>${perDoc.map(([n, a, d]) => `<tr><td>د. ${esc(n)}</td><td>${a}</td><td>${d}</td></tr>`).join("")}</tbody></table></section>` : ""}
