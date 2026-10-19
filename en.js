@@ -3188,5 +3188,8 @@ export const EN = {
 "لا توجد مواعيد بهذه الحالة": "No appointments with this status",
 "✕ عرض الكل": "✕ Show all",
 "📲 تنزيل تطبيق أندرويد": "📲 Download the Android app",
-"📲 تثبيت التطبيق على الآيفون": "📲 Install the app on iPhone"
+"📲 تثبيت التطبيق على الآيفون": "📲 Install the app on iPhone",
+"رقم الجوال (اختياري)": "Mobile number (optional)",
+"رقم جوال ولي الأمر (اختياري)": "Guardian's mobile (optional)",
+"عدم إنشاء حساب للمريض الآن": "Don't create a patient account now"
 };

@@ -980,8 +980,8 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
   const kids = hasMod("peds");
   const r = await modal(kids ? "طفل جديد" : "مريض جديد", `<form class="stack">
     ${field(kids ? "اسم الطفل الكامل" : "الاسم الكامل", "name", { required: true, value: name })}
-    ${field(kids ? "رقم جوال ولي الأمر" : "رقم الجوال", "phone", { required: true, value: phone, attrs: 'dir="ltr" inputmode="tel"', placeholder: "09xxxxxxxx" })}
-    <label class="check"><input type="checkbox" name="noAccount"><span>عدم إنشاء حساب للمريض الآن (الجوال اختياري)</span></label>
+    ${field(kids ? "رقم جوال ولي الأمر (اختياري)" : "رقم الجوال (اختياري)", "phone", { value: phone, attrs: 'dir="ltr" inputmode="tel"', placeholder: "09xxxxxxxx" })}
+    <label class="check"><input type="checkbox" name="noAccount"><span>عدم إنشاء حساب للمريض الآن</span></label>
     <label class="check"><input type="checkbox" name="guardian" ${kids ? "checked" : ""}><span>الجوال لولي أمر المريض</span></label>
     <div class="grid2">
       ${field("تاريخ الميلاد", "dob", { type: "date", required: kids })}
@@ -1004,10 +1004,12 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
     ok: "تسجيل",
     onOpen: (w) => {
       const f = w.querySelector("form"), cb = f.noAccount, note = w.querySelector(".acc-note"), t0 = note.textContent;
-      cb.onchange = () => { f.phone.required = !cb.checked; note.textContent = cb.checked ? "يُحفظ ملف المريض دون حساب في التطبيق. يمكن إنشاء الحساب لاحقاً من «بطاقة المريض ← الحساب ← إنشاء حساب للمريض»." : t0; };
+      const upd = () => { const off = cb.checked || !f.phone.value.trim(); note.textContent = off ? "يُحفظ ملف المريض دون حساب في التطبيق. يمكن إنشاء الحساب لاحقاً من «بطاقة المريض ← الحساب ← إنشاء حساب للمريض»." : t0; };
+      cb.onchange = upd; f.phone.oninput = upd; upd();
     },
     onOk: async (f) => {
-      const dup = PC.list.find((p) => p.phone === normPhone(f.phone) && p.name.trim() === f.name.trim());
+      if (!(f.phone || "").trim()) f.noAccount = "on"; // دون رقم: يُحفظ الملف دون حساب
+      const dup = f.phone && PC.list.find((p) => p.phone === normPhone(f.phone) && p.name.trim() === f.name.trim());
       if (dup && !(await confirmBox("يوجد مريض بالاسم والرقم نفسيهما", "هل تريد تسجيله مرة أخرى؟", "تسجيل"))) return false;
       if (f.dob && !f.age) f.age = Math.floor(daysBetween(f.dob, ymd()) / 365.25);
       const MED = ["chronic", "allergies", "surgeries", "permanentMeds", "smoking"];
