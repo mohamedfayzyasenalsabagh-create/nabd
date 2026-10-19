@@ -3187,5 +3187,6 @@ export const EN = {
 "كل مواعيد اليوم": "All of today's appointments",
 "لا توجد مواعيد بهذه الحالة": "No appointments with this status",
 "✕ عرض الكل": "✕ Show all",
-"📲 تنزيل تطبيق أندرويد": "📲 Download the Android app"
+"📲 تنزيل تطبيق أندرويد": "📲 Download the Android app",
+"📲 تثبيت التطبيق على الآيفون": "📲 Install the app on iPhone"
 };
