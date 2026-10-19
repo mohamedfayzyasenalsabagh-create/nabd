@@ -3186,5 +3186,6 @@ export const EN = {
 "انسخ الرسالة": "Copy the message",
 "كل مواعيد اليوم": "All of today's appointments",
 "لا توجد مواعيد بهذه الحالة": "No appointments with this status",
-"✕ عرض الكل": "✕ Show all"
+"✕ عرض الكل": "✕ Show all",
+"📲 تنزيل تطبيق أندرويد": "📲 Download the Android app"
 };
