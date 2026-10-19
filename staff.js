@@ -1167,7 +1167,7 @@ function renderMore() {
       ["#/expenses", "مصاريف العيادة"],
       ...(a ? [["#/team", "الفريق: الأطباء والموظفون"], ["#/settings", "إعدادات العيادة"], ["#/subscription", "الاشتراك والفواتير"], ["#/audit", "سجل التعديلات"], ["#/backup", "النسخة الاحتياطية"]] : []),
     ]]] : []),
-    ["المساعدة", [["#/faq", "أسئلة شائعة"], [new URL(document.documentElement.lang === "en" ? "./guide_en.pdf" : "./guide.pdf", import.meta.url).href, "📘 الدليل الشامل لمنصة نبض (PDF)"]]],
+    ["المساعدة", [["#/faq", "أسئلة شائعة"], [/NabdApp/.test(navigator.userAgent) ? `https://nabdsy.web.app/${document.documentElement.lang === "en" ? "guide_en.pdf" : "guide.pdf"}` : new URL(document.documentElement.lang === "en" ? "./guide_en.pdf" : "./guide.pdf", import.meta.url).href, "📘 الدليل الشامل لمنصة نبض (PDF)"]]],
     ["الحساب", [["#/password", "تغيير كلمة المرور"]]],
   ];
   const bookLink = S.clinic?.bookingEnabled && feat("booking") ? `${location.origin}${location.pathname}#/b/${S.clinic.slug}` : "";

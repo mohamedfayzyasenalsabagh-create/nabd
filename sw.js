@@ -1,5 +1,5 @@
 // يفتح التطبيق بسرعة ودون إنترنت (البيانات تتزامن عند عودة الاتصال)
-const CACHE = "nabd-v73";
+const CACHE = "nabd-v74";
 const LIBS = "nabd-libs-v1"; // مكتبات Firebase والخطوط: عناوينها ثابتة بالإصدار فلا تتغير
 const SHELL = ["./", "index.html", "app.html", "styles.css", "app.js", "fb.js", "ui.js", "staff.js", "admin.js", "card.js", "mods.js",
   "patient.js", "public.js", "owner.js", "legal.js", "config.js", "i18n.js", "en.js", "qrcode.js", "smart.js", "medref.js", "drugs.js",
@@ -48,7 +48,7 @@ async function lib(req) {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const u = new URL(e.request.url);
-  if (u.origin === location.origin) { e.respondWith(appFile(e.request)); return; }
+  if (u.origin === location.origin) { if (/\.(pdf|apk)$/i.test(u.pathname)) return; e.respondWith(appFile(e.request)); return; }
   if (u.href.startsWith(FB) || u.hostname === "fonts.googleapis.com" || u.hostname === "fonts.gstatic.com") e.respondWith(lib(e.request));
 });
 self.addEventListener("notificationclick", (e) => {
