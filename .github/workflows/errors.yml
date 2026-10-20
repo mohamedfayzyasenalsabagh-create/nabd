@@ -17,6 +17,11 @@ jobs:
         env:
           SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: node tests/ops/errors-report.mjs
+      - name: استهلاك Firebase مقارنة بالحد المجاني
+        continue-on-error: true
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node tests/ops/usage.mjs
       - name: حفظ التقرير
         run: |
           git config --global user.name "nabd-ci"; git config --global user.email "ci@nabd.app"
