@@ -1,0 +1,20 @@
+PASS | آخر نسخة منشورة على https://nabdsy.web.app/ | nabd-v76 (المتوقع nabd-v76)
+PASS | الدليل guide.pdf على https://nabdsy.web.app/ | 200 8.8MB
+PASS | الدليل guide_en.pdf على https://nabdsy.web.app/ | 200 7.8MB
+PASS | صفحة التنزيل app.html على https://nabdsy.web.app/ تشير إلى ملف التطبيق
+PASS | آخر نسخة منشورة على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | nabd-v76 (المتوقع nabd-v76)
+PASS | الدليل guide.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 8.8MB
+PASS | الدليل guide_en.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 7.8MB
+PASS | صفحة التنزيل app.html على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ تشير إلى ملف التطبيق
+PASS | ملف التطبيق nabd.apk ينزل وسليم | 200 33812 bytes
+PASS | الصفحة الرئيسية تعمل وفيها زر التنزيل (https://nabdsy.web.app/)
+PASS | الضغط على زر التنزيل يبدأ تنزيل التطبيق (https://nabdsy.web.app/) | nabd.apk
+FAIL | لا أخطاء في الصفحة (https://nabdsy.web.app/) | Failed to fetch
+PASS | الصفحة الرئيسية تعمل وفيها زر التنزيل (https://mohamedfayzyasenalsabagh-create.github.io/nabd/)
+PASS | الضغط على زر التنزيل يبدأ تنزيل التطبيق (https://mohamedfayzyasenalsabagh-create.github.io/nabd/) | nabd.apk
+FAIL | لا أخطاء في الصفحة (https://mohamedfayzyasenalsabagh-create.github.io/nabd/) | Failed to fetch
+PASS | النسخة التجريبية تفتح على الموقع الحقيقي
+INFO | آخر 7 أيام: زوار الموقع 16 · تنزيلات التطبيق 0
+WARN | زوار دون أي تنزيل خلال أسبوع: تحقق من زر التنزيل من جوال في سوريا
+
+TOTAL 14/16
