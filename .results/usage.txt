@@ -1,0 +1,5 @@
+استهلاك Firestore آخر 24 ساعة (الحد المجاني يتجدد يومياً)
+ERROR | read: 403 This API method requires billing to be enabled. Please enable billing on project #666798561739 by visiting https://console.developers.google.com/billing/enable?project=666798561739 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry.
+ERROR | write: 403 This API method requires billing to be enabled. Please enable billing on project #666798561739 by visiting https://console.developers.google.com/billing/enable?project=666798561739 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry.
+ERROR | delete: 403 This API method requires billing to be enabled. Please enable billing on project #666798561739 by visiting https://console.developers.google.com/billing/enable?project=666798561739 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry.
+أعلى نسبة: 0%
