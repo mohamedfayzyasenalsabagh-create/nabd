@@ -358,7 +358,8 @@ async function loadDownloads() {
       arr.forEach((rel) => (rel.assets || []).forEach((a) => { if (/\.apk$/i.test(a.name)) n += a.download_count || 0; }));
       if (arr.length < 100) break;
     }
-    el.textContent = n;
+    const site = (await list(collection(db, "downloads")).catch(() => [])).reduce((s, x) => s + (x.n || 0), 0);
+    el.textContent = n + site;
   } catch { el.textContent = "—"; }
 }
 
@@ -372,6 +373,10 @@ async function showDownloads() {
     const rows = (await r.json()).map((rel) => [rel.name || rel.tag_name, (rel.published_at || "").slice(0, 10), (rel.assets || []).filter((a) => /\.apk$/i.test(a.name)).reduce((s, a) => s + (a.download_count || 0), 0)]);
     body = rows.length ? `<table class="tbl"><thead><tr><th>الإصدار</th><th>تاريخ النشر</th><th>التحميلات</th></tr></thead><tbody>${rows.map(([n, d, c]) => `<tr><td dir="ltr">${esc(n)}</td><td>${esc(d)}</td><td><b>${c}</b></td></tr>`).join("")}</tbody></table>` : empty("لا توجد إصدارات");
   } catch { body = `<p class="alert">تعذّر جلب التحميلات، تحقق من الاتصال وحاول مجدداً.</p>`; }
+  try {
+    const days = (await list(collection(db, "downloads"))).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 30);
+    if (days.length) body = `<h4>من الموقع (يومياً)</h4><table class="tbl"><thead><tr><th>اليوم</th><th>التنزيلات</th></tr></thead><tbody>${days.map((x) => `<tr><td>${esc(fmtDate(x.id, false))}</td><td><b>${x.n || 0}</b></td></tr>`).join("")}</tbody></table><h4>السابقة من GitHub</h4>` + body;
+  } catch {}
   info("تحميلات تطبيق أندرويد", body);
 }
 // زوار الموقع يوماً بيوم (آخر 30 يوماً)

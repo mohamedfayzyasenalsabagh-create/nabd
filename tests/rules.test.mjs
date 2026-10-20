@@ -380,3 +380,13 @@ test("عدّاد الزوار: زيادة بمقدار 1 فقط، والقراء
   await assertFails(setDoc(doc(a, "visits/hack"), { views: 1, uniq: 1 }));
   await assertFails(getDoc(doc(a, "visits/2026-10-10")));
 });
+
+test("عدّاد تنزيلات التطبيق: زيادة بمقدار 1 فقط، والقراءة لصاحب المنصة", async () => {
+  const a = anon();
+  await assertSucceeds(setDoc(doc(a, "downloads/2026-10-20"), { n: increment(1) }, { merge: true }));
+  await assertSucceeds(setDoc(doc(a, "downloads/2026-10-20"), { n: increment(1) }, { merge: true }));
+  await assertFails(setDoc(doc(a, "downloads/2026-10-20"), { n: 999 }, { merge: true }));
+  await assertFails(setDoc(doc(a, "downloads/x"), { n: 1 }));
+  await assertFails(getDoc(doc(a, "downloads/2026-10-20")));
+  await assertSucceeds(getDoc(doc(as("own1"), "downloads/2026-10-20")));
+});

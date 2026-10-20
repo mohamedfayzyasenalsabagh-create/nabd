@@ -55,3 +55,14 @@ jobs:
             nabd.apk
             nabd-play.aab
           body: "nabd.apk للتثبيت المباشر على الجوال. nabd-play.aab للرفع على Google Play."
+
+      # نسخة من التطبيق على موقع GitHub Pages لأن روابط تنزيل GitHub لا تعمل في سوريا (بموافقة المالك)
+      - name: نشر ملف التطبيق على الموقع
+        if: steps.key.outputs.ok == 'true'
+        run: |
+          cp nabd.apk "$RUNNER_TEMP/nabd.apk"
+          git config user.name "nabd-ci"; git config user.email "ci@nabd.app"
+          git fetch origin main
+          git worktree add /tmp/site origin/main
+          cp "$RUNNER_TEMP/nabd.apk" /tmp/site/nabd.apk
+          cd /tmp/site && git add nabd.apk && git commit -m "تحديث ملف التطبيق على الموقع" && git push origin HEAD:main || true

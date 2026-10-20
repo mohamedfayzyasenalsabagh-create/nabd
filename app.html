@@ -39,12 +39,23 @@
   </div>
 </div>
 <script>
+  // عدّاد التنزيلات (مرة واحدة لكل جهاز في اليوم)
+  function countDl() {
+    try {
+      var d = new Date(), day = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+      if (localStorage.getItem("dl:" + day)) return; localStorage.setItem("dl:" + day, "1");
+      var P = "projects/nabd-platfor/databases/(default)/documents";
+      fetch("https://firestore.googleapis.com/v1/" + P + ":commit?key=AIzaSyC6DGNqEExWlZVghkWfNkFH9d-hOKjJr0c", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ writes: [{ transform: { document: P + "/downloads/" + day, fieldTransforms: [{ fieldPath: "n", increment: { integerValue: "1" } }] } }] }) });
+    } catch (e) {}
+  }
+  document.querySelectorAll('a[download]').forEach(function (a) { a.addEventListener("click", countDl); });
   var ua = navigator.userAgent || "";
   var ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   var android = /Android/i.test(ua);
   if (ios) { document.getElementById("android").className = "hide"; document.getElementById("ios").className = ""; }
   else if (!android) { document.getElementById("android").className = "hide"; document.getElementById("desk").className = ""; }
-  else { setTimeout(function () { location.href = "https://mohamedfayzyasenalsabagh-create.github.io/nabd/nabd.apk"; }, 800); }
+  else { countDl(); setTimeout(function () { location.href = "https://mohamedfayzyasenalsabagh-create.github.io/nabd/nabd.apk"; }, 800); }
 </script>
 </body>
 </html>
