@@ -57,10 +57,10 @@ if (process.env.SA) {
     const { initializeApp, cert } = await import("firebase-admin/app");
     const { getFirestore } = await import("firebase-admin/firestore");
     initializeApp({ credential: cert(JSON.parse(process.env.SA)) });
-    const db = getFirestore(), since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+    const db = getFirestore(), since = [new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10), "2026-10-20"].sort()[1]; // العدّاد بدأ في 20 تشرين الأول
     const sum = async (c, f) => (await db.collection(c).get()).docs.filter((d) => d.id >= since).reduce((s, d) => s + (d.data()[f] || 0), 0);
     const v = await sum("visits", "uniq"), n = await sum("downloads", "n");
-    R.push(`INFO | آخر 7 أيام: زوار الموقع ${v} · تنزيلات التطبيق ${n}`);
+    R.push(`INFO | منذ ${since}: زوار الموقع ${v} · تنزيلات التطبيق ${n}`);
     if (v >= 15 && n === 0) R.push("WARN | زوار دون أي تنزيل خلال أسبوع: تحقق من زر التنزيل من جوال في سوريا");
   } catch (e) { R.push("INFO | تعذّر قراءة الأرقام: " + e.message); }
 }
