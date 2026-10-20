@@ -47,7 +47,7 @@ function _writeBatch(...a) {
   return b;
 }
 const pacificDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
-async function flushUsage() {
+export async function flushUsage() {
   if (!db || !auth?.currentUser || (!M.r && !M.w) || offline()) return;
   const r = M.r, w = M.w + 1; M.r = 0; M.w = 0;
   try { await _setDoc0(doc(db, "usage", pacificDay()), { r: increment(r), w: increment(w) }, { merge: true }); }

@@ -206,6 +206,11 @@ try {
     await sleep(1500);
     const p03 = await getDocREST("clinics/demo/patients/p03");
     log(!!p03?.fields?.updatedAt?.timestampValue, "التعديل من التطبيق يسجّل وقت التعديل تلقائياً");
+    await pg.evaluate(async () => { const f = await import("/fb.js"); await f.flushUsage(); });
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
+    const us = await getDocREST(`usage/${day}`);
+    const ur = Number(us?.fields?.r?.integerValue || 0), uw = Number(us?.fields?.w?.integerValue || 0);
+    log(ur > 0 && uw > 0, "عدّاد الاستهلاك يسجّل القراءات والكتابات", `r=${ur} w=${uw}`);
   }
 
   // 5) المريض: شارة وإشعار عند وصول رسالة، وفتح التطبيق دون إنترنت
