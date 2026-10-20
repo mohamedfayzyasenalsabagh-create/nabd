@@ -52,7 +52,8 @@ export const readOnly = () => !clinicState(S.clinic).ok;
 export const PC = { list: [], byId: {} };
 // لتوفير الاستهلاك: الجهاز يحفظ المرضى، ويجلب من الخادم فقط من أُضيف أو عُدّل منذ آخر مرة.
 // تحميل كامل مرة كل 24 ساعة، أو إذا اختلف عدد المرضى على الخادم عن المحفوظ على الجهاز.
-const PC_FULL_MS = 24 * 3600 * 1000;
+// أول يومين بعد إطلاق المزامنة الجزئية: تحميل كامل كل ساعتين، لأن الأجهزة المفتوحة على النسخة القديمة لا تسجّل وقت التعديل
+const PC_FULL_MS = Date.now() < Date.parse("2026-10-22T21:00:00Z") ? 2 * 3600 * 1000 : 24 * 3600 * 1000;
 function applyPatients(map) {
   PC.list = [...map.values()].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ar"));
   PC.byId = Object.fromEntries(PC.list.map((p) => [p.id, p]));
