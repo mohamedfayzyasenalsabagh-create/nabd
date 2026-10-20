@@ -188,7 +188,7 @@ try {
   {
     const nAll = async () => (await rest("POST", `${FS}/clinics/demo:runAggregationQuery`, { structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: "patients" }] }, aggregations: [{ alias: "n", count: {} }] } }))[0].result.aggregateFields.n.integerValue * 1;
     const pcState = () => pg.evaluate(async () => { const s = await import("/staff.js"); return { mode: s.PC._mode, n: s.PC.list.length, p02: s.PC.byId.p02?.name, nw: !!s.PC.list.find((p) => p.name === "مريض جديد من جهاز آخر"), old: !!s.PC.list.find((p) => p.name === "مريض من نسخة قديمة") }; });
-    await pg.reload(); await pg.waitForSelector(".stats", { timeout: 30000 }); await sleep(2500);
+    await pg.evaluate(() => (location.hash = "#/")); await pg.reload(); await pg.waitForSelector(".stats", { timeout: 30000 }); await sleep(2500);
     let st = await pcState(); const total = await nAll();
     log(st.mode === "delta" && st.n === total, "فتح التطبيق مرة ثانية: المرضى من الجهاز دون إعادة تحميلهم كلهم", `mode=${st.mode} ${st.n}/${total}`);
     const ts = { __t: Date.now() };
@@ -198,7 +198,7 @@ try {
     log(ok2, "تعديل مريض وإضافة مريض من جهاز آخر يظهران فوراً", JSON.stringify(st));
     // مريض أُضيف من نسخة قديمة دون وقت تعديل: اختلاف العدد يفرض تحميلاً كاملاً عند الفتح التالي
     await rest("PATCH", `${FS}/clinics/demo/patients/e2e-old`, { fields: fields({ name: "مريض من نسخة قديمة", phone: "" }) });
-    await pg.reload(); await pg.waitForSelector(".stats", { timeout: 30000 }); await sleep(3000);
+    await pg.evaluate(() => (location.hash = "#/")); await pg.reload(); await pg.waitForSelector(".stats", { timeout: 30000 }); await sleep(3000);
     st = await pcState();
     log(st.mode === "full" && st.old && st.n === (await nAll()), "اختلاف عدد المرضى يفرض تحميلاً كاملاً (أمان)", JSON.stringify(st));
     // التعديل من التطبيق يضيف وقت التعديل تلقائياً
