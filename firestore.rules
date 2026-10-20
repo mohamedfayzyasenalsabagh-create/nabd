@@ -223,7 +223,7 @@ service cloud.firestore {
             && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'phone'])
                 || (getAfter(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.phone == request.resource.data.phone
                     && getAfter(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.patientIds.hasAny([pid]))))
-          || (isPatient(c, pid) && onlyChanged(['lastMsgAt', 'lastMsgFrom'])));
+          || (isPatient(c, pid) && onlyChanged(['lastMsgAt', 'lastMsgFrom', 'updatedAt'])));
         allow delete: if false;
 
         match /{sub}/{d} {

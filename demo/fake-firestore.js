@@ -5,7 +5,7 @@ function persist() { try { localStorage.setItem(KEY, JSON.stringify([...store], 
 const listeners = new Set();
 let store;
 const SERVER_TS = { __ts: true };
-export class Timestamp { constructor(ms) { this.seconds = Math.floor(ms / 1000); this.nanoseconds = 0; this.ms = ms; } toDate() { return new Date(this.ms); } toMillis() { return this.ms; } static now() { return new Timestamp(Date.now()); } static fromMillis(ms) { return new Timestamp(ms); } }
+export class Timestamp { constructor(ms) { this.seconds = Math.floor(ms / 1000); this.nanoseconds = 0; this.ms = ms; } toDate() { return new Date(this.ms); } toMillis() { return this.ms; } valueOf() { return this.ms; } static now() { return new Timestamp(Date.now()); } static fromMillis(ms) { return new Timestamp(ms); } }
 store = window.__fs = load();
 export const serverTimestamp = () => SERVER_TS;
 export const arrayUnion = (...v) => ({ __union: v });
@@ -61,7 +61,10 @@ function run(q) {
   return { docs: ds, size: ds.length };
 }
 export async function getDocs(q) { return run(q); }
-export function onSnapshot(ref, cb) {
+export async function getDocsFromCache(q) { return run(q); }
+export async function getCountFromServer(q) { const n = run(q).size; return { data: () => ({ count: n }) }; }
+export function onSnapshot(ref, opt, cb) {
+  if (typeof opt === "function") cb = opt;
   const fire = () => cb(ref.type === "doc" ? snap(ref) : run(ref));
   listeners.add(fire); setTimeout(fire, 0);
   return () => listeners.delete(fire);

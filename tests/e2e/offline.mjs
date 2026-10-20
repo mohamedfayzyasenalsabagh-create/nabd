@@ -26,7 +26,7 @@ for (const f of fs.readdirSync(ROOT)) {
 }
 let fb = fs.readFileSync(path.join(SITE, "fb.js"), "utf8");
 fb = fb.replace("inMemoryPersistence\n}", "inMemoryPersistence, connectAuthEmulator\n}")
-  .replace("waitForPendingWrites, enableNetwork\n}", "waitForPendingWrites, enableNetwork, connectFirestoreEmulator\n}")
+  .replace("getDocsFromCache, getCountFromServer\n}", "getDocsFromCache, getCountFromServer, connectFirestoreEmulator\n}")
   .replace("persistentMultipleTabManager() }) })\n  : null;", "persistentMultipleTabManager() }) })\n  : null;\nif (db) { connectFirestoreEmulator(db, \"127.0.0.1\", 8080); connectAuthEmulator(auth, \"http://127.0.0.1:9099\", { disableWarnings: true }); }");
 if (!fb.includes("connectFirestoreEmulator(db")) throw new Error("patch fb.js failed");
 fs.writeFileSync(path.join(SITE, "fb.js"), fb);
@@ -183,6 +183,30 @@ try {
   log(payOk, "الدفعة وصلت للخادم بعد المزامنة", syncErrs.join(" | ").slice(0, 200));
   await pg.screenshot({ path: path.join(OUT, "3-synced.png") });
   log(!errs.length, "لا أخطاء في الصفحة (الطبيب)", errs.slice(0, 3).join(" | ").slice(0, 200));
+
+  // 4ب) توفير الاستهلاك: الجهاز يجلب فقط المرضى الجدد أو المعدّلين
+  {
+    const nAll = async () => (await rest("POST", `${FS}/clinics/demo:runAggregationQuery`, { structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: "patients" }] }, aggregations: [{ alias: "n", count: {} }] } }))[0].result.aggregateFields.n.integerValue * 1;
+    const pcState = () => pg.evaluate(async () => { const s = await import("/staff.js"); return { mode: s.PC._mode, n: s.PC.list.length, p02: s.PC.byId.p02?.name, nw: !!s.PC.list.find((p) => p.name === "مريض جديد من جهاز آخر"), old: !!s.PC.list.find((p) => p.name === "مريض من نسخة قديمة") }; });
+    await pg.reload(); await pg.waitForSelector(".stats", { timeout: 30000 }); await sleep(2500);
+    let st = await pcState(); const total = await nAll();
+    log(st.mode === "delta" && st.n === total, "فتح التطبيق مرة ثانية: المرضى من الجهاز دون إعادة تحميلهم كلهم", `mode=${st.mode} ${st.n}/${total}`);
+    const ts = { __t: Date.now() };
+    await rest("PATCH", `${FS}/clinics/demo/patients/p02?updateMask.fieldPaths=name&updateMask.fieldPaths=updatedAt`, { fields: fields({ name: "اسم معدّل من جهاز آخر", updatedAt: ts }) });
+    await rest("PATCH", `${FS}/clinics/demo/patients/e2e-new`, { fields: fields({ name: "مريض جديد من جهاز آخر", phone: "", noAccount: true, updatedAt: ts, createdAt: ts }) });
+    let ok2 = false; for (let k = 0; k < 15 && !ok2; k++) { await sleep(1000); st = await pcState(); ok2 = st.p02 === "اسم معدّل من جهاز آخر" && st.nw; }
+    log(ok2, "تعديل مريض وإضافة مريض من جهاز آخر يظهران فوراً", JSON.stringify(st));
+    // مريض أُضيف من نسخة قديمة دون وقت تعديل: اختلاف العدد يفرض تحميلاً كاملاً عند الفتح التالي
+    await rest("PATCH", `${FS}/clinics/demo/patients/e2e-old`, { fields: fields({ name: "مريض من نسخة قديمة", phone: "" }) });
+    await pg.reload(); await pg.waitForSelector(".stats", { timeout: 30000 }); await sleep(3000);
+    st = await pcState();
+    log(st.mode === "full" && st.old && st.n === (await nAll()), "اختلاف عدد المرضى يفرض تحميلاً كاملاً (أمان)", JSON.stringify(st));
+    // التعديل من التطبيق يضيف وقت التعديل تلقائياً
+    await pg.evaluate(async () => { const f = await import("/fb.js"); await f.updateDoc(f.P.colDoc("patients", "p03"), { address: "عنوان e2e" }); });
+    await sleep(1500);
+    const p03 = await getDocREST("clinics/demo/patients/p03");
+    log(!!p03?.fields?.updatedAt?.timestampValue, "التعديل من التطبيق يسجّل وقت التعديل تلقائياً");
+  }
 
   // 5) المريض: شارة وإشعار عند وصول رسالة، وفتح التطبيق دون إنترنت
   const pctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });

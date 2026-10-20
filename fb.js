@@ -9,7 +9,7 @@ import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
   doc, getDoc as _getDoc, setDoc as _setDoc0, updateDoc as _updateDoc0, collection, query, where, getDocs as _getDocs,
   onSnapshot as _onSnapshot, serverTimestamp, arrayUnion, arrayRemove, runTransaction as _runTransaction, writeBatch as _writeBatch0, limit, orderBy, Timestamp, increment,
-  waitForPendingWrites, enableNetwork
+  waitForPendingWrites, enableNetwork, getDocsFromCache, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig, USE_STORAGE } from "./config.js";
 
@@ -36,11 +36,14 @@ function onSnapshot(ref, ...a) {
   }
   return _onSnapshot(ref, ...a);
 }
-const _setDoc = (...a) => { M.w++; return _setDoc0(...a); };
-const _updateDoc = (...a) => { M.w++; return _updateDoc0(...a); };
+// كل تعديل على ملف مريض يحمل وقت التعديل، لتجلب الأجهزة الأخرى ما تغيّر فقط بدل كل المرضى
+const PT_RE = /^clinics\/[^/]+\/patients\/[^/]+$/;
+const stamp = (ref, d) => (ref && PT_RE.test(ref.path || "") && d && typeof d === "object" && !Array.isArray(d) && !("updatedAt" in d) ? { ...d, updatedAt: serverTimestamp() } : d);
+const _setDoc = (ref, d, ...a) => { M.w++; return _setDoc0(ref, stamp(ref, d), ...a); };
+const _updateDoc = (ref, d, ...a) => { M.w++; return _updateDoc0(ref, a.length ? d : stamp(ref, d), ...a); };
 function _writeBatch(...a) {
   const b = _writeBatch0(...a);
-  ["set", "update", "delete"].forEach((k) => { const f = b[k].bind(b); b[k] = (...x) => { M.w++; return f(...x); }; });
+  ["set", "update", "delete"].forEach((k) => { const f = b[k].bind(b); b[k] = (r, d, ...x) => { M.w++; return k === "delete" ? f(r) : f(r, k === "update" && x.length ? d : stamp(r, d), ...x); }; });
   return b;
 }
 const pacificDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
@@ -81,7 +84,7 @@ export const isOffline = offline;
 export async function syncNow() { if (!db) return; try { await enableNetwork(db); await waitForPendingWrites(db); } catch (e) { console.warn(e); } }
 
 export {
-  doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, onSnapshot,
+  doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, getDocs, onSnapshot, getDocsFromCache, getCountFromServer,
   serverTimestamp, arrayUnion, arrayRemove, runTransaction, writeBatch, limit, orderBy, Timestamp, increment,
   onAuthStateChanged, signOut, updatePassword, sendPasswordResetEmail
 };

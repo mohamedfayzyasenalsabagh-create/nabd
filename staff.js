@@ -2,7 +2,7 @@
 import { SPECIALTIES, fileData,
   db, P, C, list, one, doc, setDoc, updateDoc, addDoc, query, where, onSnapshot,
   serverTimestamp, runTransaction, writeBatch, arrayUnion, arrayRemove, orderBy, limit, registerPatient, audit,
-  normPhone, clinicState, tsMs
+  normPhone, clinicState, tsMs, getDocsFromCache, getCountFromServer, Timestamp
 } from "./fb.js";
 import { APP_URL, COPYRIGHT, CASH_METHODS, methodName,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
@@ -50,16 +50,56 @@ export const readOnly = () => !clinicState(S.clinic).ok;
 
 // ---------- ذاكرة المرضى ----------
 export const PC = { list: [], byId: {} };
-function watchPatients() {
+// لتوفير الاستهلاك: الجهاز يحفظ المرضى، ويجلب من الخادم فقط من أُضيف أو عُدّل منذ آخر مرة.
+// تحميل كامل مرة كل 24 ساعة، أو إذا اختلف عدد المرضى على الخادم عن المحفوظ على الجهاز.
+const PC_FULL_MS = 24 * 3600 * 1000;
+function applyPatients(map) {
+  PC.list = [...map.values()].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ar"));
+  PC.byId = Object.fromEntries(PC.list.map((p) => [p.id, p]));
+  if (routeName() === "patients") renderPatients();
+  // أول تحميل لقائمة المرضى: تحديث الرئيسية حتى يظهر عدد المرضى الجدد صحيحاً
+  if (!PC._ready) { PC._ready = true; if (routeName() === "home") render(); reportActivity(); }
+}
+async function watchPatients() {
   PC._ready = false;
-  S.unsub.push(onSnapshot(P.patients(), (s) => {
-    PC.list = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name, "ar"));
-    PC.byId = Object.fromEntries(PC.list.map((p) => [p.id, p]));
-    if (routeName() === "patients") renderPatients();
-    // أول تحميل لقائمة المرضى: تحديث الرئيسية حتى يظهر عدد المرضى الجدد صحيحاً
-    if (!PC._ready) { PC._ready = true; if (routeName() === "home") render(); reportActivity(); }
+  const cid = S.profile?.clinicId, k = `pcSync:${cid}`;
+  let st = {}; try { st = JSON.parse(localStorage.getItem(k) || "{}"); } catch {}
+  const save = () => { try { localStorage.setItem(k, JSON.stringify(st)); } catch {} };
+  const maxTs = (docs, from = 0) => docs.reduce((m, d) => Math.max(m, tsMs(d.data().updatedAt) || 0), from);
+  const map = new Map();
+  let full = !st.full || Date.now() - st.full > PC_FULL_MS || st.cid !== cid;
+  if (!full) {
+    try { (await getDocsFromCache(P.patients())).docs.forEach((d) => map.set(d.id, { id: d.id, ...d.data() })); } catch { full = true; }
+    if (!full && !map.size) full = true;
+    if (!full && navigator.onLine !== false) {
+      try { if ((await getCountFromServer(P.patients())).data().count !== map.size) full = true; } catch {}
+    }
+  }
+  PC._mode = full ? "full" : "delta";
+  if (full) {
+    // تحميل كامل مع متابعة مباشرة (كما سابقاً)
+    S.unsub.push(onSnapshot(P.patients(), (s) => {
+      map.clear(); s.docs.forEach((d) => map.set(d.id, { id: d.id, ...d.data() }));
+      if (!s.metadata?.fromCache) { st = { cid, full: Date.now(), last: maxTs(s.docs, st.last || 0) }; save(); }
+      applyPatients(map);
+    }));
+    return;
+  }
+  applyPatients(map);
+  // القائمة الكاملة من ذاكرة الجهاز فقط (دون أي قراءة من الخادم)، وتتحدث فوراً مع تعديلات هذا الجهاز ومع ما يصل من الخادم
+  S.unsub.push(onSnapshot(P.patients(), { source: "cache" }, (s) => {
+    map.clear(); s.docs.forEach((d) => map.set(d.id, { id: d.id, ...d.data() }));
+    applyPatients(map);
+  }));
+  // من الخادم: ما تغيّر فقط منذ آخر مزامنة (مع هامش 10 دقائق)، فيُحفظ في ذاكرة الجهاز ويظهر في القائمة أعلاه
+  const since = Timestamp.fromMillis(Math.max(0, (st.last || 0) - 10 * 60 * 1000));
+  S.unsub.push(onSnapshot(query(P.patients(), where("updatedAt", ">", since)), (s) => {
+    if (s.metadata?.fromCache) return;
+    const ch = s.docChanges ? s.docChanges().map((c) => c.doc) : s.docs;
+    if (ch.length) { st.last = maxTs(ch, st.last || 0); save(); }
   }));
 }
+
 // نشاط العيادة لصاحب المنصة: أرقام فقط، مرة كل ساعة على الأكثر من كل جهاز
 async function reportActivity() {
   try {

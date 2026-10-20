@@ -400,3 +400,8 @@ test("عدّاد الاستهلاك: زيادة من المستخدمين الم
   await assertFails(getDoc(doc(as("adm_A"), "usage/2026-10-20")));
   await assertSucceeds(getDoc(doc(as("own1"), "usage/2026-10-20")));
 });
+
+test("المريض يحدّث آخر رسالة مع وقت التعديل فقط", async () => {
+  await assertSucceeds(updateDoc(doc(as("pat_A"), "clinics/A/patients/p1"), { lastMsgAt: serverTimestamp(), lastMsgFrom: "patient", updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(as("pat_A"), "clinics/A/patients/p1"), { name: "x", updatedAt: serverTimestamp() }));
+});
