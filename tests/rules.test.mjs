@@ -390,3 +390,13 @@ test("عدّاد تنزيلات التطبيق: زيادة بمقدار 1 فقط
   await assertFails(getDoc(doc(a, "downloads/2026-10-20")));
   await assertSucceeds(getDoc(doc(as("own1"), "downloads/2026-10-20")));
 });
+
+test("عدّاد الاستهلاك: زيادة من المستخدمين المسجلين فقط، والقراءة لصاحب المنصة", async () => {
+  await assertSucceeds(setDoc(doc(as("sec_A"), "usage/2026-10-20"), { r: increment(120), w: increment(5) }, { merge: true }));
+  await assertSucceeds(setDoc(doc(as("doc_A"), "usage/2026-10-20"), { r: increment(30), w: increment(1) }, { merge: true }));
+  await assertFails(setDoc(doc(anon(), "usage/2026-10-20"), { r: increment(1), w: increment(1) }, { merge: true }));
+  await assertFails(setDoc(doc(as("sec_A"), "usage/2026-10-20"), { r: 0, w: 0 }, { merge: true }));
+  await assertFails(setDoc(doc(as("sec_A"), "usage/2026-10-20"), { r: increment(1), w: increment(1), x: 1 }, { merge: true }));
+  await assertFails(getDoc(doc(as("adm_A"), "usage/2026-10-20")));
+  await assertSucceeds(getDoc(doc(as("own1"), "usage/2026-10-20")));
+});

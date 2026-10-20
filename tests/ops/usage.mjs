@@ -21,6 +21,20 @@ for (const k of ["read", "write", "delete"]) {
   const pct = Math.round((n / LIM[k]) * 100); worst = Math.max(worst, pct);
   out.push(`${pct >= 70 ? "WARN" : "OK"} | ${k}: ${n} من ${LIM[k]} يومياً (${pct}%)`);
 }
+// بدون تفعيل الدفع لا تعطي Google الأرقام، فنستخدم عدّاد التطبيق التقريبي (usage/{يوم بتوقيت المحيط الهادئ})
+if (out.every((x) => x.startsWith("ERROR"))) {
+  out.length = 0; worst = 0;
+  const { initializeApp } = await import("firebase-admin/app");
+  const { getFirestore } = await import("firebase-admin/firestore");
+  initializeApp({ credential: cert(sa) });
+  const pd = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(d);
+  for (const [lbl, d] of [["أمس", new Date(Date.now() - 864e5)], ["اليوم حتى الآن", new Date()]]) {
+    const x = (await getFirestore().doc(`usage/${pd(d)}`).get()).data() || { r: 0, w: 0 };
+    const pr = Math.round((x.r / LIM.read) * 100), pw = Math.round((x.w / LIM.write) * 100);
+    if (lbl === "أمس") worst = Math.max(pr, pw);
+    out.push(`${Math.max(pr, pw) >= 70 ? "WARN" : "OK"} | ${lbl} (${pd(d)}): قراءات ${x.r} من ${LIM.read} (${pr}%) · كتابات ${x.w} من ${LIM.write} (${pw}%) — تقريبي من التطبيق`);
+  }
+}
 fs.mkdirSync(".results", { recursive: true });
 fs.writeFileSync(".results/usage.txt", `استهلاك Firestore آخر 24 ساعة (الحد المجاني يتجدد يومياً)\n${out.join("\n")}\nأعلى نسبة: ${worst}%\n`);
 console.log(out.join("\n"));

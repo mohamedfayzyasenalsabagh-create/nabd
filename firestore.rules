@@ -85,6 +85,19 @@ service cloud.firestore {
         && request.resource.data.uniq in [resource.data.uniq, resource.data.uniq + 1];
       allow delete: if false;
     }
+    // عدّاد استهلاك Firestore التقريبي (أرقام فقط) لمقارنته بحد الخطة المجانية
+    match /usage/{day} {
+      allow read: if isOwner();
+      allow create: if signedIn() && day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['r', 'w'])
+        && request.resource.data.r is int && request.resource.data.w is int
+        && request.resource.data.r >= 0 && request.resource.data.r < 200000 && request.resource.data.w >= 0 && request.resource.data.w < 50000;
+      allow update: if signedIn() && request.resource.data.keys().hasOnly(['r', 'w'])
+        && request.resource.data.r is int && request.resource.data.w is int
+        && request.resource.data.r >= resource.data.r && request.resource.data.r - resource.data.r < 200000
+        && request.resource.data.w >= resource.data.w && request.resource.data.w - resource.data.w < 50000;
+      allow delete: if false;
+    }
     // عدّاد تنزيلات تطبيق أندرويد من الموقع: زيادة بمقدار 1 فقط
     match /downloads/{day} {
       allow read: if isOwner();

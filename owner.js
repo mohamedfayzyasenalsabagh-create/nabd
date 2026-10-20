@@ -1,6 +1,6 @@
 // لوحة مالك المنصة: العيادات، الاشتراكات، الدفعات، والإعدادات
 import {
-  P, list, one, updateDoc, setDoc, query, where, orderBy, serverTimestamp, Timestamp, collection, db,
+  P, list, one, doc, updateDoc, setDoc, query, where, orderBy, serverTimestamp, Timestamp, collection, db,
   SPECIALTIES, DEFAULT_PLANS, ALL_FEATURES, tsMs, clinicState, yearlyDisc, periodPrice
 } from "./fb.js";
 import {
@@ -124,6 +124,7 @@ async function renderClinics() {
       <button class="stat f ${filter === "used" ? "sel" : ""}" data-f="used"><b>${usedWeek}</b><span>عيادات تستخدم التطبيق هذا الأسبوع</span></button>
       <button class="stat f" data-f="active"><b>${mrr}$</b><span>الدخل الشهري المتوقع</span></button>
       <a class="stat" href="#/payments"><b>${gotThis}$</b><span>المقبوض هذا الشهر${gotLast ? ` (السابق ${gotLast}$)` : ""}</span></a>
+      <button class="stat us-stat"><b>…</b><span>استهلاك Firebase اليوم (من الحد المجاني)</span></button>
       <button class="stat dl-stat"><b>…</b><span>تحميلات تطبيق أندرويد</span></button>
       <button class="stat vs vs-today"><b>…</b><span>زوار الموقع اليوم</span></button>
       <button class="stat vs vs-month"><b>…</b><span>زوار الموقع هذا الشهر</span></button>
@@ -147,6 +148,8 @@ async function renderClinics() {
   $$(".stat.f").forEach((b) => b.onclick = async () => { filter = b.dataset.f; await renderClinics(); $("#ctbl")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
   $(".f-all")?.addEventListener("click", () => { filter = "all"; renderClinics(); });
   $(".dl-stat").onclick = showDownloads;
+  $(".us-stat").onclick = showUsage;
+  loadUsage();
   $$(".stat.vs").forEach((b) => b.onclick = showVisits);
   $("#cq").oninput = debounce((e) => { q = e.target.value; renderClinics().then(() => { const i = $("#cq"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 250);
   $$(".man").forEach((b) => b.onclick = () => manageClinic(all.find((c) => c.id === b.dataset.id), { act: acts[b.dataset.id], h: H[b.dataset.id] }));
@@ -364,6 +367,23 @@ async function loadDownloads() {
 }
 
 // زوار الموقع: الزائر الفريد يُحسب مرة واحدة يومياً لكل جهاز، والزيارات كل مرة تُفتح فيها الصفحة
+// استهلاك Firestore التقريبي مقارنة بالحد المجاني اليومي (50 ألف قراءة و20 ألف كتابة، يتجدد بتوقيت المحيط الهادئ)
+const pacificDay = (d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(d);
+const usePct = (x) => Math.max(Math.round(((x?.r || 0) / 50000) * 100), Math.round(((x?.w || 0) / 20000) * 100));
+async function loadUsage() {
+  const el = $(".us-stat b"); if (!el) return;
+  try { const x = await one(doc(db, "usage", pacificDay())); const p = usePct(x); el.textContent = `${p}%`; el.style.color = p >= 70 ? "var(--danger, #c0392b)" : ""; }
+  catch { el.textContent = "—"; }
+}
+async function showUsage() {
+  let body;
+  try {
+    const rows = (await list(collection(db, "usage"))).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 14);
+    body = `<p class="muted small">أرقام تقريبية يحسبها التطبيق. الحد المجاني اليومي: 50,000 قراءة و20,000 كتابة، ويتجدد يومياً قرابة العاشرة صباحاً بتوقيت دمشق. إذا تجاوزناه يتوقف التطبيق عند الجميع حتى التجديد.</p>
+      ${rows.length ? `<table class="tbl"><thead><tr><th>اليوم</th><th>القراءات</th><th>الكتابات</th><th>النسبة</th></tr></thead><tbody>${rows.map((x) => `<tr><td>${esc(fmtDate(x.id, false))}</td><td>${x.r || 0}</td><td>${x.w || 0}</td><td><b>${usePct(x)}%</b></td></tr>`).join("")}</tbody></table>` : empty("لا أرقام بعد، تبدأ بالظهور مع استخدام التطبيق")}`;
+  } catch (e) { body = `<p class="alert">${esc(errMsg(e))}</p>`; }
+  info("استهلاك Firebase", body);
+}
 // تفاصيل التحميلات لكل إصدار من تطبيق أندرويد
 async function showDownloads() {
   let body;

@@ -7,8 +7,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, getDoc, setDoc as _setDoc, updateDoc as _updateDoc, collection, query, where, getDocs,
-  onSnapshot, serverTimestamp, arrayUnion, arrayRemove, runTransaction as _runTransaction, writeBatch as _writeBatch, limit, orderBy, Timestamp, increment,
+  doc, getDoc as _getDoc, setDoc as _setDoc0, updateDoc as _updateDoc0, collection, query, where, getDocs as _getDocs,
+  onSnapshot as _onSnapshot, serverTimestamp, arrayUnion, arrayRemove, runTransaction as _runTransaction, writeBatch as _writeBatch0, limit, orderBy, Timestamp, increment,
   waitForPendingWrites, enableNetwork
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { firebaseConfig, USE_STORAGE } from "./config.js";
@@ -20,6 +20,40 @@ export const auth = configured ? getAuth(app) : null;
 export const db = configured
   ? initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })
   : null;
+
+// ---------- عدّاد الاستهلاك (قراءات وكتابات Firestore) لمقارنته بحد الخطة المجانية ----------
+// يُحسب تقريبياً على كل جهاز ويُجمع في usage/{يوم بتوقيت المحيط الهادئ لأن حد Google يتجدد عنده}
+const M = { r: 0, w: 0 };
+const fromServer = (s) => s && s.metadata && s.metadata.fromCache === false;
+const getDoc = async (...a) => { const s = await _getDoc(...a); if (fromServer(s)) M.r++; return s; };
+const getDocs = async (...a) => { const s = await _getDocs(...a); if (fromServer(s)) M.r += Math.max(1, s.size); return s; };
+function onSnapshot(ref, ...a) {
+  const count = (s) => { if (!fromServer(s)) return; M.r += s.docChanges ? Math.max(1, s.docChanges().length) : 1; };
+  const i = a.findIndex((x) => typeof x === "function" || (x && typeof x.next === "function"));
+  if (i >= 0) {
+    const x = a[i];
+    a[i] = typeof x === "function" ? (s) => { count(s); return x(s); } : { ...x, next: (s) => { count(s); return x.next(s); } };
+  }
+  return _onSnapshot(ref, ...a);
+}
+const _setDoc = (...a) => { M.w++; return _setDoc0(...a); };
+const _updateDoc = (...a) => { M.w++; return _updateDoc0(...a); };
+function _writeBatch(...a) {
+  const b = _writeBatch0(...a);
+  ["set", "update", "delete"].forEach((k) => { const f = b[k].bind(b); b[k] = (...x) => { M.w++; return f(...x); }; });
+  return b;
+}
+const pacificDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
+async function flushUsage() {
+  if (!db || !auth?.currentUser || (!M.r && !M.w) || offline()) return;
+  const r = M.r, w = M.w + 1; M.r = 0; M.w = 0;
+  try { await _setDoc0(doc(db, "usage", pacificDay()), { r: increment(r), w: increment(w) }, { merge: true }); }
+  catch { M.r += r; M.w += w - 1; }
+}
+if (typeof window !== "undefined" && configured) {
+  setInterval(flushUsage, 5 * 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushUsage(); });
+}
 
 // ---------- العمل دون إنترنت ----------
 // Firestore يحفظ كل تعديل على الجهاز فوراً ويرسله تلقائياً عند عودة الاتصال، لكن وعد الحفظ لا يكتمل
