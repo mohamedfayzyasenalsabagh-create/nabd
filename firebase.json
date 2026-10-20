@@ -20,7 +20,8 @@
       "*.rules",
       "package.json",
       "package-lock.json",
-      "LICENSE"
+      "LICENSE",
+      "*.apk"
     ],
     "headers": [
       {
