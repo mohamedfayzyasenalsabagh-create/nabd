@@ -1,8 +1,8 @@
-PASS | آخر نسخة منشورة على https://nabdsy.web.app/ | nabd-v80 (المتوقع nabd-v80)
+PASS | آخر نسخة منشورة على https://nabdsy.web.app/ | nabd-v81 (المتوقع nabd-v81)
 PASS | الدليل guide.pdf على https://nabdsy.web.app/ | 200 8.8MB
 PASS | الدليل guide_en.pdf على https://nabdsy.web.app/ | 200 7.8MB
 PASS | صفحة التنزيل app.html على https://nabdsy.web.app/ تشير إلى ملف التطبيق
-PASS | آخر نسخة منشورة على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | nabd-v80 (المتوقع nabd-v80)
+PASS | آخر نسخة منشورة على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | nabd-v81 (المتوقع nabd-v81)
 PASS | الدليل guide.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 8.8MB
 PASS | الدليل guide_en.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 7.8MB
 PASS | صفحة التنزيل app.html على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ تشير إلى ملف التطبيق
@@ -14,6 +14,6 @@ PASS | الصفحة الرئيسية تعمل وفيها زر التنزيل (ht
 PASS | الضغط على زر التنزيل يبدأ تنزيل التطبيق (https://mohamedfayzyasenalsabagh-create.github.io/nabd/) | nabd.apk
 PASS | لا أخطاء في الصفحة (https://mohamedfayzyasenalsabagh-create.github.io/nabd/)
 PASS | النسخة التجريبية تفتح على الموقع الحقيقي
-INFO | منذ 2026-10-20: زوار الموقع 4 · تنزيلات التطبيق 0
+INFO | منذ 2026-10-20: زوار الموقع 5 · تنزيلات التطبيق 2
 
 TOTAL 16/16
