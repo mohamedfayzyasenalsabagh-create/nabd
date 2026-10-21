@@ -515,7 +515,14 @@ export async function changePatientPhone(pid, oldPhone, newPhoneRaw, create = fa
 
 // ---------- الموظفون والأطباء ----------
 // role: "secretary" أو "doctor" (طبيب إضافي غير مسؤول)
-export async function createStaff(name, phoneRaw, role = "secretary", title = "", doctorId = null) {
+// الدور المخصّص: اسم الدور وصلاحياته (المفاتيح المعروفة فقط)
+export const PERM_KEYS = ["appts", "patients", "pay", "fin", "expenses", "reports", "inventory", "messages", "settings", "audit"];
+export function cleanPerms(p = {}) {
+  const o = { med: p.med === "read" ? "read" : "none" };
+  PERM_KEYS.forEach((k) => { o[k] = p[k] === true; });
+  return o;
+}
+export async function createStaff(name, phoneRaw, role = "secretary", title = "", doctorId = null, custom = null) {
   const phone = normPhone(phoneRaw);
   if (phone.length < 9) throw new Error("رقم الجوال غير صحيح");
   const ph = await getDoc(P.phone(phone));
@@ -529,10 +536,11 @@ export async function createStaff(name, phoneRaw, role = "secretary", title = ""
   saveLoginIdx(phone, temp, C, "s");
   await setDoc(P.user(r.uid), {
     role, admin: false, doctorId, clinicId: C, name: name.trim(), title, phone, active: true,
+    ...(role === "custom" ? { roleTitle: String(custom?.roleTitle || "دور مخصّص").trim().slice(0, 40), perms: cleanPerms(custom?.perms) } : {}),
     mustChangePassword: true, ver: r.ver, createdAt: serverTimestamp()
   });
   await setDoc(P.phone(phone), { staffUid: r.uid, staffVer: r.ver }, { merge: true });
-  await audit(role === "doctor" ? "إضافة طبيب" : "إنشاء حساب موظف", name);
+  await audit(role === "doctor" ? "إضافة طبيب" : role === "custom" ? `إنشاء حساب بدور «${custom?.roleTitle || ""}»` : "إنشاء حساب موظف", name);
   return { temp, uid: r.uid, phone };
 }
 
@@ -545,6 +553,7 @@ export async function resetStaffPassword(uid) {
   saveLoginIdx(d.phone, temp, C, "s");
   await setDoc(P.user(r.uid), {
     role: d.role, admin: false, doctorId: d.doctorId || null, clinicId: C, name: d.name, title: d.title || "", phone: d.phone, active: true,
+    ...(d.role === "custom" ? { roleTitle: d.roleTitle || "دور مخصّص", perms: cleanPerms(d.perms) } : {}),
     mustChangePassword: true, ver: r.ver, createdAt: serverTimestamp(), replaces: uid
   });
   await updateDoc(P.user(uid), { active: false });

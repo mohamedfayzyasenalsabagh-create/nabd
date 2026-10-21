@@ -239,6 +239,41 @@ try {
   await pp.screenshot({ path: path.join(OUT, "5-patient-offline.png") });
   await pctx.setOffline(false);
   log(!perrs.length, "لا أخطاء في الصفحة (المريض)", perrs.slice(0, 3).join(" | ").slice(0, 200));
+
+  // 6) الأدوار المخصّصة على قواعد الحماية الحقيقية: كل حساب يفتح صفحاته دون أي رفض صلاحيات، ولا يصل لما لا يملكه
+  for (const [uid, label, want] of [["u-store", "مدير المستودع", ["#/", "#/inventory", "#/more"]], ["u-mgr", "المدير العام", ["#/", "#/appts", "#/patients", "#/p/p02/info", "#/p/p02/money", "#/money", "#/debts", "#/closing", "#/expenses", "#/reports", "#/inventory", "#/messages", "#/requests", "#/remind", "#/settings", "#/audit", "#/more"]], ["u-medv", "مشرف طبي", ["#/", "#/appts", "#/patients", "#/p/p02/summary", "#/p/p02/visits", "#/p/p02/rx", "#/p/p02/files", "#/more"]]]) {
+    const u = Object.values(U).find((x) => x.uid === uid);
+    const cctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });
+    const cp = await cctx.newPage();
+    const perm = [], perrs2 = [];
+    cp.on("console", (m) => { if (/permission|insufficient/i.test(m.text())) perm.push(m.text().slice(0, 140)); });
+    cp.on("pageerror", (e) => perrs2.push(String(e).slice(0, 140)));
+    await cp.goto(B + "#/login"); await cp.waitForSelector("#lf", { timeout: 30000 });
+    await cp.fill('#lf [name="id"]', u.email); await cp.fill('#lf [name="pw"]', u.pw); await cp.click('#lf [type="submit"]');
+    await cp.waitForSelector(".bottomnav", { timeout: 30000 }); await sleep(2500);
+    const bad = [];
+    for (const h of want) {
+      await cp.evaluate((x) => (location.hash = x), h); await sleep(1800);
+      const al = await cp.locator("#main .alert").allInnerTexts();
+      if (al.length || (await cp.locator("#main .loading").count())) bad.push(`${h}: ${al.join(" ").slice(0, 60) || "loading"}`);
+    }
+    log(!bad.length && !perm.length && !perrs2.length, `دور مخصّص «${label}»: كل صفحاته تعمل دون رفض صلاحيات`, [...bad, ...perm, ...perrs2].slice(0, 3).join(" | "));
+    if (uid === "u-store") {
+      const blocked = await cp.evaluate(async () => { const f = await import("/fb.js"); try { await f.getDoc(f.P.patient("p01")); return false; } catch { return true; } });
+      log(blocked, "مدير المستودع لا يستطيع قراءة ملف أي مريض (رفض من الخادم)");
+    }
+    if (uid === "u-medv") {
+      const r = await cp.evaluate(async () => { const f = await import("/fb.js"); let read = false, write = false;
+        try { await f.getDocs(f.P.sub("p02", "visits")); read = true; } catch {}
+        try { await f.setDoc(f.doc(f.P.sub("p02", "visits")), { date: "2026-01-01", note: "x" }); await f.syncNow(); write = true; } catch {}
+        return { read, write }; });
+      await sleep(1500);
+      const vis = await rest("GET", `${FS}/clinics/demo/patients/p02/visits?pageSize=300`);
+      const leaked = (vis.documents || []).some((d) => sv(d, "note") === "x" && sv(d, "date") === "2026-01-01");
+      log(r.read && !leaked, "المشرف الطبي يقرأ السجل الطبي ولا يستطيع الكتابة فيه", JSON.stringify(r));
+    }
+    await cctx.close();
+  }
 } catch (e) {
   log(false, "توقف الاختبار بخطأ", String(e?.stack || e).slice(0, 600));
   for (const c of browser.contexts()) for (const p of c.pages()) await p.screenshot({ path: path.join(OUT, `fail-${Date.now()}.png`) }).catch(() => {});

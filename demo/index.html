@@ -57,7 +57,7 @@
 <script src="../qrcode.js"></script>
 <script type="module">
   import { ensureSeed, DEMO } from "./seed.js";
-  const UID = { doctor: DEMO.doctor.uid, secretary: DEMO.secretary.uid, nurse: "u-nur", accountant: "u-acc", patient: DEMO.patient.uid };
+  const UID = { doctor: DEMO.doctor.uid, secretary: DEMO.secretary.uid, nurse: "u-nur", accountant: "u-acc", manager: "u-mgr", store: "u-store", medv: "u-medv", patient: DEMO.patient.uid };
   const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { return null; } };
   const as = (role) => { ls("demo-auth", JSON.stringify(UID[role])); ls("clinic", DEMO.cid); location.hash = "#/"; location.reload(); };
   document.querySelectorAll("[data-role]").forEach((b) => b.onclick = () => as(b.dataset.role));

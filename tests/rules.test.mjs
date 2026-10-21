@@ -34,6 +34,17 @@ beforeEach(async () => {
     await u("adm_B", { role: "doctor", admin: true, clinicId: "B" });
     await u("adm_X", { role: "doctor", admin: true, clinicId: "X" });
     await u("off_A", { role: "secretary", admin: false, clinicId: "A", active: false });
+    const P0 = { appts: false, patients: false, pay: false, fin: false, expenses: false, reports: false, inventory: false, messages: false, settings: false, audit: false, med: "none" };
+    await u("store_A", { role: "custom", roleTitle: "مدير المستودع", clinicId: "A", perms: { ...P0, inventory: true } });
+    await u("mgr_A", { role: "custom", roleTitle: "المدير العام", clinicId: "A", perms: { ...P0, appts: true, patients: true, pay: true, fin: true, expenses: true, reports: true, inventory: true, messages: true, settings: true, audit: true } });
+    await u("medv_A", { role: "custom", roleTitle: "مشرف طبي", clinicId: "A", perms: { ...P0, med: "read" } });
+    await u("none_A", { role: "custom", roleTitle: "بلا صلاحيات", clinicId: "A", perms: P0 });
+    await u("mgr_B", { role: "custom", roleTitle: "مدير B", clinicId: "B", perms: { ...P0, appts: true, patients: true, fin: true } });
+    await setDoc(doc(db, "clinics/A/inventory/i1"), { name: "قفازات", qty: 10, min: 2 });
+    await setDoc(doc(db, "clinics/A/payments/pay1"), { patientId: "p1", total: 100, paid: 50, date: "2026-10-01" });
+    await setDoc(doc(db, "clinics/A/expenses/e1"), { amount: 5, date: "2026-10-01" });
+    await setDoc(doc(db, "clinics/A/audit/x1"), { by: "adm_A", action: "t" });
+    await setDoc(doc(db, "clinics/A/stats/s1"), { date: "2026-10-01" });
     for (const c of ["A", "X"]) {
       await setDoc(doc(db, `clinics/${c}/patients/p1`), { name: "p1", phone: "0900" });
       await setDoc(doc(db, `clinics/${c}/patients/p2`), { name: "p2", phone: "0911" });
@@ -404,4 +415,78 @@ test("عدّاد الاستهلاك: زيادة من المستخدمين الم
 test("المريض يحدّث آخر رسالة مع وقت التعديل فقط", async () => {
   await assertSucceeds(updateDoc(doc(as("pat_A"), "clinics/A/patients/p1"), { lastMsgAt: serverTimestamp(), lastMsgFrom: "patient", updatedAt: serverTimestamp() }));
   await assertFails(updateDoc(doc(as("pat_A"), "clinics/A/patients/p1"), { name: "x", updatedAt: serverTimestamp() }));
+});
+
+// ---------- الأدوار المخصّصة ----------
+const P0 = { appts: false, patients: false, pay: false, fin: false, expenses: false, reports: false, inventory: false, messages: false, settings: false, audit: false, med: "none" };
+test("دور مخصّص: مدير المستودع يرى المخزون فقط", async () => {
+  const d = as("store_A");
+  await assertSucceeds(getDoc(doc(d, "clinics/A/inventory/i1")));
+  await assertSucceeds(updateDoc(doc(d, "clinics/A/inventory/i1"), { qty: 9 }));
+  await assertFails(getDoc(doc(d, "clinics/A/patients/p1")));
+  await assertFails(getDoc(doc(d, "clinics/A/appointments/a1")));
+  await assertFails(getDoc(doc(d, "clinics/A/payments/pay1")));
+  await assertFails(getDoc(doc(d, "clinics/A/expenses/e1")));
+  await assertFails(getDoc(doc(d, "clinics/A/patients/p1/visits/v1")));
+  await assertFails(setDoc(doc(d, "clinics/A/patients/p9"), { name: "x", phone: "0999" }));
+  await assertFails(getDoc(doc(d, "clinics/A/audit/x1")));
+});
+test("دور مخصّص: المدير العام يدير كل شيء إداري ومالي دون السجل الطبي", async () => {
+  const d = as("mgr_A");
+  await assertSucceeds(getDoc(doc(d, "clinics/A/patients/p1")));
+  await assertSucceeds(setDoc(doc(d, "clinics/A/patients/p9"), { name: "x", phone: "0999" }));
+  await assertSucceeds(updateDoc(doc(d, "clinics/A/patients/p1"), { address: "دمشق" }));
+  await assertSucceeds(getDoc(doc(d, "clinics/A/appointments/a1")));
+  await assertSucceeds(setDoc(doc(d, "clinics/A/appointments/a2"), { patientId: "p1", status: "confirmed" }));
+  await assertSucceeds(updateDoc(doc(d, "clinics/A/payments/pay1"), { paid: 100 }));
+  await assertSucceeds(setDoc(doc(d, "clinics/A/expenses/e2"), { amount: 1 }));
+  await assertSucceeds(getDoc(doc(d, "clinics/A/stats/s1")));
+  await assertSucceeds(getDoc(doc(d, "clinics/A/audit/x1")));
+  await assertSucceeds(updateDoc(doc(d, "clinics/A"), { name: "اسم جديد" }));
+  await assertFails(updateDoc(doc(d, "clinics/A"), { doctors: [] }));
+  await assertFails(updateDoc(doc(d, "clinics/A"), { plan: "center" }));
+  await assertFails(getDoc(doc(d, "clinics/A/patients/p1/visits/v1")));
+  await assertFails(getDoc(doc(d, "clinics/A/patients/p1/private/n1")));
+  await assertFails(setDoc(doc(d, "clinics/A/patients/p1/visits/v9"), { date: "x" }));
+  // لا يدير الفريق ولا يعطي نفسه صلاحيات
+  await assertFails(updateDoc(doc(d, "users/mgr_A"), { perms: { ...P0, med: "read" } }));
+  await assertFails(setDoc(doc(d, "users/new1"), { role: "custom", admin: false, clinicId: "A", active: true, roleTitle: "x", perms: P0 }));
+  await assertFails(getDoc(doc(d, "clinics/B/patients/p1")));
+});
+test("دور مخصّص: السجل الطبي للعرض فقط، والملاحظات الخاصة للطبيب", async () => {
+  const d = as("medv_A");
+  await assertSucceeds(getDoc(doc(d, "clinics/A/patients/p1/visits/v1")));
+  await assertFails(setDoc(doc(d, "clinics/A/patients/p1/visits/v9"), { date: "x" }));
+  await assertFails(updateDoc(doc(d, "clinics/A/patients/p1/visits/v1"), { date: "y" }));
+  await assertFails(getDoc(doc(d, "clinics/A/patients/p1/private/n1")));
+  await assertFails(updateDoc(doc(d, "clinics/A/patients/p1"), { name: "x" }));
+  await assertFails(getDoc(doc(d, "clinics/A/payments/pay1")));
+});
+test("دور مخصّص دون صلاحيات لا يصل لشيء", async () => {
+  const d = as("none_A");
+  for (const p of ["clinics/A/patients/p1", "clinics/A/appointments/a1", "clinics/A/payments/pay1", "clinics/A/inventory/i1", "clinics/A/expenses/e1", "clinics/A/audit/x1", "clinics/A/patients/p1/visits/v1"])
+    await assertFails(getDoc(doc(d, p)));
+  await assertSucceeds(getDoc(doc(d, "clinics/A")));
+});
+test("المسؤول فقط ينشئ الدور المخصّص ويعدّل صلاحياته، بمفاتيح معروفة", async () => {
+  const a = as("adm_A");
+  await assertSucceeds(setDoc(doc(a, "users/c1"), { role: "custom", admin: false, clinicId: "A", active: true, roleTitle: "المدير العام", perms: { ...P0, fin: true } }));
+  await assertFails(setDoc(doc(a, "users/c2"), { role: "custom", admin: false, clinicId: "A", active: true, roleTitle: "x", perms: { ...P0, med: "write" } }));
+  await assertFails(setDoc(doc(a, "users/c3"), { role: "custom", admin: false, clinicId: "A", active: true, roleTitle: "x", perms: { ...P0, team: true } }));
+  await assertFails(setDoc(doc(a, "users/c4"), { role: "custom", admin: true, clinicId: "A", active: true, roleTitle: "x", perms: P0 }));
+  await assertSucceeds(updateDoc(doc(a, "users/store_A"), { perms: { ...P0, inventory: true, reports: true }, roleTitle: "أمين مستودع" }));
+  await assertFails(updateDoc(doc(a, "users/store_A"), { admin: true }));
+  await assertFails(updateDoc(doc(as("adm_B"), "users/store_A"), { perms: P0, roleTitle: "x" }));
+  await assertFails(setDoc(doc(as("sec_A"), "users/c5"), { role: "custom", admin: false, clinicId: "A", active: true, roleTitle: "x", perms: P0 }));
+  // الأدوار الثابتة لا تحمل صلاحيات مخصّصة
+  await assertFails(setDoc(doc(a, "users/c6"), { role: "secretary", admin: false, clinicId: "A", active: true, perms: { ...P0, med: "read" } }));
+});
+test("الأدوار الحالية تعمل كما كانت تماماً", async () => {
+  await assertSucceeds(getDoc(doc(as("sec_A"), "clinics/A/patients/p1")));
+  await assertFails(getDoc(doc(as("sec_A"), "clinics/A/patients/p1/visits/v1")));
+  await assertSucceeds(getDoc(doc(as("sec_A"), "clinics/A/inventory/i1")));
+  await assertFails(getDoc(doc(as("sec_A"), "clinics/A/expenses/e1")));
+  await assertSucceeds(getDoc(doc(as("doc_A"), "clinics/A/patients/p1/visits/v1")));
+  await assertFails(getDoc(doc(as("doc_A"), "clinics/A/audit/x1")));
+  await assertSucceeds(getDoc(doc(as("adm_A"), "clinics/A/audit/x1")));
 });

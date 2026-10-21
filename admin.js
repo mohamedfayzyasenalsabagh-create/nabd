@@ -2,7 +2,7 @@ import { t as tr } from "./i18n.js";
 // صفحات المسؤول: الإعدادات، الفريق، الاشتراك، والمخزون
 import { CITIES,
   P, C, list, one, setDoc, updateDoc, addDoc, query, where, serverTimestamp, arrayUnion,
-  createStaff, resetStaffPassword, normPhone, randId, publicCopy, clinicState, tsMs,
+  createStaff, resetStaffPassword, cleanPerms, normPhone, randId, publicCopy, clinicState, tsMs,
   SPECIALTIES, MODULES, DEFAULT_PLANS, DEFAULT_VACCINES, audit, yearlyDisc, periodPrice
 } from "./fb.js";
 import { APP_URL,
@@ -11,7 +11,7 @@ import { APP_URL,
 } from "./ui.js";
 import { S, PLATFORM } from "./app.js";
 import { PAY_METHODS } from "./owner.js";
-import { multiSpec, specMods, docLetter, render, doctors, feat, hasMod, cur, isAdmin } from "./staff.js";
+import { multiSpec, specMods, docLetter, render, doctors, feat, hasMod, cur, isAdmin, PERMS, PERM_PRESETS } from "./staff.js";
 
 const main = () => $("#main");
 const plans = () => (S.platform?.plans?.length ? S.platform.plans : DEFAULT_PLANS);
@@ -48,13 +48,13 @@ export async function renderSettings() {
       ${field("رابط الموقع على الخريطة (اختياري)", "mapUrl", { value: c.mapUrl || "", attrs: 'dir="ltr"', placeholder: "https://maps.google.com/..." })}
       <div class="grid2">${field("لون الواجهة", "accent", { type: "color", value: c.accent || "#5B3FD0" })}${field("العملة", "currency", { value: c.currency || "ل.س" })}</div>
     </section>
-    <section class="card stack"><h3>الاختصاص والوحدات</h3>
+    <section class="card stack"><h3>الاختصاص والوحدات</h3>${isAdmin() ? "" : `<p class="muted small">يغيّرها مسؤول العيادة فقط.</p>`}<fieldset class="plain-fs" ${isAdmin() ? "" : "disabled"}>
       ${select("الاختصاص الرئيسي", "specialty", Object.entries(SPECIALTIES).map(([k, v]) => [k, v.name]), c.specialty)}
       ${multiSpec() ? `<p class="muted small">باقة المراكز الطبية: فعّل وحدات كل الاختصاصات التي يعمل بها مركزك.</p>
       <div class="mod-grid">${Object.entries(MODULES).map(([k, t]) => `<label class="check"><input type="checkbox" name="mod_${k}" ${mods.has(k) ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div>`
       : `<p class="muted small">الوحدات المفعّلة لاختصاصك:</p><div class="chips spec-mods"></div>
       <p class="muted small">تفعيل أكثر من اختصاص في العيادة نفسها متاح في باقة المراكز الطبية. <a href="#/subscription">الترقية</a></p>`}
-    </section>
+    </fieldset></section>
     <section class="card stack"><h3>أوقات الدوام</h3>
       <p class="muted small">يُقبل الحجز ضمن هذه الأوقات فقط.</p>
       ${[6, 0, 1, 2, 3, 4, 5].map((d) => { const h = hours[d] || { on: false, from: "10:00", to: "17:00" }; return `<div class="hours-row">
@@ -133,10 +133,11 @@ export async function renderSettings() {
       name: f.name.value.trim(), doctorName: f.doctorName.value.trim(), title: f.title.value.trim(),
       address: f.address.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(), accent: f.accent.value, mapUrl: f.mapUrl.value.trim(),
       logo: newLogo === undefined ? (c.logo || null) : newLogo,
-      specialty: f.specialty.value, modules: multiSpec() ? Object.keys(MODULES).filter((k) => f[`mod_${k}`].checked) : specMods(f.specialty.value),
+      // الاختصاص والوحدات والأطباء لمسؤول العيادة فقط (الدور المخصّص بصلاحية الإعدادات لا يغيّرها)
+      ...(isAdmin() ? { specialty: f.specialty.value, modules: multiSpec() ? Object.keys(MODULES).filter((k) => f[`mod_${k}`].checked) : specMods(f.specialty.value) } : {}),
       currency: f.currency.value.trim() || "ل.س", hours: h, slotMinutes: Number(f.slotMinutes.value), apptView: f.apptView.value,
       services: services.filter((s) => s.name.trim()), consentText: f.consentText.value, rxFooter: f.rxFooter.value,
-      doctors: doctorsArr, listed: f.listed.checked, city: f.city.value,
+      ...(isAdmin() ? { doctors: doctorsArr } : {}), listed: f.listed.checked, city: f.city.value,
       ...(feat("booking") ? { bookingEnabled: f.bookingEnabled.checked, showPrices: f.showPrices.checked } : {}),
       ...($(".vac-list") ? { vaccineSchedule: vaccines.filter((v) => v.name.trim()).sort((a, b) => a.months - b.months) } : {}),
     };
@@ -156,8 +157,9 @@ export async function renderSettings() {
 // ---------- الفريق ----------
 export async function renderTeam() {
   const users = await list(query(P.users(), where("clinicId", "==", C)));
-  const staff = users.filter((u) => u.active && ["secretary", "nurse", "accountant"].includes(u.role));
+  const staff = users.filter((u) => u.active && ["secretary", "nurse", "accountant", "custom"].includes(u.role));
   const RN = { secretary: "سكرتارية", nurse: "ممرض/ة", accountant: "محاسب" };
+  const permSum = (u) => [...PERMS.filter(([k]) => u.perms?.[k]).map(([, t]) => t.split(" (")[0].split(":")[0]), ...(u.perms?.med === "read" ? ["السجل الطبي (عرض)"] : [])].join("، ") || "دون صلاحيات";
   const docUsers = users.filter((u) => u.active && u.role === "doctor");
   const docs = (S.clinic?.doctors || []);
   const c0 = S.clinic || {};
@@ -180,16 +182,18 @@ export async function renderTeam() {
       ${!feat("multiDoctor") ? `<p class="muted small">إضافة أطباء متاحة في الباقة الاحترافية. <a href="#/subscription">الترقية</a></p>` : !canDoc ? `<p class="muted small">وصلت إلى الحد الأقصى لباقتك.</p>` : ""}
     </section>
     <section class="card">
-      <div class="row-between"><h3>الموظفون <span class="muted small">(${staff.length} من ${maxS})</span></h3>${canStaff ? `<button class="btn primary small adds">+ موظف</button>` : ""}</div>
+      <div class="row-between"><h3>الموظفون <span class="muted small">(${staff.length} من ${maxS})</span></h3>${canStaff ? `<div class="row gap"><button class="btn small addc">+ دور مخصّص</button><button class="btn primary small adds">+ موظف</button></div>` : ""}</div>
       ${staff.length ? `<ul class="plain">${staff.map((s) => `<li class="req">
-        <div><b>${esc(s.name)}</b> <span class="chip">${esc(RN[s.role] || s.role)}</span> <span class="muted" dir="ltr">${esc(s.phone)}</span></div>
-        <div class="row gap"><button class="btn small rp" data-uid="${s.id}">كلمة مرور جديدة</button><button class="btn small danger offs" data-uid="${s.id}">إيقاف الحساب</button></div></li>`).join("")}</ul>` : empty("لا يوجد موظفون")}
+        <div><b>${esc(s.name)}</b> <span class="chip">${esc(s.role === "custom" ? s.roleTitle || "دور مخصّص" : RN[s.role] || s.role)}</span> <span class="muted" dir="ltr">${esc(s.phone)}</span>
+          ${s.role === "custom" ? `<div class="muted small">الصلاحيات: ${esc(permSum(s))}</div>` : ""}</div>
+        <div class="row gap">${s.role === "custom" ? `<button class="btn small edp" data-uid="${s.id}">تعديل الصلاحيات</button>` : ""}<button class="btn small rp" data-uid="${s.id}">كلمة مرور جديدة</button><button class="btn small danger offs" data-uid="${s.id}">إيقاف الحساب</button></div></li>`).join("")}</ul>` : empty("لا يوجد موظفون")}
     </section>
     <p class="muted small">يسري الإيقاف فوراً، ولا يمكن للحساب الدخول بعده.</p>
     <section class="card"><h3>صلاحيات كل دور</h3><ul class="plain small role-help">
       <li><b>سكرتارية:</b> المواعيد والمرضى والدفعات اليومية، دون أي بيانات طبية.</li>
       <li><b>ممرض/ة:</b> ما تفعله السكرتارية، ويطّلع على السجل الطبي للعرض فقط (دون الملاحظات الخاصة)، ويسجّل المؤشرات الحيوية.</li>
       <li><b>محاسب:</b> ما تفعله السكرتارية، مع الحسابات كاملة بأي فترة، ومصاريف العيادة، دون أي بيانات طبية.</li>
+      <li><b>دور مخصّص:</b> تسمّي الدور بنفسك (مثل «المدير العام» أو «مدير المستودع») وتختار صلاحياته واحدة واحدة.</li>
     </ul></section>`;
   $(".addd")?.addEventListener("click", async () => {
     const r = await modal("إضافة طبيب", `<form class="stack">${field("الاسم", "name", { required: true })}${specSel()}${field("اللقب / الاختصاص", "title", { placeholder: "مثلاً: اختصاصي طب أطفال" })}${field("رقم الجوال (للدخول)", "phone", { required: true, attrs: 'dir="ltr" inputmode="tel"' })}</form>`, {
@@ -209,6 +213,24 @@ export async function renderTeam() {
       ok: "إنشاء", onOk: async (f) => ({ ...(await createStaff(f.name, f.phone, ["secretary", "nurse", "accountant"].includes(f.role) ? f.role : "secretary")), name: f.name })
     });
     if (r) staffCred(r.phone, r.temp, r.name);
+    render();
+  });
+  $(".addc")?.addEventListener("click", async () => {
+    const r = await customRoleModal(null);
+    if (!r) return;
+    try {
+      const res = await createStaff(r.name, r.phone, "custom", "", null, { roleTitle: r.roleTitle, perms: r.perms });
+      staffCred(res.phone, res.temp, r.name);
+    } catch (e) { toast(errMsg(e), true); }
+    render();
+  });
+  $$(".edp").forEach((b) => b.onclick = async () => {
+    const u = users.find((x) => x.id === b.dataset.uid);
+    const r = await customRoleModal(u);
+    if (!r) return;
+    await updateDoc(P.user(u.id), { roleTitle: r.roleTitle, perms: r.perms });
+    await audit("تعديل صلاحيات حساب", `${u.name}: ${r.roleTitle}`);
+    toast("حُفظت الصلاحيات، وتسري عند فتح التطبيق التالي لصاحب الحساب");
     render();
   });
   $$(".rp").forEach((b) => b.onclick = async () => {
@@ -244,6 +266,39 @@ export async function renderTeam() {
     await audit("إيقاف طبيب", d.name);
     render();
   });
+}
+// نافذة الدور المخصّص: اسم الدور، قالب جاهز، والصلاحيات واحدة واحدة
+async function customRoleModal(u) {
+  const pm = u?.perms || PERM_PRESETS.manager[1];
+  const res = await modal(u ? `صلاحيات ${u.name}` : "حساب بدور مخصّص", `<form class="stack perm-form">
+    ${u ? "" : field("الاسم", "name", { required: true }) + field("رقم الجوال", "phone", { required: true, attrs: 'dir="ltr" inputmode="tel"' })}
+    ${field("اسم الدور", "roleTitle", { required: true, value: u?.roleTitle || "", placeholder: "مثلاً: المدير العام" })}
+    ${select("ابدأ من قالب جاهز (اختياري)", "preset", [["", "—"], ...Object.entries(PERM_PRESETS).map(([k, [t]]) => [k, t])], "")}
+    <fieldset class="perm-list"><legend>الصلاحيات</legend>
+      ${PERMS.map(([k, t]) => `<label class="check"><input type="checkbox" name="p_${k}" ${pm[k] ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}
+      ${select("السجل الطبي", "med", [["none", "لا يطّلع عليه"], ["read", "عرض فقط (دون الملاحظات الخاصة)"]], pm.med === "read" ? "read" : "none")}
+      <p class="muted small med-warn ${pm.med === "read" ? "" : "hidden"}">⚠️ ستظهر لصاحب هذا الحساب التفاصيل الطبية للمرضى. الكتابة في السجل الطبي تبقى للأطباء فقط.</p>
+    </fieldset>
+    <p class="muted small">إدارة الفريق والاشتراك والنسخة الاحتياطية تبقى لمسؤول العيادة فقط.</p>
+  </form>`, {
+    ok: u ? "حفظ" : "إنشاء",
+    onOpen: (w) => {
+      const f = w.querySelector("form");
+      f.preset.onchange = () => {
+        const p = PERM_PRESETS[f.preset.value]; if (!p) return;
+        if (!f.roleTitle.value.trim()) f.roleTitle.value = p[0];
+        PERMS.forEach(([k]) => { f[`p_${k}`].checked = !!p[1][k]; });
+        f.med.value = p[1].med === "read" ? "read" : "none"; f.med.onchange();
+      };
+      f.med.onchange = () => w.querySelector(".med-warn").classList.toggle("hidden", f.med.value !== "read");
+    },
+    onOk: (f) => {
+      const perms = { med: f.med };
+      PERMS.forEach(([k]) => { perms[k] = !!f[`p_${k}`]; });
+      return { name: (f.name || "").trim(), phone: f.phone, roleTitle: f.roleTitle.trim().slice(0, 40), perms: cleanPerms(perms) };
+    }
+  });
+  return res || null;
 }
 function staffCred(phone, temp, name) {
   const url = `${baseUrl()}#/c/${S.clinic?.slug || ""}`;

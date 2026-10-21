@@ -20,6 +20,16 @@ service cloud.firestore {
     function canMed(c) { return isDoctor(c) || isNurse(c); }
     function isDoctor(c) { return inClinic(c) && me().role == 'doctor'; }
     function isAdmin(c) { return isDoctor(c) && me().get('admin', false) == true; }
+    // الدور المخصّص: المسؤول يختار صلاحياته (perms)، والسجل الطبي له عرض فقط
+    function isCustom(c) { return inClinic(c) && me().role == 'custom'; }
+    function pm(c, k) { return isCustom(c) && me().get('perms', {}).get(k, false) == true; }
+    function medR(c) { return isCustom(c) && me().get('perms', {}).get('med', 'none') == 'read'; }
+    // من يقرأ قائمة المرضى من الأدوار المخصّصة
+    function ptRead(c) { return pm(c, 'appts') || pm(c, 'patients') || pm(c, 'pay') || pm(c, 'fin') || pm(c, 'messages') || pm(c, 'reports') || medR(c); }
+    function validPerms(p) {
+      return p is map && p.keys().hasOnly(['appts', 'patients', 'pay', 'fin', 'expenses', 'reports', 'inventory', 'messages', 'settings', 'audit', 'med'])
+        && p.get('med', 'none') in ['none', 'read'];
+    }
     function isPatient(c, pid) { return inClinic(c) && me().role == 'patient' && pid in me().patientIds; }
     function isOwner() { return signedIn() && exists(/databases/$(database)/documents/owners/$(request.auth.uid)); }
     function cl(c) { return get(/databases/$(database)/documents/clinics/$(c)).data; }
@@ -57,7 +67,7 @@ service cloud.firestore {
     // نشاط العيادات لصاحب المنصة: أرقام فقط (آخر استخدام وعدد المرضى ومواعيد الشهر)، دون أي بيانات مرضى
     match /activity/{cid} {
       allow read: if isOwner();
-      allow create, update: if isStaff(cid)
+      allow create, update: if (isStaff(cid) || isCustom(cid))
         && request.resource.data.keys().hasOnly(['lastAt', 'patients', 'apptsMonth', 'day'])
         && request.resource.data.patients is int && request.resource.data.apptsMonth is int
         && request.resource.data.day is string && request.resource.data.lastAt == request.time;
@@ -135,7 +145,7 @@ service cloud.firestore {
       // دليل الأطباء: أي زائر يتصفح العيادات التي اختارت الظهور فقط
       allow list: if isOwner() || resource.data.get('listed', false) == true;
       allow create: if newClinicBy(c);
-      allow update: if isAdmin(c) || isOwner();
+      allow update: if isAdmin(c) || pm(c, 'settings') || isOwner();
       allow delete: if false;
     }
     match /rxVerify/{code} {
@@ -156,13 +166,18 @@ service cloud.firestore {
 
     // ---------- الحسابات ----------
     match /users/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || isStaff(resource.data.clinicId) || isOwner());
+      allow read: if signedIn() && (request.auth.uid == uid || isStaff(resource.data.clinicId) || isCustom(resource.data.clinicId) || isOwner());
       allow create: if
         (request.auth.uid == uid && request.resource.data.role == 'doctor' && request.resource.data.admin == true
           && newClinicBy(request.resource.data.clinicId))
         || (isAdmin(request.resource.data.clinicId) && clinicOK(request.resource.data.clinicId)
-            && request.resource.data.role in ['secretary', 'doctor', 'nurse', 'accountant'] && request.resource.data.admin == false)
-        || (isStaff(request.resource.data.clinicId) && clinicOK(request.resource.data.clinicId)
+            && request.resource.data.role in ['secretary', 'doctor', 'nurse', 'accountant'] && request.resource.data.admin == false
+            && !request.resource.data.keys().hasAny(['perms']))
+        || (isAdmin(request.resource.data.clinicId) && clinicOK(request.resource.data.clinicId)
+            && request.resource.data.role == 'custom' && request.resource.data.admin == false
+            && validPerms(request.resource.data.perms) && request.resource.data.roleTitle is string && request.resource.data.roleTitle.size() <= 40)
+        || ((isStaff(request.resource.data.clinicId) || pm(request.resource.data.clinicId, 'patients') || pm(request.resource.data.clinicId, 'appts'))
+            && clinicOK(request.resource.data.clinicId)
             && request.resource.data.role == 'patient' && request.resource.data.get('admin', false) == false
             && request.resource.data.active == true
             && request.resource.data.patientIds is list && request.resource.data.patientIds.size() >= 1
@@ -175,7 +190,10 @@ service cloud.firestore {
         || (isAdmin(resource.data.clinicId) && resource.data.role in ['secretary', 'doctor', 'nurse', 'accountant']
             && resource.data.get('admin', false) == false
             && onlyChanged(['active', 'name', 'title', 'mustChangePassword']))
-        || (isStaff(resource.data.clinicId) && resource.data.role == 'patient'
+        || (isAdmin(resource.data.clinicId) && resource.data.role == 'custom'
+            && onlyChanged(['active', 'name', 'title', 'mustChangePassword', 'perms', 'roleTitle'])
+            && validPerms(request.resource.data.perms) && request.resource.data.roleTitle is string && request.resource.data.roleTitle.size() <= 40)
+        || ((isStaff(resource.data.clinicId) || pm(resource.data.clinicId, 'patients') || pm(resource.data.clinicId, 'appts')) && resource.data.role == 'patient'
             && onlyChanged(['patientIds', 'active', 'mustChangePassword', 'lastPid'])
             && (request.resource.data.patientIds == resource.data.patientIds
                 // إزالة ملفات فقط
@@ -206,37 +224,44 @@ service cloud.firestore {
             && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['modules'])
                 || feature(c, 'multiSpecialty') || request.resource.data.modules.size() <= 1
                 || request.resource.data.modules.toSet().difference(['preg', 'gyn', 'cosm'].toSet()).size() == 0))
+        // صلاحية «إعدادات العيادة» لدور مخصّص: كالمسؤول، دون الأطباء والاختصاصات
+        || (pm(c, 'settings') && clinicOK(c)
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(['status', 'plan', 'expiresAt', 'features', 'maxDoctors', 'maxStaff', 'ownerUid', 'slug', 'referredBy', 'referralRewarded', 'referrals', 'doctors', 'modules']))
         // أي طبيب في العيادة يحفظ وصفاته الجاهزة وأسماء الأدوية
         || (isDoctor(c) && clinicOK(c) && onlyChanged(['drugs', 'rxTemplates']));
       allow delete: if false;
 
       match /phones/{phone} {
-        allow read: if isStaff(c);
-        allow create, update: if isStaff(c) && clinicOK(c);
+        allow read: if isStaff(c) || pm(c, 'patients') || pm(c, 'appts');
+        allow create, update: if (isStaff(c) || pm(c, 'patients') || pm(c, 'appts')) && clinicOK(c);
         allow delete: if false;
       }
 
       match /patients/{pid} {
-        allow read: if isStaff(c) || isPatient(c, pid);
-        allow create: if isStaff(c) && clinicOK(c);
-        allow update: if clinicOK(c) && ((isStaff(c)
+        allow read: if isStaff(c) || isPatient(c, pid) || ptRead(c);
+        allow create: if (isStaff(c) || pm(c, 'patients') || pm(c, 'appts')) && clinicOK(c);
+        allow update: if clinicOK(c) && (((isStaff(c) || pm(c, 'patients'))
             && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'phone'])
                 || (getAfter(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.phone == request.resource.data.phone
                     && getAfter(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.patientIds.hasAny([pid]))))
-          || (isPatient(c, pid) && onlyChanged(['lastMsgAt', 'lastMsgFrom', 'updatedAt'])));
+          || (isPatient(c, pid) && onlyChanged(['lastMsgAt', 'lastMsgFrom', 'updatedAt']))
+          // الدور المخصّص: المواعيد تربط المريض بالطبيب، والرسائل تحدّث آخر رسالة
+          || (pm(c, 'appts') && onlyChanged(['doctorIds', 'updatedAt']))
+          || (pm(c, 'messages') && onlyChanged(['lastMsgAt', 'lastMsgFrom', 'updatedAt'])));
         allow delete: if false;
 
         match /{sub}/{d} {
-          allow read: if (medSub(sub) && (canMed(c) || isPatient(c, pid)))
+          allow read: if (medSub(sub) && (canMed(c) || medR(c) || isPatient(c, pid)))
             || (sub == 'private' && isDoctor(c))
-            || (sub in ['procedures', 'files'] && (canMed(c) || isPatient(c, pid)))
-            || (sub == 'messages' && (isStaff(c) || isPatient(c, pid)));
+            || (sub in ['procedures', 'files'] && (canMed(c) || medR(c) || isPatient(c, pid)))
+            || (sub == 'messages' && (isStaff(c) || pm(c, 'messages') || isPatient(c, pid)));
           allow create: if clinicOK(c) && (
             ((medSub(sub) || sub in ['private', 'procedures', 'files']) && isDoctor(c))
             || (sub == 'vitals' && isPatient(c, pid) && request.resource.data.source == 'home')
             || (sub == 'vitals' && isNurse(c))
             || (sub == 'files' && isPatient(c, pid) && request.resource.data.uploadedBy == 'patient')
-            || (sub == 'messages' && isStaff(c) && request.resource.data.from == 'clinic')
+            || (sub == 'messages' && (isStaff(c) || pm(c, 'messages')) && request.resource.data.from == 'clinic')
             || (sub == 'messages' && isPatient(c, pid) && request.resource.data.from == 'patient'));
           allow update: if clinicOK(c) && (
             ((medSub(sub) || sub in ['private', 'procedures', 'files']) && isDoctor(c))
@@ -249,7 +274,7 @@ service cloud.firestore {
           // الملف الكامل للصورة أو المستند (يُحمَّل عند فتحه فقط)
           match /blob/{b} {
             allow read: if (sub == 'private' && isDoctor(c))
-              || (sub == 'files' && (canMed(c) || isPatient(c, pid)));
+              || (sub == 'files' && (canMed(c) || medR(c) || isPatient(c, pid)));
             allow create: if clinicOK(c) && b == 'main'
               && request.resource.data.data is string && request.resource.data.data.size() < 1000000
               && ((sub in ['private', 'files'] && isDoctor(c))
@@ -261,9 +286,9 @@ service cloud.firestore {
       }
 
       match /appointments/{a} {
-        allow read: if isStaff(c) || isPatient(c, resource.data.patientId);
-        allow create: if isStaff(c) && clinicOK(c);
-        allow update: if clinicOK(c) && (isStaff(c)
+        allow read: if isStaff(c) || isPatient(c, resource.data.patientId) || ptRead(c);
+        allow create: if (isStaff(c) || pm(c, 'appts')) && clinicOK(c);
+        allow update: if clinicOK(c) && (isStaff(c) || pm(c, 'appts')
           || (isPatient(c, resource.data.patientId)
               && (onlyChanged(['rating', 'ratingNote'])
                   || (onlyChanged(['status', 'cancelledBy']) && request.resource.data.status == 'cancelled')
@@ -277,16 +302,16 @@ service cloud.firestore {
       }
 
       match /requests/{r} {
-        allow read: if isStaff(c) || isPatient(c, resource.data.patientId);
-        allow create: if clinicOK(c) && (isStaff(c)
+        allow read: if isStaff(c) || pm(c, 'appts') || isPatient(c, resource.data.patientId);
+        allow create: if clinicOK(c) && (isStaff(c) || pm(c, 'appts')
           || (isPatient(c, request.resource.data.patientId) && request.resource.data.status == 'new'));
-        allow update: if isStaff(c) && clinicOK(c);
+        allow update: if (isStaff(c) || pm(c, 'appts')) && clinicOK(c);
         allow delete: if false;
       }
 
       // طلبات الحجز من الصفحة العامة (بدون حساب)
       match /publicRequests/{r} {
-        allow read, update: if isStaff(c);
+        allow read, update: if isStaff(c) || pm(c, 'appts');
         allow create: if clinicOK(c) && feature(c, 'booking')
           && get(/databases/$(database)/documents/publicClinics/$(c)).data.bookingEnabled == true
           && request.resource.data.keys().hasOnly(['name', 'phone', 'date', 'time', 'doctorId', 'service', 'note', 'status', 'createdAt'])
@@ -300,50 +325,52 @@ service cloud.firestore {
       // الأوقات المحجوزة فقط، بدون أسماء (لصفحة الحجز العامة)
       match /busy/{date} {
         allow read: if true;
-        allow create, update: if isStaff(c) && clinicOK(c);
+        allow create, update: if (isStaff(c) || pm(c, 'appts')) && clinicOK(c);
         allow delete: if false;
       }
 
       match /payments/{p} {
-        allow read: if isStaff(c) || isPatient(c, resource.data.patientId);
-        allow create: if isStaff(c) && clinicOK(c);
-        allow update: if (isDoctor(c) || isAcct(c)) && clinicOK(c);
+        allow read: if isStaff(c) || isPatient(c, resource.data.patientId) || pm(c, 'pay') || pm(c, 'fin') || pm(c, 'reports');
+        allow create: if (isStaff(c) || pm(c, 'pay') || pm(c, 'fin')) && clinicOK(c);
+        allow update: if (isDoctor(c) || isAcct(c) || pm(c, 'fin')) && clinicOK(c);
         allow delete: if false;
       }
 
       match /inventory/{i} {
-        allow read: if isStaff(c);
-        allow create, update: if isStaff(c) && clinicOK(c) && feature(c, 'inventory');
+        allow read: if isStaff(c) || pm(c, 'inventory') || pm(c, 'appts');
+        allow create, update: if (isStaff(c) || pm(c, 'inventory')) && clinicOK(c) && feature(c, 'inventory');
+        // خصم المواد تلقائياً عند انتهاء موعد بيد دور مخصّص للمواعيد
+        allow update: if pm(c, 'appts') && clinicOK(c) && feature(c, 'inventory') && onlyChanged(['qty', 'moves', 'updatedAt']);
         allow delete: if false;
       }
 
       match /waitlist/{w} {
-        allow read: if isStaff(c);
-        allow create, update: if isStaff(c) && clinicOK(c);
+        allow read: if isStaff(c) || pm(c, 'appts');
+        allow create, update: if (isStaff(c) || pm(c, 'appts')) && clinicOK(c);
         allow delete: if false;
       }
       match /live/{d} {
         // لوحة الدور (أرقام فقط دون أسماء) يراها مرضى العيادة ليعرفوا كم شخصاً قبلهم؛ رمز الحضور للفريق فقط
-        allow read: if isStaff(c) || (d == 'queue' && inClinic(c));
-        allow create, update: if isStaff(c) && clinicOK(c);
+        allow read: if isStaff(c) || pm(c, 'appts') || (d == 'queue' && inClinic(c));
+        allow create, update: if (isStaff(c) || pm(c, 'appts')) && clinicOK(c);
         allow delete: if false;
       }
 
       // تنبيهات الحمل والإحصاءات الطبية: للأطباء فقط
       // مصاريف العيادة: للأطباء فقط
       match /expenses/{e} {
-        allow read: if isDoctor(c) || isAcct(c);
-        allow create, update: if (isDoctor(c) || isAcct(c)) && clinicOK(c);
+        allow read: if isDoctor(c) || isAcct(c) || pm(c, 'expenses');
+        allow create, update: if (isDoctor(c) || isAcct(c) || pm(c, 'expenses')) && clinicOK(c);
         allow delete: if false;
       }
 
       match /pregAlerts/{d} {
-        allow read: if isDoctor(c);
+        allow read: if isDoctor(c) || medR(c);
         allow create, update: if isDoctor(c) && clinicOK(c);
         allow delete: if false;
       }
       match /stats/{d} {
-        allow read: if isDoctor(c);
+        allow read: if isDoctor(c) || pm(c, 'reports');
         allow create, update: if isDoctor(c) && clinicOK(c);
         allow delete: if false;
       }
@@ -354,7 +381,7 @@ service cloud.firestore {
       }
 
       match /audit/{x} {
-        allow read: if isAdmin(c);
+        allow read: if isAdmin(c) || pm(c, 'audit');
         allow create: if inClinic(c) && request.resource.data.by == request.auth.uid;
         allow update, delete: if false;
       }

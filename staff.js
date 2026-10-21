@@ -14,11 +14,46 @@ export const isDoctor = () => S.profile.role === "doctor";
 export const isAdmin = () => isDoctor() && !!S.profile.admin;
 export const isNurse = () => S.profile.role === "nurse";
 export const isAcct = () => S.profile.role === "accountant";
-// من يطّلع على السجل الطبي: الطبيب والممرض
-export const canMed = () => isDoctor() || isNurse();
-// من يطّلع على الحسابات الكاملة: الطبيب والمحاسب
-export const canFin = () => isDoctor() || isAcct();
+// حساب بدور مخصّص: المسؤول يسمّي الدور ويختار صلاحياته (perms)
+export const isCustom = () => S.profile.role === "custom";
+export const cp = (k) => isCustom() && S.profile.perms?.[k] === true;
+// السجل الطبي للدور المخصّص: عرض فقط (الكتابة للأطباء)
+export const medView = () => isCustom() && S.profile.perms?.med === "read";
+// من يطّلع على السجل الطبي: الطبيب والممرض، ومن أُعطي صلاحية العرض
+export const canMed = () => isDoctor() || isNurse() || medView();
+// من يطّلع على الحسابات الكاملة: الطبيب والمحاسب، ومن أُعطي الصلاحية
+export const canFin = () => isDoctor() || isAcct() || cp("fin");
+export const canExp = () => isDoctor() || isAcct() || cp("expenses");
+// صلاحيات الدور المخصّص لصفحات الفريق (غير المخصّص يعمل كما كان تماماً)
+export const canAppts = () => !isCustom() || cp("appts");
+export const canPay = () => !isCustom() || cp("pay") || cp("fin");
+export const canMsgs = () => !isCustom() || cp("messages");
+export const canInv = () => feat("inventory") && (!isCustom() || cp("inventory"));
+export const canPtList = () => !isCustom() || cp("patients") || cp("appts") || cp("pay") || cp("fin") || cp("messages") || medView();
+export const canPtEdit = () => !isCustom() || cp("patients");
+export const canPtNew = () => !isCustom() || cp("patients") || cp("appts");
 export const ROLES = { doctor: "طبيب", secretary: "سكرتارية", nurse: "ممرض/ة", accountant: "محاسب" };
+export const roleLabel = (u = S.profile) => (u.role === "custom" ? u.roleTitle || "دور مخصّص" : ROLES[u.role] || "");
+// صلاحيات الدور المخصّص وقوالب جاهزة لتعبئتها
+export const PERMS = [
+  ["appts", "المواعيد والحجز وطلبات المواعيد (مع تسجيل مريض جديد عند الحجز)"],
+  ["patients", "المرضى: التسجيل وتعديل البيانات الإدارية وحسابات المرضى والاستيراد"],
+  ["pay", "تسجيل الدفعات اليومية"],
+  ["fin", "الحسابات الكاملة والدفعات المستحقة وإغلاق الصندوق"],
+  ["expenses", "مصاريف العيادة"],
+  ["reports", "التقارير"],
+  ["inventory", "المخزون والمستودع"],
+  ["messages", "الرسائل للمرضى"],
+  ["settings", "إعدادات العيادة"],
+  ["audit", "سجل التعديلات"],
+];
+export const PERM_PRESETS = {
+  manager: ["المدير العام", { appts: true, patients: true, pay: true, fin: true, expenses: true, reports: true, inventory: true, messages: true, settings: true, audit: true, med: "none" }],
+  secretary: ["سكرتارية", { appts: true, patients: true, pay: true, messages: true, med: "none" }],
+  accountant: ["محاسب", { appts: true, patients: true, pay: true, fin: true, expenses: true, med: "none" }],
+  store: ["مدير المستودع", { inventory: true, med: "none" }],
+  nurse: ["ممرض/ة", { appts: true, patients: true, pay: true, messages: true, med: "read" }],
+};
 // تعدد الاختصاصات متاح لباقة المراكز الطبية فقط
 export const multiSpec = () => !!S.clinic?.features?.multiSpecialty || S.clinic?.plan === "center";
 export const specMods = (spec = S.clinic?.specialty) => SPECIALTIES[spec]?.modules || [];
@@ -127,8 +162,8 @@ export function start() {
     ["patients", "المرضى", "M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM21 19v-1a4 4 0 0 0-3-3.9M15 3.1a3.5 3.5 0 0 1 0 6.8"],
     ["money", "الحسابات", "M3 6h18v12H3zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"],
     ["more", "المزيد", "M5 12h.01M12 12h.01M19 12h.01"],
-  ];
-  const roleName = isAdmin() ? "مسؤول العيادة" : ROLES[S.profile.role] || "السكرتارية";
+  ].filter(([k]) => !isCustom() || k === "home" || k === "more" || (k === "appts" && canAppts()) || (k === "patients" && canPtList()) || (k === "money" && canPay()));
+  const roleName = isAdmin() ? "مسؤول العيادة" : roleLabel() || "السكرتارية";
   $("#app").innerHTML = `
     <header class="topbar">
       <a href="#/" class="tb-brand">${logoHtml(S.pub, 36)}<span>${esc(S.pub.name || "العيادة")}</span></a>
@@ -141,9 +176,10 @@ export function start() {
     </nav>`;
   subBar();
   window.addEventListener("clinic-updated", subBar);
-  watchPatients();
+  // الدور المخصّص: لا نتابع إلا ما تسمح به صلاحياته
+  if (canPtList()) watchPatients(); else PC._ready = true;
   watchBadges();
-  import("./live.js").then((m) => { m.watchToday(); m.startSummary(); }).catch((e) => console.warn(e));
+  if (canAppts()) import("./live.js").then((m) => { m.watchToday(); m.startSummary(); }).catch((e) => console.warn(e));
   window.onhashchange = render;
   render();
 }
@@ -162,9 +198,11 @@ function subBar() {
 
 function watchBadges() {
   const upd = () => setBadge("more", (S._reqCount || 0) + (S._pubCount || 0) + (S._msgCount || 0));
-  S.unsub.push(onSnapshot(query(P.col("requests"), where("status", "==", "new")), (s) => { S._reqCount = s.size; upd(); }, () => {}));
-  S.unsub.push(onSnapshot(query(P.col("publicRequests"), where("status", "==", "new")), (s) => { S._pubCount = s.size; upd(); }, () => {}));
-  S.unsub.push(onSnapshot(query(P.patients(), where("lastMsgFrom", "==", "patient")), (s) => { S._msgCount = s.size; upd(); }, () => {}));
+  if (canAppts()) {
+    S.unsub.push(onSnapshot(query(P.col("requests"), where("status", "==", "new")), (s) => { S._reqCount = s.size; upd(); }, () => {}));
+    S.unsub.push(onSnapshot(query(P.col("publicRequests"), where("status", "==", "new")), (s) => { S._pubCount = s.size; upd(); }, () => {}));
+  }
+  if (canMsgs() && canPtList()) S.unsub.push(onSnapshot(query(P.patients(), where("lastMsgFrom", "==", "patient")), (s) => { S._msgCount = s.size; upd(); }, () => {}));
 }
 function setBadge(k, n) {
   const b = $(`[data-badge="${k}"]`);
@@ -181,6 +219,14 @@ async function render() {
   if (!m) return;
   m.innerHTML = `<div class="loading">جارٍ التحميل…</div>`;
   const admin = () => import("./admin.js");
+  // الدور المخصّص: كل صفحة تتطلب صلاحيتها، وإلا تظهر قائمة «المزيد»
+  const CR = {
+    appts: canAppts, requests: canAppts, waitlist: canAppts, remind: canAppts, "checkin-qr": canAppts, tv: canAppts,
+    patients: canPtList, p: canPtList, money: canPay, debts: () => cp("fin"), closing: () => cp("fin"), messages: canMsgs,
+    inventory: canInv, settings: () => cp("settings"), reports: () => cp("reports"), expenses: canExp, audit: () => cp("audit"),
+    team: () => false, subscription: () => false, backup: () => false, library: () => false, assistant: () => false, druged: () => false,
+  };
+  if (isCustom() && CR[r] && !CR[r]()) { history.replaceState(null, "", "#/more"); return renderMore(); }
   try {
     switch (r) {
       case "home": return await renderHome();
@@ -198,16 +244,16 @@ async function render() {
       case "messages": return await renderMessages();
       case "tv": return renderTv();
       case "inventory": return feat("inventory") ? (await admin()).renderInventory() : renderMore();
-      case "settings": return isAdmin() ? (await admin()).renderSettings() : renderMore();
+      case "settings": return isAdmin() || cp("settings") ? (await admin()).renderSettings() : renderMore();
       case "team": return isAdmin() ? (await admin()).renderTeam() : renderMore();
       case "subscription": return isAdmin() ? (await admin()).renderSubscription() : renderMore();
-      case "reports": return isDoctor() ? await renderReports() : renderMore();
+      case "reports": return isDoctor() || cp("reports") ? await renderReports() : renderMore();
       case "library": return isDoctor() ? (await import("./medref.js")).renderLibrary() : renderMore();
       case "assistant": return isDoctor() ? (await import("./medref.js")).renderAssistant() : renderMore();
       case "druged": return isDoctor() ? (await import("./medref.js")).renderDrugEd() : renderMore();
       case "faq": return await renderFaq();
-      case "expenses": return canFin() ? await renderExpenses() : renderMore();
-      case "audit": return isAdmin() ? await renderAudit() : renderMore();
+      case "expenses": return canExp() ? await renderExpenses() : renderMore();
+      case "audit": return isAdmin() || cp("audit") ? await renderAudit() : renderMore();
       case "backup": return isAdmin() ? renderBackup() : renderMore();
       case "password": return showChangePassword(false);
       default: return await renderHome();
@@ -231,7 +277,35 @@ function bindDocFilter(cb) {
 const byDoc = (arr) => (S.docFilter && S.docFilter !== "all" ? arr.filter((a) => apptDoc(a) === S.docFilter) : arr);
 
 // ---------- الرئيسية ----------
+// رئيسية الدور المخصّص الذي لا يملك صلاحية المواعيد: اختصارات لما يملكه فقط
+async function renderCustomHome() {
+  const links = [
+    ...(canPtList() ? [["#/patients", "👥", "المرضى"]] : []),
+    ...(canPay() ? [["#/money", "💵", "الحسابات"]] : []),
+    ...(cp("fin") ? [["#/debts", "🧾", "الدفعات المستحقة"]] : []),
+    ...(canExp() ? [["#/expenses", "📉", "مصاريف العيادة"]] : []),
+    ...(cp("reports") ? [["#/reports", "📊", "التقارير"]] : []),
+    ...(canInv() ? [["#/inventory", "📦", "المخزون"]] : []),
+    ...(canMsgs() ? [["#/messages", "💬", "رسائل المرضى"]] : []),
+    ...(cp("settings") ? [["#/settings", "⚙️", "إعدادات العيادة"]] : []),
+    ...(cp("audit") ? [["#/audit", "🗂", "سجل التعديلات"]] : []),
+  ];
+  const alerts = [];
+  if (canInv()) {
+    const today = ymd(), inv = await list(P.col("inventory")).catch(() => []);
+    const low = inv.filter((i) => !i.archived && Number(i.qty) <= Number(i.min || 0));
+    const exp = inv.filter((i) => !i.archived && i.expiry && i.expiry <= addDays(today, 30));
+    if (low.length) alerts.push(`<li><a href="#/inventory">📦 ${low.length} صنف وصل إلى الحد الأدنى: ${esc(low.slice(0, 3).map((i) => i.name).join("، "))}</a></li>`);
+    if (exp.length) alerts.push(`<li><a href="#/inventory">⏳ ${exp.length} صنف ينتهي خلال شهر</a></li>`);
+  }
+  main().innerHTML = `<h2 class="page-title">${esc(fmtDate(ymd()))}</h2>
+    <p class="muted">أهلاً ${esc(S.profile.name || "")} · ${esc(roleLabel())}</p>
+    ${alerts.length ? `<section class="card alerts"><h3>تنبيهات</h3><ul class="plain">${alerts.join("")}</ul></section>` : ""}
+    ${links.length ? `<div class="stats">${links.map(([h, i, t]) => `<a class="stat" href="${h}"><b>${i}</b><span>${esc(t)}</span></a>`).join("")}</div>` : empty("لا توجد صلاحيات لهذا الحساب بعد. تواصل مع مسؤول العيادة.")}`;
+}
+
 async function renderHome() {
+  if (isCustom() && !canAppts()) return renderCustomHome();
   const today = ymd();
   const appts = byDoc((await list(query(P.col("appointments"), where("date", "==", today))))
     .filter((a) => a.status !== "cancelled")).sort((a, b) => a.time.localeCompare(b.time));
@@ -254,7 +328,7 @@ async function renderHome() {
     const due = PC.list.filter((p) => !p.archived && p.nextVaccine?.date && p.nextVaccine.date <= addDays(today, 7)).sort((a, b) => a.nextVaccine.date.localeCompare(b.nextVaccine.date));
     due.slice(0, 8).forEach((p) => alerts.push(`<li><a href="#/p/${p.id}/peds">💉 ${esc(p.name)}: ${esc(p.nextVaccine.name)} (${p.nextVaccine.date < today ? "متأخر" : esc(fmtDate(p.nextVaccine.date, false))})</a></li>`));
   }
-  if (feat("inventory")) {
+  if (canInv()) {
     const inv = await list(P.col("inventory")).catch(() => []);
     const low = inv.filter((i) => !i.archived && Number(i.qty) <= Number(i.min || 0));
     const exp = inv.filter((i) => !i.archived && i.expiry && i.expiry <= addDays(today, 30));
@@ -399,7 +473,7 @@ export async function apptActions(a) {
         ${a.status === "confirmed" ? `<button class="btn" data-act="noshow">لم يحضر</button>` : ""}
         ${doc_ ? `<button class="btn primary" data-act="visit">تسجيل زيارة</button>` : ""}
         <button class="btn" data-act="card">${canMed() ? "السجل الطبي" : "بيانات المريض"}</button>
-        <button class="btn" data-act="pay">تسجيل دفعة</button>
+        ${canPay() ? `<button class="btn" data-act="pay">تسجيل دفعة</button>` : ""}
         <button class="btn" data-act="remind">📲 تذكير المريض</button>
         <a class="btn" href="tel:${esc(a.phone || p.phone || "")}">اتصال</a>
         ${!["done", "cancelled"].includes(a.status) ? `<button class="btn" data-act="move">تأجيل</button><button class="btn danger" data-act="cancel">إلغاء الموعد</button>` : ""}
@@ -455,10 +529,11 @@ export const smsLink = (phone, text) => `sms:${phone || ""}?body=${encodeURIComp
 const hasApp = (pid) => !!(pid && PC.byId[pid]?.uid);
 export function sendBtns(phone, text, pid, { small = false, id = "", kind = "note" } = {}) {
   const s = small ? "small" : "";
-  if (!phone && !hasApp(pid)) return "";
+  const app = hasApp(pid) && canMsgs();
+  if (!phone && !app) return "";
   return `<span class="send-btns" data-id="${esc(id)}">
     ${phone ? `<a class="btn ${s} primary sb-wa" target="_blank" rel="noopener" href="${esc(waLink(phone, text))}">💬 واتساب</a><a class="btn ${s} sb-sms" href="${esc(smsLink(phone, text))}">✉️ SMS</a><button type="button" class="btn ${s} sb-cp" data-text="${esc(text)}" data-phone="${esc(phone)}" title="نسخ الرسالة لإرسالها من أي تطبيق">📋 نسخ</button>` : ""}
-    ${hasApp(pid) ? `<button type="button" class="btn ${s} sb-app" data-pid="${esc(pid)}" data-kind="${esc(kind)}" data-text="${esc(text)}">📱 التطبيق</button>` : ""}</span>`;
+    ${app ? `<button type="button" class="btn ${s} sb-app" data-pid="${esc(pid)}" data-kind="${esc(kind)}" data-text="${esc(text)}">📱 التطبيق</button>` : ""}</span>`;
 }
 // إرسال رسالة إلى تطبيق المريض: تظهر في «الرسائل» ويصله إشعار على جواله
 export async function sendToApp(pid, text, kind = "note") {
@@ -998,14 +1073,14 @@ function renderPatients() {
   if (existing) { $("#pt-results").innerHTML = chip + html; const c = $(".page-title .muted"); if (c) c.textContent = `(${PC.list.filter((p) => !p.archived).length})`; return; }
   main().innerHTML = `
     <div class="row-between"><h2 class="page-title">المرضى <span class="muted small">(${PC.list.filter((p) => !p.archived).length})</span></h2>
-      <div class="row gap"><button class="btn imp-x">📥 استيراد من إكسل</button><button class="btn primary new">+ مريض جديد</button></div></div>
+      <div class="row gap">${canPtEdit() ? `<button class="btn imp-x">📥 استيراد من إكسل</button>` : ""}${canPtNew() ? `<button class="btn primary new">+ مريض جديد</button>` : ""}</div></div>
     <input id="pt-q" class="search" type="search" placeholder="البحث بالاسم أو رقم الجوال" value="${esc(ptFilter)}" aria-label="بحث">
     ${newOnly ? "" : `<label class="check small"><input type="checkbox" class="arch" ${showArchived ? "checked" : ""}><span>عرض المؤرشفين</span></label>`}
     <div id="pt-results">${chip}${html}</div>`;
   $("#pt-q").oninput = debounce((e) => { ptFilter = e.target.value; renderPatients(); }, 120);
   $(".arch")?.addEventListener("change", (e) => { showArchived = e.target.checked; renderPatients(); });
-  $(".new").onclick = () => newPatientModal();
-  $(".imp-x").onclick = async () => (await import("./importx.js")).importPatients();
+  $(".new")?.addEventListener("click", () => newPatientModal());
+  $(".imp-x")?.addEventListener("click", async () => (await import("./importx.js")).importPatients());
 }
 
 export function ageText(p) {
@@ -1188,10 +1263,33 @@ async function renderFaq() {
     <div class="guide-cta"><a class="btn primary" href="${esc(GUIDE_URL)}" target="_blank" rel="noopener">📘 الدليل الشامل لمنصة نبض (PDF)</a></div>`;
 }
 // ---------- المزيد ----------
+// قائمة الدور المخصّص: ما تسمح به صلاحياته فقط
+function customMenu(req) {
+  const daily = [
+    ...(canAppts() ? [["#/requests", "طلبات المواعيد", req]] : []),
+    ...(canMsgs() ? [["#/messages", "رسائل المرضى", S._msgCount]] : []),
+    ...(canAppts() ? [["#/remind", "تذكير مواعيد الغد (واتساب)"]] : []),
+    ...(cp("fin") ? [["#/closing", "إغلاق الصندوق اليومي"], ["#/debts", "تحصيل الدفعات المستحقة"]] : []),
+    ...(canAppts() ? [["#/waitlist", "الحالات الإسعافية (أقرب موعد يتوفر)"], ["#/tv", "شاشة الانتظار (للتلفاز)"], ["#/checkin-qr", "📲 تسجيل الحضور بمسح QR"]] : []),
+    ...(canInv() ? [["#/inventory", "المخزون"]] : []),
+  ];
+  const mgmt = [
+    ...(cp("reports") ? [["#/reports", "التقارير"]] : []),
+    ...(canExp() ? [["#/expenses", "مصاريف العيادة"]] : []),
+    ...(cp("settings") ? [["#/settings", "إعدادات العيادة"]] : []),
+    ...(cp("audit") ? [["#/audit", "سجل التعديلات"]] : []),
+  ];
+  return [
+    ...(daily.length ? [["العمل اليومي", daily]] : []),
+    ...(mgmt.length ? [["الإدارة", mgmt]] : []),
+    ["المساعدة", [["#/faq", "أسئلة شائعة"], [/NabdApp/.test(navigator.userAgent) ? `https://nabdsy.web.app/${document.documentElement.lang === "en" ? "guide_en.pdf" : "guide.pdf"}` : new URL(document.documentElement.lang === "en" ? "./guide_en.pdf" : "./guide.pdf", import.meta.url).href, "📘 الدليل الشامل لمنصة نبض (PDF)"]]],
+    ["الحساب", [["#/password", "تغيير كلمة المرور"]]],
+  ];
+}
 function renderMore() {
   const a = isAdmin(), d = isDoctor(), acct = isAcct();
   const req = (S._reqCount || 0) + (S._pubCount || 0);
-  const groups = [
+  const groups = isCustom() ? customMenu(req) : [
     ["العمل اليومي", [
       ["#/requests", "طلبات المواعيد", req],
       ["#/messages", "رسائل المرضى", S._msgCount],

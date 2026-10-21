@@ -9,7 +9,7 @@ import { makeThumb, tileImg, isImg, showFile, shareImages, CASH_METHODS, freqTex
 } from "./ui.js";
 import { S } from "./app.js";
 import { isEn as isEnL } from "./i18n.js";
-import { PC, isDoctor, isNurse, specMods, mySpec, myDoctor, docPub, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName, composeToPatient } from "./staff.js";
+import { PC, isDoctor, isNurse, isCustom, medView, canAppts, canPay, canMsgs, canPtEdit, specMods, mySpec, myDoctor, docPub, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName, composeToPatient } from "./staff.js";
 const mods = () => import("./mods.js");
 const women = () => hasMod("preg") || hasMod("gyn");
 
@@ -49,7 +49,13 @@ export async function renderCard() {
     ["cosm", S.clinic?.specialty === "obgyn" ? "التجميل" : "الإجراءات والجلسات", hasMod("cosm")],
   ].filter((x) => x[2]).map(([k, t]) => [k, t]);
   const nurse = isNurse();
-  const tabs = nurse
+  const custom = isCustom();
+  const tabs = custom
+    // الدور المخصّص: السجل الطبي للعرض فقط إن سُمح، ثم ما تسمح به صلاحياته
+    ? [...(medView() ? [["summary", "الملخص"], ...modTabs.filter(([k]) => ["chronic", "peds", "dental", "preg", "eye"].includes(k)), ["visits", "الزيارات"], ["rx", "الوصفات"], ["files", "التحاليل والملفات"]] : []),
+       ["info", "البيانات"], ...(canAppts() ? [["appts", "المواعيد"]] : []), ...(canPay() ? [["money", "الحسابات"]] : []),
+       ...(canMsgs() ? [["msgs", "الرسائل"]] : []), ...(canPtEdit() ? [["account", "الحساب"]] : [])]
+    : nurse
     ? [["summary", "الملخص"], ...modTabs.filter(([k]) => ["chronic", "peds", "dental", "preg", "eye"].includes(k)), ["visits", "الزيارات"], ["rx", "الوصفات"], ["files", "التحاليل والملفات"], ["appts", "المواعيد"], ["info", "البيانات"], ["msgs", "الرسائل"]]
     : doctor
     ? [["summary", "الملخص"], ...modTabs, ["visits", "الزيارات"], ["rx", "الوصفات"], ["files", "التحاليل والملفات"], ["private", "ملاحظات خاصة"], ["appts", "المواعيد"], ["money", "الحسابات"], ["msgs", "الرسائل"], ["account", "الحساب"]]
@@ -63,18 +69,18 @@ export async function renderCard() {
         <div class="muted small"><span dir="ltr">${esc(p.phone)}</span>${ageText(p) ? ` · ${esc(ageText(p))}` : ""}${p.bloodType ? ` · فصيلة ${esc(p.bloodType)}` : ""}</div></div>
     </div>
     <div class="row gap wrap quick">
-      <button class="btn small primary q-book">+ موعد</button>
+      ${!custom || canAppts() ? `<button class="btn small primary q-book">+ موعد</button>` : ""}
       ${doctor ? `<button class="btn small q-visit">تسجيل زيارة</button><button class="btn small q-rx">وصفة</button><button class="btn small q-doc">📄 ورقة طبية</button><button class="btn small q-lab">🧪 طلب تحاليل وأشعة</button>${hasMod("dental") ? `<button class="btn small q-dlab">🦷 طلب للمخبر</button>` : ""}<button class="btn small q-file">🖨 السجل الطبي</button>` : ""}
-      <button class="btn small q-pay">دفعة</button>
+      ${!custom || canPay() ? `<button class="btn small q-pay">دفعة</button>` : ""}
       <a class="btn small" href="tel:${esc(p.phone)}">اتصال</a>
-      <button class="btn small q-msg">📨 مراسلة</button>
+      ${!custom || canMsgs() ? `<button class="btn small q-msg">📨 مراسلة</button>` : ""}
     </div>
     <nav class="tabs" aria-label="أقسام البطاقة">${tabs.map(([k, t]) => `<a href="#/p/${pid}/${k}" class="${k === tab ? "on" : ""}">${esc(t)}</a>`).join("")}</nav>
     <div id="tab" class="tab-body"><div class="loading">جارٍ التحميل…</div></div>`;
   $(".tabs .on")?.scrollIntoView({ inline: "center", block: "nearest" });
-  $(".q-book").onclick = () => bookModal({ pid });
-  $(".q-pay").onclick = () => paymentModal(pid);
-  $(".q-msg").onclick = () => composeToPatient(p);
+  $(".q-book")?.addEventListener("click", () => bookModal({ pid }));
+  $(".q-pay")?.addEventListener("click", () => paymentModal(pid));
+  $(".q-msg")?.addEventListener("click", () => composeToPatient(p));
   $(".q-visit")?.addEventListener("click", () => visitModal(pid));
   $(".q-rx")?.addEventListener("click", () => rxModal(pid));
   $(".q-doc")?.addEventListener("click", () => medDocModal(pid));
@@ -83,9 +89,10 @@ export async function renderCard() {
   $(".q-file")?.addEventListener("click", () => printPatientFile(pid));
   const T = { summary, info: infoTab, visits, rx, preg, gyn, cosm, files, private: privateTab, appts, money: moneyTab, msgs, account };
   try {
-    if (!T[tab]) { const M = await mods(); await M[tab](p, tabEl(), refresh); if (nurse) nurseReadOnly(tab); return; }
+    if (!T[tab]) { const M = await mods(); await M[tab](p, tabEl(), refresh); if (nurse) nurseReadOnly(tab); if (custom) customReadOnly(tab); return; }
     await T[tab](p);
     if (nurse) nurseReadOnly(tab);
+    if (custom) customReadOnly(tab);
   } catch (e) { console.error(e); $("#tab").innerHTML = `<p class="alert">${esc(errMsg(e))}</p>`; }
 }
 const tabEl = () => $("#tab");
@@ -618,6 +625,19 @@ export async function printPatientFile(pid) {
 function nurseReadOnly(tab) {
   if (["chronic", "appts", "info", "msgs"].includes(tab)) return;
   const el = tabEl(); if (!el) return;
+  el.querySelectorAll("button, .btn").forEach((b) => {
+    if (b.closest(".tile, .file-tile, .arch, details > summary") || b.matches(".tile, .file-tile, .t-chip, .pf, [data-file], [data-view]")) return;
+    b.remove();
+  });
+  el.querySelectorAll(".arch .t.tap, .t-chip").forEach((x) => { x.onclick = null; x.style.pointerEvents = "none"; });
+  if (!el.querySelector(".ro-note")) el.insertAdjacentHTML("afterbegin", `<p class="muted small ro-note">👁 عرض فقط: التعديل على السجل الطبي للطبيب.</p>`);
+}
+
+// الدور المخصّص: السجل الطبي عرض فقط، وتعديل البيانات الأساسية لمن يملك صلاحية المرضى
+function customReadOnly(tab) {
+  const el = tabEl(); if (!el) return;
+  if (tab === "info") { if (!canPtEdit()) el.querySelectorAll(".ed").forEach((b) => b.remove()); return; }
+  if (["appts", "money", "msgs", "account"].includes(tab)) return;
   el.querySelectorAll("button, .btn").forEach((b) => {
     if (b.closest(".tile, .file-tile, .arch, details > summary") || b.matches(".tile, .file-tile, .t-chip, .pf, [data-file], [data-view]")) return;
     b.remove();

@@ -2,7 +2,7 @@
 import { db, P, doc, writeBatch, serverTimestamp, audit, normPhone } from "./fb.js";
 import { $, esc, toast, errMsg, modal, pickFile, ymd } from "./ui.js";
 import { S } from "./app.js";
-import { PC, canMed } from "./staff.js";
+import { PC, isDoctor } from "./staff.js";
 
 // مكتبة قراءة الإكسل (SheetJS) محفوظة مع التطبيق فتعمل دون إنترنت، وتُحمَّل عند الحاجة فقط
 let xlsxP = null;
@@ -104,7 +104,7 @@ export async function importPatients() {
       wb = XLSX.read(text.replace(/^\uFEFF/, ""), { type: "string", cellDates: true, raw: false });
     } else wb = XLSX.read(buf, { type: "array", cellDates: true });
   } catch (e) { return toast(errMsg(e) || "تعذّر قراءة الملف", true); }
-  const med = canMed();
+  const med = isDoctor(); // السجل الطبي يكتبه الطبيب فقط (القواعد ترفض غيره)
   let sheet = wb.SheetNames.find((n) => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, blankrows: false }).length) || wb.SheetNames[0];
   let rows = [], hi = 0, map = {};
   const load = () => {

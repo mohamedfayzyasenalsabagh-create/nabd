@@ -57,7 +57,7 @@ export async function ensureSeed() {
     rxTemplates: [{ name: "وصفتي بعد التنظيف", items: [{ drug: "Chlorhexidine 0.12% mouthwash", dose: "مضمضة 15 مل", times: "08:00, 20:00", days: 7, note: "" }] }],
     status: "active", plan: "pro", expiresAt: { __t: Date.now() + 365 * 864e5 },
     features: { booking: true, inventory: true, qr: true, multiDoctor: true, multiSpecialty: false },
-    maxDoctors: 3, maxStaff: 3, ownerUid: DEMO.doctor.uid, ownerEmail: DEMO.doctor.email, ownerPhone: "0933000111",
+    maxDoctors: 3, maxStaff: 10, ownerUid: DEMO.doctor.uid, ownerEmail: DEMO.doctor.email, ownerPhone: "0933000111",
     createdAt: ts(addDays(today, -120)),
   };
   put(`clinics/${cid}`, clinic);
@@ -76,6 +76,10 @@ export async function ensureSeed() {
   account(DEMO.secretary.uid, `s${DEMO.secretary.phone}@clinic-${cid}.app`, { role: "secretary", admin: false, doctorId: null, name: "رنا", title: "", phone: DEMO.secretary.phone });
   account("u-nur", `s0955000333@clinic-${cid}.app`, { role: "nurse", admin: false, doctorId: null, name: "هيا", title: "", phone: "0955000333" });
   account("u-acc", `s0955000444@clinic-${cid}.app`, { role: "accountant", admin: false, doctorId: null, name: "ماهر", title: "", phone: "0955000444" });
+  const P0 = { appts: false, patients: false, pay: false, fin: false, expenses: false, reports: false, inventory: false, messages: false, settings: false, audit: false, med: "none" };
+  account("u-mgr", `s0955000555@clinic-${cid}.app`, { role: "custom", roleTitle: "المدير العام", admin: false, doctorId: null, name: "وائل", title: "", phone: "0955000555", perms: { ...P0, appts: true, patients: true, pay: true, fin: true, expenses: true, reports: true, inventory: true, messages: true, settings: true, audit: true } });
+  account("u-store", `s0955000666@clinic-${cid}.app`, { role: "custom", roleTitle: "مدير المستودع", admin: false, doctorId: null, name: "جاد", title: "", phone: "0955000666", perms: { ...P0, inventory: true } });
+  account("u-medv", `s0955000777@clinic-${cid}.app`, { role: "custom", roleTitle: "مشرف طبي", admin: false, doctorId: null, name: "لين", title: "", phone: "0955000777", perms: { ...P0, appts: true, med: "read" } });
   account(DEMO.patient.uid, `p${DEMO.patient.phone}@clinic-${cid}.app`, { role: "patient", phone: DEMO.patient.phone, patientIds: [DEMO.patient.pid], hideSensitive: false, consentAt: ts(addDays(today, -60)) });
   C("phones", DEMO.secretary.phone, { staffUid: DEMO.secretary.uid, staffVer: 1 });
   C("phones", DEMO.patient.phone, { patientUid: DEMO.patient.uid, patientVer: 1 });
