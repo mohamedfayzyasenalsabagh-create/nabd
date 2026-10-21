@@ -103,7 +103,7 @@ const monthBar = (m, route) => `<div class="row-between"><h2 class="page-title">
 function stmtTable(st) {
   return `<div class="stats">
     <div class="stat"><b>${esc(money(st.prev, cur()))}</b><span>الرصيد السابق</span></div>
-    <div class="stat"><b>${esc(money(st.share, cur()))}</b><span>حصة الشهر (${st.works} عمل)</span></div>
+    <div class="stat"><b>${esc(money(st.share, cur()))}</b><span>حصة الشهر</span><small class="muted">${st.works} عمل</small></div>
     <div class="stat"><b>${esc(money(st.adv, cur()))}</b><span>السلف</span></div>
     <div class="stat"><b>${esc(money(st.out, cur()))}</b><span>المسلَّم</span></div>
     <div class="stat ${st.due < 0 ? "warn" : ""}"><b>${esc(money(st.due, cur()))}</b><span>${st.due < 0 ? "سُلّم أكثر من الحصة" : "الباقي له"}</span></div>
@@ -114,19 +114,19 @@ function linesTable(st) {
   const noRate = st.lines.some((l) => l.noRate);
   return `${noRate ? `<p class="alert">⚠️ بعض الأعمال دون نسبة محددة لهذا الطبيب، فحُسبت حصتها صفراً. حدّد النسب من «تعديل النسب».</p>` : ""}
   <div class="tbl-wrap"><table class="tbl comm-tbl"><thead><tr><th>العمل</th><th>${basis() === "value" ? "القيمة" : "المقبوض"}</th><th>النسبة</th><th>الحصة</th></tr></thead><tbody>
-  ${st.lines.sort((a, b) => (a.date || "").localeCompare(b.date || "")).map((l) => `<tr><td><b>${esc(l.patient)}</b><br><small class="muted">${esc(l.service || "—")} · ${esc(CAT[l.cat] || "")}<br>${esc(dm(l.date))}${l.settle ? ` · تسديد لعمل ${esc(dm(l.workDate))}` : ""}</small></td>
+  ${st.lines.sort((a, b) => (a.date || "").localeCompare(b.date || "")).map((l) => `<tr><td><b>${esc(l.patient)}</b><br><small class="muted">${esc(l.service || "—")} · <span>${esc(CAT[l.cat] || "")}</span><br>${esc(dm(l.date))}${l.settle ? ` · <span>تسديد لعمل سابق</span> ${esc(dm(l.workDate))}` : ""}</small></td>
     <td>${esc(money(l.amount, cur()))}${l.lab ? `<br><small class="muted">مخبر/مواد −${esc(money(l.lab, cur()))}</small>` : ""}</td>
     <td>${l.fixed != null ? `ثابت` : l.noRate ? `<span class="danger-t">غير محددة</span>` : `${l.pct}%`}</td><td><b>${esc(money(l.share, cur()))}</b></td></tr>`).join("")}
   </tbody></table></div>`;
 }
 function movesList(st, editable) {
   if (!st.moves.length) return "";
-  return `<h4>السلف والتسليم</h4><ul class="plain">${st.moves.map((x) => `<li class="row-between"><span>${esc(x.date)} · ${x.type === "advance" ? "سلفة" : "تسليم حصة"}${x.note ? ` · ${esc(x.note)}` : ""}${x.void ? ` <span class="chip">ملغاة</span>` : ""}</span>
+  return `<h4>السلف والتسليم</h4><ul class="plain">${st.moves.map((x) => `<li class="row-between"><span>${esc(x.date)} · ${x.type === "advance" ? "سلفة مالية" : "تسليم حصة"}${x.note ? ` · ${esc(x.note)}` : ""}${x.void ? ` <span class="chip">ملغاة</span>` : ""}</span>
     <span><b>${esc(money(x.amount, cur()))}</b>${editable && !x.void ? ` <button class="link-btn small vd" data-id="${x.id}">إلغاء</button>` : ""}</span></li>`).join("")}</ul>`;
 }
 function printStmt(d, m, st) {
   printDoc(S.pub, `كشف حصة د. ${d.name} · ${m}`, `${stmtTable(st)}${linesTable(st)}${movesList(st, false)}
-    <p class="muted small">أساس الحساب: ${basis() === "value" ? "قيمة العمل" : "المبلغ المقبوض فعلاً"}، بعد خصم كلفة المخبر أو المواد.</p>`, { signer: `د. ${d.name}` });
+    <p class="muted small"><span>أساس الحساب:</span> <b>${basis() === "value" ? "قيمة العمل" : "المبلغ المقبوض فعلاً"}</b>. <span>كلفة المخبر أو المواد تُخصم قبل النسبة.</span></p>`, { signer: `د. ${d.name}` });
 }
 
 // ---------- صفحة حصص الأطباء (للمسؤول والمحاسب ومن لديه الصلاحية) ----------
@@ -135,11 +135,11 @@ export async function renderComm() {
   const { comms, payouts, shares } = await loadAll();
   const docs = doctors();
   $("#main").innerHTML = `${monthBar(m, "comm")}
-    <p class="muted small">أساس الحساب: <b>${basis() === "value" ? "قيمة العمل" : "المبلغ المقبوض فعلاً"}</b>، بعد خصم كلفة المخبر أو المواد.${isAdmin() ? ` يُغيَّر من «إعدادات العيادة».` : ""}</p>
+    <p class="muted small"><span>أساس الحساب:</span> <b>${basis() === "value" ? "قيمة العمل" : "المبلغ المقبوض فعلاً"}</b><br><span>كلفة المخبر أو المواد تُخصم قبل النسبة.</span>${isAdmin() ? `<br><span>يُغيَّر الأساس من «إعدادات العيادة».</span>` : ""}</p>
     ${docs.map((d) => {
       const st = statement(d.id, m, shares, payouts), rt = rateAt(comms[d.id], m), fx = Object.keys(comms[d.id]?.fixed || {}).length;
       return `<section class="card" data-did="${d.id}"><div class="row-between"><h3>د. ${esc(d.name)}</h3>
-        <span class="muted small">${rt ? `معالجة وتلبيس ${rt.treat || 0}% · جراحة وزرع ${rt.surg || 0}%` : `<span class="danger-t">لم تُحدد النسب</span>`}${fx ? ` · ${fx} خدمة بمبلغ ثابت` : ""}</span></div>
+        <span class="muted small">${rt ? `<span>معالجة وتلبيس</span> ${rt.treat || 0}% · <span>جراحة وزرع</span> ${rt.surg || 0}%` : `<span class="danger-t">لم تُحدد النسب</span>`}${fx ? ` · ${fx} <span>خدمة بمبلغ ثابت</span>` : ""}</span></div>
         ${stmtTable(st)}
         <div class="row gap wrap">
           <button class="btn small dt">التفاصيل</button>
@@ -168,7 +168,7 @@ export async function renderComm() {
 }
 
 async function moveModal(d, type, amount) {
-  const r = await modal(`${type === "advance" ? "سلفة" : "تسليم حصة"} · د. ${d.name}`, `<form class="stack">
+  const r = await modal(`${type === "advance" ? "سلفة مالية" : "تسليم حصة"} · د. ${d.name}`, `<form class="stack">
     ${field("المبلغ", "amount", { type: "number", required: true, value: amount || "", attrs: 'min="1" inputmode="numeric"' })}
     ${field("التاريخ", "date", { type: "date", value: ymd(), required: true })}
     ${field("ملاحظة", "note")}</form>`, { ok: "حفظ" });
@@ -184,13 +184,13 @@ async function moveModal(d, type, amount) {
 async function ratesModal(d, cm, m) {
   const rt = rateAt(cm, m) || { treat: "", surg: "" };
   const services = S.clinic?.services || [];
-  const r = await modal(`نسب د. ${d.name}`, `<form class="stack">
+  const r = await modal(`نسب الطبيب · د. ${d.name}`, `<form class="stack">
     <div class="grid2">${field("المعالجة والتلبيس (%)", "treat", { type: "number", value: rt.treat ?? "", required: true, attrs: 'min="0" max="100" step="0.5"' })}
     ${field("الجراحة والزرع (%)", "surg", { type: "number", value: rt.surg ?? "", required: true, attrs: 'min="0" max="100" step="0.5"' })}</div>
     ${field("تسري من شهر", "from", { type: "month", value: m, required: true })}
     <p class="muted small">الأعمال قبل هذا الشهر تبقى بنسبها السابقة.</p>
     ${services.length ? `<details><summary><b>مبلغ ثابت لخدمات معيّنة (حسب العقد)</b></summary><div class="stack">
-      ${services.map((s, i) => `<label class="field inline"><span>${esc(s.name)} <small class="muted">(${esc(CAT[s.cat === "surg" ? "surg" : "treat"])})</small></span>
+      ${services.map((s, i) => `<label class="field inline"><span>${esc(s.name)} <small class="muted">${esc(CAT[s.cat === "surg" ? "surg" : "treat"])}</small></span>
         <input type="number" name="fx_${i}" min="0" value="${esc(cm.fixed?.[s.name] ?? "")}" placeholder="بالنسبة"></label>`).join("")}
       <p class="muted small">اتركه فارغاً لتُحسب الخدمة بالنسبة.</p></div></details>` : ""}
   </form>`, { ok: "حفظ" });
@@ -216,7 +216,7 @@ export async function renderMyShare() {
   const { comms, payouts, shares } = await loadAll(did);
   const st = statement(did, m, shares, payouts), rt = rateAt(comms[did], m);
   $("#main").innerHTML = `${monthBar(m, "myshare")}
-    <section class="card"><div class="row-between"><h3>د. ${esc(d.name)}</h3><span class="muted small">${rt ? `معالجة وتلبيس ${rt.treat || 0}% · جراحة وزرع ${rt.surg || 0}%` : "لم تُحدد النسب بعد"}</span></div>
+    <section class="card"><div class="row-between"><h3>د. ${esc(d.name)}</h3><span class="muted small">${rt ? `<span>معالجة وتلبيس</span> ${rt.treat || 0}% · <span>جراحة وزرع</span> ${rt.surg || 0}%` : "لم تُحدد النسب بعد"}</span></div>
       ${stmtTable(st)}<div class="row gap"><button class="btn small pr">🖨 طباعة الكشف</button></div></section>
     <section class="card">${linesTable(st)}${movesList(st, false)}</section>`;
   $(".mp").onchange = (e) => { location.hash = `#/myshare?m=${e.target.value}`; };

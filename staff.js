@@ -307,7 +307,7 @@ async function renderCustomHome() {
     if (exp.length) alerts.push(`<li><a href="#/inventory">⏳ ${exp.length} صنف ينتهي خلال شهر</a></li>`);
   }
   main().innerHTML = `<h2 class="page-title">${esc(fmtDate(ymd()))}</h2>
-    <p class="muted">أهلاً ${esc(S.profile.name || "")} · ${esc(roleLabel())}</p>
+    <p class="muted"><span>أهلاً</span> <span class="notr">${esc(S.profile.name || "")}</span> · ${esc(roleLabel())}</p>
     ${alerts.length ? `<section class="card alerts"><h3>تنبيهات</h3><ul class="plain">${alerts.join("")}</ul></section>` : ""}
     ${links.length ? `<div class="stats">${links.map(([h, i, t]) => `<a class="stat" href="${h}"><b>${i}</b><span>${esc(t)}</span></a>`).join("")}</div>` : empty("لا توجد صلاحيات لهذا الحساب بعد. تواصل مع مسؤول العيادة.")}`;
 }

@@ -191,7 +191,7 @@ export async function renderTeam() {
       <div class="row-between"><h3>الموظفون <span class="muted small">(${staff.length} من ${maxS})</span></h3>${canStaff ? `<div class="row gap"><button class="btn small addc">+ دور مخصّص</button><button class="btn primary small adds">+ موظف</button></div>` : ""}</div>
       ${staff.length ? `<ul class="plain">${staff.map((s) => `<li class="req">
         <div><b>${esc(s.name)}</b> <span class="chip">${esc(s.role === "custom" ? s.roleTitle || "دور مخصّص" : RN[s.role] || s.role)}</span> <span class="muted" dir="ltr">${esc(s.phone)}</span>
-          ${s.role === "custom" ? `<div class="muted small">الصلاحيات: ${esc(permSum(s))}</div>` : ""}</div>
+          ${s.role === "custom" ? `<div class="muted small"><span>الصلاحيات:</span> ${permSum(s).split("، ").map((x) => `<span class="chip">${esc(x)}</span>`).join(" ")}</div>` : ""}</div>
         <div class="row gap">${s.role === "custom" ? `<button class="btn small edp" data-uid="${s.id}">تعديل الصلاحيات</button>` : ""}<button class="btn small rp" data-uid="${s.id}">كلمة مرور جديدة</button><button class="btn small danger offs" data-uid="${s.id}">إيقاف الحساب</button></div></li>`).join("")}</ul>` : empty("لا يوجد موظفون")}
     </section>
     <p class="muted small">يسري الإيقاف فوراً، ولا يمكن للحساب الدخول بعده.</p>
