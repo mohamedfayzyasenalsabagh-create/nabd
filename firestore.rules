@@ -25,9 +25,12 @@ service cloud.firestore {
     function pm(c, k) { return isCustom(c) && me().get('perms', {}).get(k, false) == true; }
     function medR(c) { return isCustom(c) && me().get('perms', {}).get('med', 'none') == 'read'; }
     // من يقرأ قائمة المرضى من الأدوار المخصّصة
-    function ptRead(c) { return pm(c, 'appts') || pm(c, 'patients') || pm(c, 'pay') || pm(c, 'fin') || pm(c, 'messages') || pm(c, 'reports') || medR(c); }
+    function ptRead(c) { return pm(c, 'appts') || pm(c, 'patients') || pm(c, 'pay') || pm(c, 'fin') || pm(c, 'messages') || pm(c, 'reports') || pm(c, 'commissions') || medR(c); }
+    // حصص الأطباء: المسؤول والمحاسب ومن لديه الصلاحية، والطبيب يرى حصته فقط
+    function commAll(c) { return isAdmin(c) || isAcct(c) || pm(c, 'commissions'); }
+    function myDoc(c, did) { return isDoctor(c) && me().get('doctorId', '') == did; }
     function validPerms(p) {
-      return p is map && p.keys().hasOnly(['appts', 'patients', 'pay', 'fin', 'expenses', 'reports', 'inventory', 'messages', 'settings', 'audit', 'med'])
+      return p is map && p.keys().hasOnly(['appts', 'patients', 'pay', 'fin', 'expenses', 'reports', 'inventory', 'messages', 'settings', 'audit', 'commissions', 'med'])
         && p.get('med', 'none') in ['none', 'read'];
     }
     function isPatient(c, pid) { return inClinic(c) && me().role == 'patient' && pid in me().patientIds; }
@@ -330,7 +333,7 @@ service cloud.firestore {
       }
 
       match /payments/{p} {
-        allow read: if isStaff(c) || isPatient(c, resource.data.patientId) || pm(c, 'pay') || pm(c, 'fin') || pm(c, 'reports');
+        allow read: if isStaff(c) || isPatient(c, resource.data.patientId) || pm(c, 'pay') || pm(c, 'fin') || pm(c, 'reports') || pm(c, 'commissions');
         allow create: if (isStaff(c) || pm(c, 'pay') || pm(c, 'fin')) && clinicOK(c);
         allow update: if (isDoctor(c) || isAcct(c) || pm(c, 'fin')) && clinicOK(c);
         allow delete: if false;
@@ -361,6 +364,24 @@ service cloud.firestore {
       match /expenses/{e} {
         allow read: if isDoctor(c) || isAcct(c) || pm(c, 'expenses');
         allow create, update: if (isDoctor(c) || isAcct(c) || pm(c, 'expenses')) && clinicOK(c);
+        allow delete: if false;
+      }
+
+      // نسب كل طبيب (حسب تاريخ سريانها) ومبالغه الثابتة
+      match /comm/{did} {
+        allow read: if commAll(c) || myDoc(c, did);
+        allow create, update: if (isAdmin(c) || pm(c, 'commissions')) && clinicOK(c)
+          && request.resource.data.rates is list && request.resource.data.rates.size() <= 60;
+        allow delete: if false;
+      }
+      // السلف وتسليم الحصص (لا حذف؛ الإلغاء بعلامة)
+      match /commPay/{id} {
+        allow read: if commAll(c) || myDoc(c, resource.data.doctorId);
+        allow create: if commAll(c) && clinicOK(c)
+          && request.resource.data.type in ['advance', 'payout']
+          && request.resource.data.amount is number && request.resource.data.amount > 0
+          && request.resource.data.doctorId is string && request.resource.data.by == request.auth.uid;
+        allow update: if (isAdmin(c) || pm(c, 'commissions')) && clinicOK(c) && onlyChanged(['void', 'voidBy']) && request.resource.data.void == true;
         allow delete: if false;
       }
 

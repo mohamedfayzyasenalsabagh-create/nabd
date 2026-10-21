@@ -33,6 +33,8 @@ export const canPtList = () => !isCustom() || cp("patients") || cp("appts") || c
 export const canPtEdit = () => !isCustom() || cp("patients");
 export const canPtNew = () => !isCustom() || cp("patients") || cp("appts");
 export const ROLES = { doctor: "طبيب", secretary: "سكرتارية", nurse: "ممرض/ة", accountant: "محاسب" };
+// نسب الأطباء مفعّلة في هذه العيادة
+export const commOnS = () => !!S.clinic?.commission?.enabled;
 export const roleLabel = (u = S.profile) => (u.role === "custom" ? u.roleTitle || "دور مخصّص" : ROLES[u.role] || "");
 // صلاحيات الدور المخصّص وقوالب جاهزة لتعبئتها
 export const PERMS = [
@@ -46,11 +48,13 @@ export const PERMS = [
   ["messages", "الرسائل للمرضى"],
   ["settings", "إعدادات العيادة"],
   ["audit", "سجل التعديلات"],
+  ["commissions", "حصص الأطباء: النسب والسلف وتسليم الحصص"],
 ];
 export const PERM_PRESETS = {
-  manager: ["المدير العام", { appts: true, patients: true, pay: true, fin: true, expenses: true, reports: true, inventory: true, messages: true, settings: true, audit: true, med: "none" }],
+  manager: ["المدير العام", { appts: true, patients: true, pay: true, fin: true, expenses: true, reports: true, inventory: true, messages: true, settings: true, audit: true, commissions: true, med: "none" }],
+  finance: ["المدير المالي", { pay: true, fin: true, expenses: true, reports: true, commissions: true, med: "none" }],
   secretary: ["سكرتارية", { appts: true, patients: true, pay: true, messages: true, med: "none" }],
-  accountant: ["محاسب", { appts: true, patients: true, pay: true, fin: true, expenses: true, med: "none" }],
+  accountant: ["محاسب", { appts: true, patients: true, pay: true, fin: true, expenses: true, commissions: true, med: "none" }],
   store: ["مدير المستودع", { inventory: true, med: "none" }],
   nurse: ["ممرض/ة", { appts: true, patients: true, pay: true, messages: true, med: "read" }],
 };
@@ -224,6 +228,7 @@ async function render() {
     appts: canAppts, requests: canAppts, waitlist: canAppts, remind: canAppts, "checkin-qr": canAppts, tv: canAppts,
     patients: canPtList, p: canPtList, money: canPay, debts: () => cp("fin"), closing: () => cp("fin"), messages: canMsgs,
     inventory: canInv, settings: () => cp("settings"), reports: () => cp("reports"), expenses: canExp, audit: () => cp("audit"),
+    comm: () => cp("commissions"), myshare: () => false,
     team: () => false, subscription: () => false, backup: () => false, library: () => false, assistant: () => false, druged: () => false,
   };
   if (isCustom() && CR[r] && !CR[r]()) { history.replaceState(null, "", "#/more"); return renderMore(); }
@@ -255,6 +260,8 @@ async function render() {
       case "expenses": return canExp() ? await renderExpenses() : renderMore();
       case "audit": return isAdmin() || cp("audit") ? await renderAudit() : renderMore();
       case "backup": return isAdmin() ? renderBackup() : renderMore();
+      case "comm": { const cm = await import("./commission.js"); return cm.commOn() && cm.canComm() ? cm.renderComm() : renderMore(); }
+      case "myshare": { const cm = await import("./commission.js"); return cm.commOn() && isDoctor() ? cm.renderMyShare() : renderMore(); }
       case "password": return showChangePassword(false);
       default: return await renderHome();
     }
@@ -289,6 +296,7 @@ async function renderCustomHome() {
     ...(canMsgs() ? [["#/messages", "💬", "رسائل المرضى"]] : []),
     ...(cp("settings") ? [["#/settings", "⚙️", "إعدادات العيادة"]] : []),
     ...(cp("audit") ? [["#/audit", "🗂", "سجل التعديلات"]] : []),
+    ...(cp("commissions") && commOnS() ? [["#/comm", "🩺", "حصص الأطباء"]] : []),
   ];
   const alerts = [];
   if (canInv()) {
@@ -497,7 +505,7 @@ export async function apptActions(a) {
       } else if (act === "card") {
         return go(`#/p/${a.patientId}/${canMed() ? "summary" : "info"}`);
       } else if (act === "pay") {
-        return paymentModal(a.patientId, a.type);
+        return paymentModal(a.patientId, a.type, { doctorId: apptDoc(a) });
       } else if (act === "remind") {
         updateDoc(P.colDoc("appointments", a.id), { remindedAt: serverTimestamp() }).catch(() => {});
         return offerNotify(a.phone || p.phone, reminderText(a), "", a.patientId);
@@ -1155,6 +1163,9 @@ export function showCredentials(phone, temp, name, shared = false, guardian = fa
 }
 
 // ---------- الدفعات ----------
+// الطبيب الافتراضي للدفعة: طبيب الموعد، أو الطبيب الذي يسجّلها، أو الطبيب الوحيد
+const payDoc = (preset) => preset.doctorId || (isDoctor() && S.profile.doctorId) || (doctors().length === 1 ? doctors()[0].id : "");
+const svcCatS = (name) => ((S.clinic?.services || []).find((s) => s.name === name)?.cat === "surg" ? "surg" : "treat");
 export async function paymentModal(pid, service = "", preset = {}) {
   const p = PC.byId[pid];
   const services = S.clinic?.services || [];
@@ -1166,6 +1177,8 @@ export async function paymentModal(pid, service = "", preset = {}) {
       ${field("المدفوع", "paid", { type: "number", value: preset.paid ?? price, required: true, attrs: 'min="0" inputmode="numeric"' })}
     </div>
     <div class="grid2">${field("التاريخ", "date", { type: "date", value: ymd(), required: true })}${select("طريقة الدفع", "method", Object.entries(CASH_METHODS), "cash")}</div>
+    ${commOnS() ? `<div class="grid2">${select("الطبيب المعالج", "doctorId", [...(doctors().length > 1 ? [["", "— اختر الطبيب —"]] : []), ...doctors().map((d) => [d.id, `د. ${d.name}`])], payDoc(preset))}
+      ${field("كلفة مخبر / مواد (تُخصم قبل النسبة)", "labCost", { type: "number", value: preset.labCost ?? "", attrs: 'min="0" inputmode="numeric"' })}</div>` : ""}
     ${field("ملاحظة", "note", { value: preset.note || "" })}
   </form>`, {
     ok: "حفظ الدفعة",
@@ -1177,7 +1190,11 @@ export async function paymentModal(pid, service = "", preset = {}) {
       };
     },
     onOk: async (f) => {
+      if (commOnS() && Number(f.total) > 0 && !f.doctorId) { toast("اختر الطبيب المعالج لحساب حصته", true); return false; }
+      if (commOnS() && Number(f.labCost) > Number(f.total || 0)) { toast("كلفة المخبر أكبر من المبلغ المطلوب", true); return false; }
+      const comm = commOnS() && Number(f.total) > 0 ? { doctorId: f.doctorId, labCost: Number(f.labCost) || 0, cat: svcCatS(f.service) } : {};
       const ref = await addDoc(P.col("payments"), {
+        ...comm,
         patientId: pid, patientName: p?.name || "", service: f.service, total: f.total || 0, paid: f.paid || 0,
         date: f.date, method: f.method || "cash", note: f.note, planId: preset.planId || null, by: S.user.uid, byName: S.profile.name || "", createdAt: serverTimestamp()
       });
@@ -1278,6 +1295,7 @@ function customMenu(req) {
     ...(canExp() ? [["#/expenses", "مصاريف العيادة"]] : []),
     ...(cp("settings") ? [["#/settings", "إعدادات العيادة"]] : []),
     ...(cp("audit") ? [["#/audit", "سجل التعديلات"]] : []),
+    ...(cp("commissions") && commOnS() ? [["#/comm", "حصص الأطباء"]] : []),
   ];
   return [
     ...(daily.length ? [["العمل اليومي", daily]] : []),
@@ -1302,10 +1320,12 @@ function renderMore() {
       ...(feat("inventory") ? [["#/inventory", "المخزون"]] : []),
     ]],
     ...(d ? [["المرجع الطبي", [["#/assistant", "🤖 المساعد الطبي الذكي"], ["#/library", "نماذج وصفات دوائية جاهزة حسب التشخيص"], ["#/druged", "التثقيف الدوائي"]]]] : []),
-    ...(acct ? [["الحسابات", [["#/expenses", "مصاريف العيادة"]]]] : []),
+    ...(acct ? [["الحسابات", [["#/expenses", "مصاريف العيادة"], ...(commOnS() ? [["#/comm", "حصص الأطباء"]] : [])]]] : []),
     ...(d ? [["الإدارة", [
       ["#/reports", "التقارير"],
       ["#/expenses", "مصاريف العيادة"],
+      ...(commOnS() ? (a ? [["#/comm", "حصص الأطباء"]] : []) : []),
+      ...(commOnS() && S.profile.doctorId ? [["#/myshare", "حصتي"]] : []),
       ...(a ? [["#/team", "الفريق: الأطباء والموظفون"], ["#/settings", "إعدادات العيادة"], ["#/subscription", "الاشتراك والفواتير"], ["#/audit", "سجل التعديلات"], ["#/backup", "النسخة الاحتياطية"]] : []),
     ]]] : []),
     ["المساعدة", [["#/faq", "أسئلة شائعة"], [/NabdApp/.test(navigator.userAgent) ? `https://nabdsy.web.app/${document.documentElement.lang === "en" ? "guide_en.pdf" : "guide.pdf"}` : new URL(document.documentElement.lang === "en" ? "./guide_en.pdf" : "./guide.pdf", import.meta.url).href, "📘 الدليل الشامل لمنصة نبض (PDF)"]]],
@@ -1594,6 +1614,9 @@ async function renderReports() {
   const stats = await list(query(P.col("stats"), where("date", ">=", from), where("date", "<=", to)));
   const expTotal = (await list(query(P.col("expenses"), where("date", ">=", from), where("date", "<=", to))).catch(() => [])).filter((e) => !e.void && !e.unpaid).reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const incTotal = pays.reduce((s, p) => s + (p.paid || 0), 0);
+  // حصص الأطباء المسلَّمة هذا الشهر: تظهر لمن يحق له رؤيتها، وتُخصم من صافي الربح
+  let docPaid = null;
+  if (commOnS()) { const cm = await import("./commission.js"); if (cm.canComm()) docPaid = await cm.paidOutIn(m); }
   const cnt = (s, arr = appts) => arr.filter((a) => a.status === s).length;
   const real = appts.filter((a) => a.status !== "cancelled");
   const noshowRate = real.length ? Math.round(cnt("noshow") / real.length * 100) : 0;
@@ -1623,7 +1646,8 @@ async function renderReports() {
       <a class="stat" href="#/debts"><b>${esc(money(pays.reduce((s, p) => s + (p.total || 0) - (p.paid || 0), 0), cur()))}</b><span>الدفعات المستحقة هذا الشهر</span></a>
       <a class="stat" href="#/appts?v=month&d=${from}"><b>${avgRating}</b><span>متوسط التقييم (${rated.length})</span></a>
       <a class="stat" href="#/expenses?m=${m}"><b>${esc(money(expTotal, cur()))}</b><span>المصاريف</span></a>
-      <a class="stat ${incTotal - expTotal < 0 ? "warn" : ""}" href="#/money?from=${from}&to=${to}"><b>${esc(money(incTotal - expTotal, cur()))}</b><span>صافي الربح</span></a>
+      ${docPaid != null ? `<a class="stat" href="#/comm?m=${m}"><b>${esc(money(docPaid, cur()))}</b><span>حصص الأطباء المسلَّمة</span></a>` : ""}
+      <a class="stat ${incTotal - expTotal - (docPaid || 0) < 0 ? "warn" : ""}" href="#/money?from=${from}&to=${to}"><b>${esc(money(incTotal - expTotal - (docPaid || 0), cur()))}</b><span>صافي الربح${commOnS() && docPaid == null ? " (قبل حصص الأطباء)" : ""}</span></a>
     </div>
     ${chart ? `<section class="card">${chart}</section>` : ""}
     ${perDoc.length ? `<section class="card"><h3>حسب الطبيب</h3><table class="tbl"><thead><tr><th>الطبيب</th><th>المواعيد</th><th>المنجزة</th></tr></thead><tbody>${perDoc.map(([n, a, d]) => `<tr><td>د. ${esc(n)}</td><td>${a}</td><td>${d}</td></tr>`).join("")}</tbody></table></section>` : ""}

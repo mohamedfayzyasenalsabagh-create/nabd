@@ -851,3 +851,6 @@ a.stat { color: inherit; text-decoration: none; }
 .stats > a.stat::after, .stats > button.stat::after { content: "›"; position: absolute; inset-inline-end: 12px; top: 10px; color: var(--muted); font-size: 1.1rem; opacity: .6; }
 .plain-fs { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .perm-list { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; } .perm-list legend { font-weight: 700; padding: 0 6px; }
+
+.svc-row:has(.svc-cat) { grid-template-columns: 2fr 1fr .8fr 1fr 1.2fr 44px; }
+@media (max-width: 600px) { .svc-row:has(.svc-cat) { grid-template-columns: 1fr 1fr; } }

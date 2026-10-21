@@ -64,6 +64,11 @@ export async function renderSettings() {
       ${select("طريقة عرض المواعيد", "apptView", [["list", "قائمة (كما هي)"], ["grid", "جدول (الأيام والأوقات)"]], c.apptView || "list")}
       <p class="muted small">الجدول: الأيام أعمدة والأوقات صفوف، مثل جدول الإكسل. وفيه لنقل أي موعد: ضغطة مطولة على اسم المريض ثم اختيار الخانة الجديدة، أو السحب بالفأرة.</p>
     </section>
+    ${isAdmin() ? `<section class="card stack"><h3>نسب الأطباء</h3>
+      <label class="check"><input type="checkbox" name="commOn" ${c.commission?.enabled ? "checked" : ""}><span>حساب حصة كل طبيب من عمله تلقائياً</span></label>
+      ${select("تُحسب النسبة من", "commBasis", [["paid", "المبلغ الذي دفعه المريض فعلاً"], ["value", "قيمة العمل كاملة (حتى لو لم يُدفع بعد)"]], c.commission?.basis === "value" ? "value" : "paid")}
+      <p class="muted small">بعد التفعيل: صنّف كل خدمة في «الخدمات والأسعار» (معالجة وتلبيس، أو جراحة وزرع)، وحدّد نسب كل طبيب من «المزيد ← حصص الأطباء». كلفة المخبر أو المواد تُخصم قبل النسبة.</p>
+    </section>` : ""}
     <section class="card stack"><h3>الخدمات والأسعار</h3>
       <div class="svc-list"></div><button type="button" class="btn small add-svc">+ خدمة</button>
     </section>
@@ -94,6 +99,7 @@ export async function renderSettings() {
       <input type="number" value="${esc(s.price)}" data-i="${i}" data-k="price" aria-label="السعر" placeholder="السعر" min="0">
       <input type="number" value="${esc(s.duration)}" data-i="${i}" data-k="duration" aria-label="المدة بالدقائق" placeholder="دقيقة" min="5">
       <select data-i="${i}" data-k="kind" aria-label="النوع"><option value="general" ${s.kind !== "cosmetic" ? "selected" : ""}>عام</option><option value="cosmetic" ${s.kind === "cosmetic" ? "selected" : ""}>إجراء / جلسة</option></select>
+      ${c.commission?.enabled ? `<select data-i="${i}" data-k="cat" aria-label="تصنيف الخدمة لنسب الأطباء" class="svc-cat"><option value="treat" ${s.cat !== "surg" ? "selected" : ""}>معالجة وتلبيس</option><option value="surg" ${s.cat === "surg" ? "selected" : ""}>جراحة وزرع</option></select>` : ""}
       <button type="button" class="icon-btn del" data-i="${i}" aria-label="حذف">✕</button></div>`).join("");
     $$(".svc-row [data-k]").forEach((el) => el.onchange = () => {
       services[el.dataset.i][el.dataset.k] = ["price", "duration"].includes(el.dataset.k) ? Number(el.value) : el.value;
@@ -137,7 +143,7 @@ export async function renderSettings() {
       ...(isAdmin() ? { specialty: f.specialty.value, modules: multiSpec() ? Object.keys(MODULES).filter((k) => f[`mod_${k}`].checked) : specMods(f.specialty.value) } : {}),
       currency: f.currency.value.trim() || "ل.س", hours: h, slotMinutes: Number(f.slotMinutes.value), apptView: f.apptView.value,
       services: services.filter((s) => s.name.trim()), consentText: f.consentText.value, rxFooter: f.rxFooter.value,
-      ...(isAdmin() ? { doctors: doctorsArr } : {}), listed: f.listed.checked, city: f.city.value,
+      ...(isAdmin() ? { doctors: doctorsArr, commission: { enabled: f.commOn.checked, basis: f.commBasis.value === "value" ? "value" : "paid" } } : {}), listed: f.listed.checked, city: f.city.value,
       ...(feat("booking") ? { bookingEnabled: f.bookingEnabled.checked, showPrices: f.showPrices.checked } : {}),
       ...($(".vac-list") ? { vaccineSchedule: vaccines.filter((v) => v.name.trim()).sort((a, b) => a.months - b.months) } : {}),
     };

@@ -516,7 +516,7 @@ export async function changePatientPhone(pid, oldPhone, newPhoneRaw, create = fa
 // ---------- الموظفون والأطباء ----------
 // role: "secretary" أو "doctor" (طبيب إضافي غير مسؤول)
 // الدور المخصّص: اسم الدور وصلاحياته (المفاتيح المعروفة فقط)
-export const PERM_KEYS = ["appts", "patients", "pay", "fin", "expenses", "reports", "inventory", "messages", "settings", "audit"];
+export const PERM_KEYS = ["appts", "patients", "pay", "fin", "expenses", "reports", "inventory", "messages", "settings", "audit", "commissions"];
 export function cleanPerms(p = {}) {
   const o = { med: p.med === "read" ? "read" : "none" };
   PERM_KEYS.forEach((k) => { o[k] = p[k] === true; });

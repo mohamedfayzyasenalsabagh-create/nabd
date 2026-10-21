@@ -45,6 +45,13 @@ beforeEach(async () => {
     await setDoc(doc(db, "clinics/A/expenses/e1"), { amount: 5, date: "2026-10-01" });
     await setDoc(doc(db, "clinics/A/audit/x1"), { by: "adm_A", action: "t" });
     await setDoc(doc(db, "clinics/A/stats/s1"), { date: "2026-10-01" });
+    await u("doc2_A", { role: "doctor", admin: false, clinicId: "A", doctorId: "d2" });
+    await u("acc_A", { role: "accountant", admin: false, clinicId: "A" });
+    await u("fin_A", { role: "custom", roleTitle: "المدير المالي", clinicId: "A", perms: { ...P0, fin: true, commissions: true } });
+    await setDoc(doc(db, "clinics/A/comm/d1"), { rates: [{ from: "2026-01", treat: 40, surg: 50 }], fixed: {} });
+    await setDoc(doc(db, "clinics/A/comm/d2"), { rates: [{ from: "2026-01", treat: 30, surg: 45 }], fixed: {} });
+    await setDoc(doc(db, "clinics/A/commPay/cp1"), { doctorId: "d1", type: "payout", amount: 100, date: "2026-10-01", by: "adm_A" });
+    await setDoc(doc(db, "clinics/A/commPay/cp2"), { doctorId: "d2", type: "advance", amount: 50, date: "2026-10-01", by: "adm_A" });
     for (const c of ["A", "X"]) {
       await setDoc(doc(db, `clinics/${c}/patients/p1`), { name: "p1", phone: "0900" });
       await setDoc(doc(db, `clinics/${c}/patients/p2`), { name: "p2", phone: "0911" });
@@ -489,4 +496,31 @@ test("الأدوار الحالية تعمل كما كانت تماماً", asyn
   await assertSucceeds(getDoc(doc(as("doc_A"), "clinics/A/patients/p1/visits/v1")));
   await assertFails(getDoc(doc(as("doc_A"), "clinics/A/audit/x1")));
   await assertSucceeds(getDoc(doc(as("adm_A"), "clinics/A/audit/x1")));
+});
+
+test("حصص الأطباء: الطبيب يرى حصته فقط، والإدارة والمحاسب يرون الكل", async () => {
+  const d2 = as("doc2_A");
+  await assertSucceeds(getDoc(doc(d2, "clinics/A/comm/d2")));
+  await assertFails(getDoc(doc(d2, "clinics/A/comm/d1")));
+  await assertSucceeds(getDocs(query(collection(d2, "clinics/A/commPay"), where("doctorId", "==", "d2"))));
+  await assertFails(getDocs(collection(d2, "clinics/A/commPay")));
+  await assertFails(getDoc(doc(d2, "clinics/A/commPay/cp1")));
+  await assertFails(setDoc(doc(d2, "clinics/A/comm/d2"), { rates: [{ from: "2026-01", treat: 90, surg: 90 }] }));
+  await assertFails(setDoc(doc(d2, "clinics/A/commPay/x"), { doctorId: "d2", type: "payout", amount: 10, date: "2026-10-02", by: "doc2_A" }));
+  for (const who of ["adm_A", "acc_A", "fin_A"]) {
+    await assertSucceeds(getDoc(doc(as(who), "clinics/A/comm/d1")));
+    await assertSucceeds(getDocs(collection(as(who), "clinics/A/commPay")));
+    await assertSucceeds(setDoc(doc(as(who), `clinics/A/commPay/n_${who}`), { doctorId: "d1", type: "advance", amount: 20, date: "2026-10-02", by: who }));
+  }
+  // النسب يحددها المسؤول أو صاحب الصلاحية، لا المحاسب
+  await assertSucceeds(setDoc(doc(as("adm_A"), "clinics/A/comm/d1"), { rates: [{ from: "2026-10", treat: 45, surg: 55 }], fixed: {} }));
+  await assertSucceeds(setDoc(doc(as("fin_A"), "clinics/A/comm/d1"), { rates: [{ from: "2026-10", treat: 45, surg: 55 }], fixed: {} }));
+  await assertFails(setDoc(doc(as("acc_A"), "clinics/A/comm/d1"), { rates: [{ from: "2026-10", treat: 99, surg: 99 }], fixed: {} }));
+  // لا يرى السكرتير أو مدير المستودع شيئاً منها
+  await assertFails(getDoc(doc(as("sec_A"), "clinics/A/comm/d1")));
+  await assertFails(getDocs(collection(as("store_A"), "clinics/A/commPay")));
+  // لا حذف ولا تعديل للمبلغ؛ الإلغاء بعلامة فقط
+  await assertFails(updateDoc(doc(as("adm_A"), "clinics/A/commPay/cp1"), { amount: 1 }));
+  await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A/commPay/cp1"), { void: true, voidBy: "x" }));
+  await assertFails(setDoc(doc(as("adm_A"), "clinics/A/commPay/neg"), { doctorId: "d1", type: "payout", amount: -5, date: "2026-10-02", by: "adm_A" }));
 });

@@ -40,7 +40,7 @@ export async function ensureSeed() {
     { id: "fill", name: "حشوة", price: 150000, duration: 30, kind: "general" },
     { id: "rct", name: "معالجة لبية", price: 300000, duration: 45, kind: "general" },
     { id: "clean", name: "تنظيف", price: 100000, duration: 30, kind: "general" },
-    { id: "ext", name: "قلع", price: 80000, duration: 30, kind: "general" },
+    { id: "ext", name: "قلع", price: 80000, duration: 30, kind: "general", cat: "surg" },
     { id: "white", name: "تبييض", price: 400000, duration: 45, kind: "cosmetic" },
   ];
   const hours = {};
@@ -51,7 +51,7 @@ export async function ensureSeed() {
     address: "دمشق، المزة، شارع الجلاء", phone: "0112345678", email: "demo@nabd.app", accent: "#0E7C7B", logo: null,
     specialty: "dental", modules: ["dental"], slug: "demo", currency: "ل.س", slotMinutes: 20, hours, services,
     doctors: [{ id: doctorId, uid: DEMO.doctor.uid, name: "سامر الحلبي", title: "اختصاصي تجميل وتقويم الأسنان", active: true }],
-    city: "دمشق", listed: false, bookingEnabled: true, showPrices: true,
+    city: "دمشق", listed: false, bookingEnabled: true, showPrices: true, commission: { enabled: true, basis: "paid" },
     rxFooter: "يجب مراسلة العيادة من خلال التطبيق عند ظهور أي أعراض جانبية.",
     drugs: ["Ibuprofen 400mg", "Chlorhexidine 0.12% mouthwash", "Amoxicillin 500mg"],
     rxTemplates: [{ name: "وصفتي بعد التنظيف", items: [{ drug: "Chlorhexidine 0.12% mouthwash", dose: "مضمضة 15 مل", times: "08:00, 20:00", days: 7, note: "" }] }],
@@ -69,6 +69,10 @@ export async function ensureSeed() {
   });
   put("slugs/demo", { cid });
 
+  // نسب الطبيب (لعرض ميزة حصص الأطباء)
+  C("comm", doctorId, { rates: [{ from: addDays(today, -400).slice(0, 7), treat: 40, surg: 50 }], fixed: {} });
+  C("commPay", "cpay1", { doctorId, type: "advance", amount: 200000, date: addDays(today, -3), note: "سلفة", by: DEMO.doctor.uid, byName: "سامر الحلبي" });
+
   // ---------- الحسابات ----------
   const users = {};
   const account = (uid, email, data) => { users[email] = { uid, email, pw }; put(`users/${uid}`, { active: true, mustChangePassword: false, ver: 1, clinicId: cid, createdAt: ts(addDays(today, -100)), ...data }); };
@@ -77,7 +81,7 @@ export async function ensureSeed() {
   account("u-nur", `s0955000333@clinic-${cid}.app`, { role: "nurse", admin: false, doctorId: null, name: "هيا", title: "", phone: "0955000333" });
   account("u-acc", `s0955000444@clinic-${cid}.app`, { role: "accountant", admin: false, doctorId: null, name: "ماهر", title: "", phone: "0955000444" });
   const P0 = { appts: false, patients: false, pay: false, fin: false, expenses: false, reports: false, inventory: false, messages: false, settings: false, audit: false, med: "none" };
-  account("u-mgr", `s0955000555@clinic-${cid}.app`, { role: "custom", roleTitle: "المدير العام", admin: false, doctorId: null, name: "وائل", title: "", phone: "0955000555", perms: { ...P0, appts: true, patients: true, pay: true, fin: true, expenses: true, reports: true, inventory: true, messages: true, settings: true, audit: true } });
+  account("u-mgr", `s0955000555@clinic-${cid}.app`, { role: "custom", roleTitle: "المدير العام", admin: false, doctorId: null, name: "وائل", title: "", phone: "0955000555", perms: { ...P0, appts: true, patients: true, pay: true, fin: true, expenses: true, reports: true, inventory: true, messages: true, settings: true, audit: true, commissions: true } });
   account("u-store", `s0955000666@clinic-${cid}.app`, { role: "custom", roleTitle: "مدير المستودع", admin: false, doctorId: null, name: "جاد", title: "", phone: "0955000666", perms: { ...P0, inventory: true } });
   account("u-medv", `s0955000777@clinic-${cid}.app`, { role: "custom", roleTitle: "مشرف طبي", admin: false, doctorId: null, name: "لين", title: "", phone: "0955000777", perms: { ...P0, appts: true, med: "read" } });
   account(DEMO.patient.uid, `p${DEMO.patient.phone}@clinic-${cid}.app`, { role: "patient", phone: DEMO.patient.phone, patientIds: [DEMO.patient.pid], hideSensitive: false, consentAt: ts(addDays(today, -60)) });
@@ -114,7 +118,7 @@ export async function ensureSeed() {
   const addPay = (date, p, svc, partial = false) => {
     const total = svc.price, paid = partial ? Math.round(total / 2 / 5000) * 5000 : total;
     const r = rnd(), method = r < .62 ? "cash" : r < .85 ? "shamcash" : r < .95 ? "syriatel" : "bank";
-    C("payments", `pay${++nPay}`, { patientId: p.id, patientName: p.name, service: svc.name, total, paid, date, method, note: "", planId: null, by: r < .8 ? DEMO.secretary.uid : DEMO.doctor.uid, byName: r < .8 ? "رنا" : "سامر الحلبي", createdAt: ts(date, `${10 + Math.floor(rnd() * 7)}:${pad(Math.floor(rnd() * 60))}`) });
+    C("payments", `pay${++nPay}`, { ...(total > 0 ? { doctorId } : {}), patientId: p.id, patientName: p.name, service: svc.name, total, paid, date, method, note: "", planId: null, by: r < .8 ? DEMO.secretary.uid : DEMO.doctor.uid, byName: r < .8 ? "رنا" : "سامر الحلبي", createdAt: ts(date, `${10 + Math.floor(rnd() * 7)}:${pad(Math.floor(rnd() * 60))}`) });
   };
   const addVisit = (date, p, svc, apptId) => {
     const diag = SVC_DIAG[svc.name] ?? pick(DIAG);
@@ -204,9 +208,9 @@ export async function ensureSeed() {
     { id: "i2", tooth: "36", proc: "تاج زيركون", cost: 450000, phase: 2, status: "planned" },
     { id: "i3", tooth: "26", proc: "حشوة كومبوزيت", cost: 150000, phase: 2, status: "planned" },
   ] });
-  C("payments", "pp1", { patientId: pid, patientName: P1.name, service: "معاينة", total: 50000, paid: 50000, date: v1, note: "", planId: null, by: DEMO.secretary.uid, byName: "رنا", createdAt: ts(v1, "16:50") });
-  C("payments", "pp2", { patientId: pid, patientName: P1.name, service: "خطة علاج: خطة علاج الجهة اليسرى", total: 900000, paid: 300000, date: v2, note: "دفعة أولى", planId: "plan1", by: DEMO.secretary.uid, byName: "رنا", createdAt: ts(v2, "17:10") });
-  C("payments", "pp3", { patientId: pid, patientName: P1.name, service: "تنظيف", total: 100000, paid: 100000, date: v3, note: "", planId: null, by: DEMO.secretary.uid, byName: "رنا", createdAt: ts(v3, "16:55") });
+  C("payments", "pp1", { doctorId, patientId: pid, patientName: P1.name, service: "معاينة", total: 50000, paid: 50000, date: v1, note: "", planId: null, by: DEMO.secretary.uid, byName: "رنا", createdAt: ts(v1, "16:50") });
+  C("payments", "pp2", { doctorId, patientId: pid, patientName: P1.name, service: "خطة علاج: خطة علاج الجهة اليسرى", total: 900000, paid: 300000, date: v2, note: "دفعة أولى", planId: "plan1", by: DEMO.secretary.uid, byName: "رنا", createdAt: ts(v2, "17:10") });
+  C("payments", "pp3", { doctorId, patientId: pid, patientName: P1.name, service: "تنظيف", total: 100000, paid: 100000, date: v3, note: "", planId: null, by: DEMO.secretary.uid, byName: "رنا", createdAt: ts(v3, "16:55") });
   PS(pid, "messages", "m1", { from: "patient", text: "مرحباً دكتور، هل يمكنني تناول المسكن قبل النوم؟", at: ts(addDays(today, -1), "20:15"), byName: P1.name });
   PS(pid, "messages", "m2", { from: "clinic", text: "أهلاً أحمد، نعم يمكنك ذلك بعد الطعام. نراك في موعدك القادم.", at: ts(addDays(today, -1), "20:40"), byName: "سامر الحلبي" });
   put(`clinics/${cid}/patients/${pid}`, { ...F.get(`clinics/${cid}/patients/${pid}`), lastMsgAt: ts(addDays(today, -1), "20:40"), lastMsgFrom: "clinic" });

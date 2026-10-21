@@ -240,12 +240,35 @@ try {
   await pctx.setOffline(false);
   log(!perrs.length, "لا أخطاء في الصفحة (المريض)", perrs.slice(0, 3).join(" | ").slice(0, 200));
 
+  // 5ب) حصص الأطباء (الطبيب المسؤول): النسب، دفعة بطبيب وكلفة مخبر، السلف، والكشف
+  {
+    const perm = []; pg.on("console", (m) => { if (/permission|insufficient/i.test(m.text())) perm.push(m.text().slice(0, 140)); });
+    await pg.evaluate(() => (location.hash = "#/comm")); await pg.waitForSelector("[data-did] .rt", { timeout: 20000 });
+    await pg.click("[data-did] .rt"); await sleep(500);
+    await pg.locator(".modal [name=treat]").fill("40"); await pg.locator(".modal [name=surg]").fill("50"); await pg.locator(".modal .ok").click(); await sleep(2000);
+    const cm = await getDocREST("clinics/demo/comm/d1");
+    log(!!cm?.fields?.rates, "حفظ نسب الطبيب على الخادم");
+    await pg.evaluate(() => (location.hash = "#/p/p03/money")); await sleep(2000);
+    await pg.click(".q-pay"); await sleep(600);
+    await pg.locator(".modal [name=service]").selectOption("قلع"); await pg.locator(".modal [name=labCost]").fill("20000"); await pg.locator(".modal .ok").click(); await sleep(1500);
+    await pg.evaluate(() => document.querySelectorAll(".modal-wrap").forEach((w) => w.remove()));
+    let saved = false; for (let k = 0; k < 8 && !saved; k++) { const r = await rest("POST", `${FS}/clinics/demo:runQuery`, { structuredQuery: { from: [{ collectionId: "payments" }], where: { fieldFilter: { field: { fieldPath: "labCost" }, op: "EQUAL", value: { integerValue: "20000" } } } } }); saved = r.some((x) => x.document && sv(x.document, "doctorId") === "d1" && sv(x.document, "cat") === "surg"); if (!saved) await sleep(1000); }
+    log(saved, "الدفعة تحفظ الطبيب المعالج وكلفة المخبر وتصنيف الخدمة");
+    await pg.evaluate(() => (location.hash = "#/comm")); await pg.waitForSelector("[data-did] .adv", { timeout: 20000 });
+    await pg.click("[data-did] .adv"); await sleep(500); await pg.locator(".modal [name=amount]").fill("1000"); await pg.locator(".modal .ok").click(); await sleep(2000);
+    const cps = await rest("GET", `${FS}/clinics/demo/commPay?pageSize=300`);
+    log((cps.documents || []).some((d) => d.fields?.amount && Number(d.fields.amount.integerValue || d.fields.amount.doubleValue) === 1000), "تسجيل سلفة للطبيب على الخادم");
+    await pg.evaluate(() => (location.hash = "#/myshare")); await sleep(2500);
+    const ms = await pg.locator("#main").innerText();
+    log(ms.includes("حصة الشهر") && !perm.length, "صفحة «حصتي» وحصص الأطباء تعمل دون رفض صلاحيات", perm.slice(0, 2).join(" | "));
+  }
+
   // 6) الأدوار المخصّصة على قواعد الحماية الحقيقية: كل حساب يفتح صفحاته دون أي رفض صلاحيات، ولا يصل لما لا يملكه
   const NUR = ["#/", "#/appts", "#/patients", "#/p/p02/summary", "#/p/p02/visits", "#/p/p02/rx", "#/p/p02/files", "#/p/p02/info", "#/p/p02/msgs", "#/remind", "#/more"];
   const SEC = ["#/", "#/appts", "#/patients", "#/p/p02/info", "#/p/p02/appts", "#/p/p02/money", "#/p/p02/msgs", "#/p/p02/account", "#/money", "#/remind", "#/requests", "#/messages", "#/debts", "#/closing", "#/waitlist", "#/inventory", "#/checkin-qr", "#/more"];
-  const ACC = ["#/", "#/money", "#/expenses", "#/debts", "#/closing", "#/p/p02/money", "#/more"];
+  const ACC = ["#/", "#/money", "#/expenses", "#/debts", "#/closing", "#/p/p02/money", "#/comm", "#/reports", "#/more"];
   const secUid = Object.values(U).find((x) => /^s09/.test(x.email) && !["u-nur", "u-acc", "u-mgr", "u-store", "u-medv"].includes(x.uid))?.uid;
-  for (const [uid, label, want] of [["u-nur", "الممرض/ة", NUR], [secUid, "السكرتارية", SEC], ["u-acc", "المحاسب", ACC], ["u-store", "مدير المستودع", ["#/", "#/inventory", "#/more"]], ["u-mgr", "المدير العام", ["#/", "#/appts", "#/patients", "#/p/p02/info", "#/p/p02/money", "#/money", "#/debts", "#/closing", "#/expenses", "#/reports", "#/inventory", "#/messages", "#/requests", "#/remind", "#/settings", "#/audit", "#/more"]], ["u-medv", "مشرف طبي", ["#/", "#/appts", "#/patients", "#/p/p02/summary", "#/p/p02/visits", "#/p/p02/rx", "#/p/p02/files", "#/more"]]]) {
+  for (const [uid, label, want] of [["u-nur", "الممرض/ة", NUR], [secUid, "السكرتارية", SEC], ["u-acc", "المحاسب", ACC], ["u-store", "مدير المستودع", ["#/", "#/inventory", "#/more"]], ["u-mgr", "المدير العام", ["#/", "#/appts", "#/patients", "#/p/p02/info", "#/p/p02/money", "#/money", "#/debts", "#/closing", "#/expenses", "#/reports", "#/inventory", "#/messages", "#/requests", "#/remind", "#/settings", "#/audit", "#/comm", "#/more"]], ["u-medv", "مشرف طبي", ["#/", "#/appts", "#/patients", "#/p/p02/summary", "#/p/p02/visits", "#/p/p02/rx", "#/p/p02/files", "#/more"]]]) {
     const u = Object.values(U).find((x) => x.uid === uid);
     const cctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });
     const cp = await cctx.newPage();
