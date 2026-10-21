@@ -3290,5 +3290,10 @@ export const EN = {
 "صلاحيات": "Permissions of",
 "عرض فقط: التعديل على السجل الطبي للطبيب.": "View only: editing the medical record is for the doctor.",
 "أطباء وممرضون وسكرتارية ومحاسب، وأدوار تسمّيها بنفسك مثل «المدير العام» أو «مدير المستودع» وتختار صلاحياتها واحدة واحدة.": "Doctors, nurses, secretaries and an accountant, plus roles you name yourself, such as “General manager” or “Warehouse manager”, with permissions you pick one by one.",
-"حصة كل طبيب تُحسب تلقائياً حسب نوع العمل، بعد خصم كلفة المخبر، مع السلف وكشف شهري لكل طبيب.": "Each doctor's share is calculated automatically by type of work, after deducting lab cost, with advances and a monthly statement per doctor."
+"حصة كل طبيب تُحسب تلقائياً حسب نوع العمل، بعد خصم كلفة المخبر، مع السلف وكشف شهري لكل طبيب.": "Each doctor's share is calculated automatically by type of work, after deducting lab cost, with advances and a monthly statement per doctor.",
+"معاينات ومعالجات": "Consultations & treatments",
+"عمليات وإجراءات جراحية": "Operations & surgical procedures",
+"خصم كلفة المخبر أو المواد قبل النسبة (يظهر حقلها مع كل دفعة)": "Deduct lab or materials cost before the rate (its field appears with each payment)",
+"وحدّد نسب كل طبيب من «المزيد ← حصص الأطباء».": "and set each doctor's rates from “More → Doctor shares”.",
+"بعد التفعيل: صنّف كل خدمة في «الخدمات والأسعار» إلى أحد نوعين:": "After enabling: classify each service in “Services and prices” into one of two types:"
 };

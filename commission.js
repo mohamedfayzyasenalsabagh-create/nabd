@@ -8,7 +8,8 @@ import { db, P, list, one, doc, setDoc, addDoc, updateDoc, query, where, collect
 import { $, $$, esc, ymd, money, toast, errMsg, modal, field, select, empty, fmtDate, printDoc, confirmBox } from "./ui.js";
 import { isAdmin, isAcct, isDoctor, cp, doctors, docName, cur, render } from "./staff.js";
 
-export const CAT = { treat: "معالجة وتلبيس", surg: "جراحة وزرع" };
+import { commCats, commLab } from "./staff.js";
+const CAT = new Proxy({}, { get: (_, k) => commCats()[k] });
 export const commOn = () => !!S.clinic?.commission?.enabled;
 // من يرى حصص كل الأطباء ويسجّل السلف والتسليم
 export const canComm = () => isAdmin() || isAcct() || cp("commissions");
@@ -126,7 +127,7 @@ function movesList(st, editable) {
 }
 function printStmt(d, m, st) {
   printDoc(S.pub, `كشف حصة د. ${d.name} · ${m}`, `${stmtTable(st)}${linesTable(st)}${movesList(st, false)}
-    <p class="muted small"><span>أساس الحساب:</span> <b>${basis() === "value" ? "قيمة العمل" : "المبلغ المقبوض فعلاً"}</b>. <span>كلفة المخبر أو المواد تُخصم قبل النسبة.</span></p>`, { signer: `د. ${d.name}` });
+    <p class="muted small"><span>أساس الحساب:</span> <b>${basis() === "value" ? "قيمة العمل" : "المبلغ المقبوض فعلاً"}</b>.${commLab() ? ` <span>كلفة المخبر أو المواد تُخصم قبل النسبة.</span>` : ""}</p>`, { signer: `د. ${d.name}` });
 }
 
 // ---------- صفحة حصص الأطباء (للمسؤول والمحاسب ومن لديه الصلاحية) ----------
@@ -135,11 +136,11 @@ export async function renderComm() {
   const { comms, payouts, shares } = await loadAll();
   const docs = doctors();
   $("#main").innerHTML = `${monthBar(m, "comm")}
-    <p class="muted small"><span>أساس الحساب:</span> <b>${basis() === "value" ? "قيمة العمل" : "المبلغ المقبوض فعلاً"}</b><br><span>كلفة المخبر أو المواد تُخصم قبل النسبة.</span>${isAdmin() ? `<br><span>يُغيَّر الأساس من «إعدادات العيادة».</span>` : ""}</p>
+    <p class="muted small"><span>أساس الحساب:</span> <b>${basis() === "value" ? "قيمة العمل" : "المبلغ المقبوض فعلاً"}</b>${commLab() ? `<br><span>كلفة المخبر أو المواد تُخصم قبل النسبة.</span>` : ""}${isAdmin() ? `<br><span>يُغيَّر الأساس من «إعدادات العيادة».</span>` : ""}</p>
     ${docs.map((d) => {
       const st = statement(d.id, m, shares, payouts), rt = rateAt(comms[d.id], m), fx = Object.keys(comms[d.id]?.fixed || {}).length;
       return `<section class="card" data-did="${d.id}"><div class="row-between"><h3>د. ${esc(d.name)}</h3>
-        <span class="muted small">${rt ? `<span>معالجة وتلبيس</span> ${rt.treat || 0}% · <span>جراحة وزرع</span> ${rt.surg || 0}%` : `<span class="danger-t">لم تُحدد النسب</span>`}${fx ? ` · ${fx} <span>خدمة بمبلغ ثابت</span>` : ""}</span></div>
+        <span class="muted small">${rt ? `<span>${esc(CAT.treat)}</span> ${rt.treat || 0}% · <span>${esc(CAT.surg)}</span> ${rt.surg || 0}%` : `<span class="danger-t">لم تُحدد النسب</span>`}${fx ? ` · ${fx} <span>خدمة بمبلغ ثابت</span>` : ""}</span></div>
         ${stmtTable(st)}
         <div class="row gap wrap">
           <button class="btn small dt">التفاصيل</button>
@@ -185,8 +186,8 @@ async function ratesModal(d, cm, m) {
   const rt = rateAt(cm, m) || { treat: "", surg: "" };
   const services = S.clinic?.services || [];
   const r = await modal(`نسب الطبيب · د. ${d.name}`, `<form class="stack">
-    <div class="grid2">${field("المعالجة والتلبيس (%)", "treat", { type: "number", value: rt.treat ?? "", required: true, attrs: 'min="0" max="100" step="0.5"' })}
-    ${field("الجراحة والزرع (%)", "surg", { type: "number", value: rt.surg ?? "", required: true, attrs: 'min="0" max="100" step="0.5"' })}</div>
+    <div class="grid2">${field(`${CAT.treat} (%)`, "treat", { type: "number", value: rt.treat ?? "", required: true, attrs: 'min="0" max="100" step="0.5"' })}
+    ${field(`${CAT.surg} (%)`, "surg", { type: "number", value: rt.surg ?? "", required: true, attrs: 'min="0" max="100" step="0.5"' })}</div>
     ${field("تسري من شهر", "from", { type: "month", value: m, required: true })}
     <p class="muted small">الأعمال قبل هذا الشهر تبقى بنسبها السابقة.</p>
     ${services.length ? `<details><summary><b>مبلغ ثابت لخدمات معيّنة (حسب العقد)</b></summary><div class="stack">
@@ -216,7 +217,7 @@ export async function renderMyShare() {
   const { comms, payouts, shares } = await loadAll(did);
   const st = statement(did, m, shares, payouts), rt = rateAt(comms[did], m);
   $("#main").innerHTML = `${monthBar(m, "myshare")}
-    <section class="card"><div class="row-between"><h3>د. ${esc(d.name)}</h3><span class="muted small">${rt ? `<span>معالجة وتلبيس</span> ${rt.treat || 0}% · <span>جراحة وزرع</span> ${rt.surg || 0}%` : "لم تُحدد النسب بعد"}</span></div>
+    <section class="card"><div class="row-between"><h3>د. ${esc(d.name)}</h3><span class="muted small">${rt ? `<span>${esc(CAT.treat)}</span> ${rt.treat || 0}% · <span>${esc(CAT.surg)}</span> ${rt.surg || 0}%` : "لم تُحدد النسب بعد"}</span></div>
       ${stmtTable(st)}<div class="row gap"><button class="btn small pr">🖨 طباعة الكشف</button></div></section>
     <section class="card">${linesTable(st)}${movesList(st, false)}</section>`;
   $(".mp").onchange = (e) => { location.hash = `#/myshare?m=${e.target.value}`; };

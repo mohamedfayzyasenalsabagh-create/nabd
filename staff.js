@@ -35,6 +35,12 @@ export const canPtNew = () => !isCustom() || cp("patients") || cp("appts");
 export const ROLES = { doctor: "طبيب", secretary: "سكرتارية", nurse: "ممرض/ة", accountant: "محاسب" };
 // نسب الأطباء مفعّلة في هذه العيادة
 export const commOnS = () => !!S.clinic?.commission?.enabled;
+// تصنيفا الخدمات للنسب: بأسماء طب الأسنان لعيادات الأسنان، وبأسماء عامة لغيرها
+export const commCats = () => (S.clinic?.specialty === "dental"
+  ? { treat: "معالجة وتلبيس", surg: "جراحة وزرع" }
+  : { treat: "معاينات ومعالجات", surg: "عمليات وإجراءات جراحية" });
+// خصم كلفة المخبر أو المواد قبل النسبة: افتراضياً لعيادات الأسنان، ويُغيَّر من الإعدادات
+export const commLab = () => S.clinic?.commission?.lab ?? (S.clinic?.specialty === "dental");
 export const roleLabel = (u = S.profile) => (u.role === "custom" ? u.roleTitle || "دور مخصّص" : ROLES[u.role] || "");
 // صلاحيات الدور المخصّص وقوالب جاهزة لتعبئتها
 export const PERMS = [
@@ -1178,7 +1184,7 @@ export async function paymentModal(pid, service = "", preset = {}) {
     </div>
     <div class="grid2">${field("التاريخ", "date", { type: "date", value: ymd(), required: true })}${select("طريقة الدفع", "method", Object.entries(CASH_METHODS), "cash")}</div>
     ${commOnS() ? `<div class="grid2">${select("الطبيب المعالج", "doctorId", [...(doctors().length > 1 ? [["", "— اختر الطبيب —"]] : []), ...doctors().map((d) => [d.id, `د. ${d.name}`])], payDoc(preset))}
-      ${field("كلفة مخبر / مواد (تُخصم قبل النسبة)", "labCost", { type: "number", value: preset.labCost ?? "", attrs: 'min="0" inputmode="numeric"' })}</div>` : ""}
+      ${commLab() ? field("كلفة مخبر / مواد (تُخصم قبل النسبة)", "labCost", { type: "number", value: preset.labCost ?? "", attrs: 'min="0" inputmode="numeric"' }) : ""}</div>` : ""}
     ${field("ملاحظة", "note", { value: preset.note || "" })}
   </form>`, {
     ok: "حفظ الدفعة",
@@ -1192,7 +1198,7 @@ export async function paymentModal(pid, service = "", preset = {}) {
     onOk: async (f) => {
       if (commOnS() && Number(f.total) > 0 && !f.doctorId) { toast("اختر الطبيب المعالج لحساب حصته", true); return false; }
       if (commOnS() && Number(f.labCost) > Number(f.total || 0)) { toast("كلفة المخبر أكبر من المبلغ المطلوب", true); return false; }
-      const comm = commOnS() && Number(f.total) > 0 ? { doctorId: f.doctorId, labCost: Number(f.labCost) || 0, cat: svcCatS(f.service) } : {};
+      const comm = commOnS() && Number(f.total) > 0 ? { doctorId: f.doctorId, labCost: commLab() ? Number(f.labCost) || 0 : 0, cat: svcCatS(f.service) } : {};
       const ref = await addDoc(P.col("payments"), {
         ...comm,
         patientId: pid, patientName: p?.name || "", service: f.service, total: f.total || 0, paid: f.paid || 0,
