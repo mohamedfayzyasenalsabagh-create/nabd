@@ -241,7 +241,11 @@ try {
   log(!perrs.length, "لا أخطاء في الصفحة (المريض)", perrs.slice(0, 3).join(" | ").slice(0, 200));
 
   // 6) الأدوار المخصّصة على قواعد الحماية الحقيقية: كل حساب يفتح صفحاته دون أي رفض صلاحيات، ولا يصل لما لا يملكه
-  for (const [uid, label, want] of [["u-store", "مدير المستودع", ["#/", "#/inventory", "#/more"]], ["u-mgr", "المدير العام", ["#/", "#/appts", "#/patients", "#/p/p02/info", "#/p/p02/money", "#/money", "#/debts", "#/closing", "#/expenses", "#/reports", "#/inventory", "#/messages", "#/requests", "#/remind", "#/settings", "#/audit", "#/more"]], ["u-medv", "مشرف طبي", ["#/", "#/appts", "#/patients", "#/p/p02/summary", "#/p/p02/visits", "#/p/p02/rx", "#/p/p02/files", "#/more"]]]) {
+  const NUR = ["#/", "#/appts", "#/patients", "#/p/p02/summary", "#/p/p02/visits", "#/p/p02/rx", "#/p/p02/files", "#/p/p02/info", "#/p/p02/msgs", "#/remind", "#/more"];
+  const SEC = ["#/", "#/appts", "#/patients", "#/p/p02/info", "#/p/p02/appts", "#/p/p02/money", "#/p/p02/msgs", "#/p/p02/account", "#/money", "#/remind", "#/requests", "#/messages", "#/debts", "#/closing", "#/waitlist", "#/inventory", "#/checkin-qr", "#/more"];
+  const ACC = ["#/", "#/money", "#/expenses", "#/debts", "#/closing", "#/p/p02/money", "#/more"];
+  const secUid = Object.values(U).find((x) => /^s09/.test(x.email) && !["u-nur", "u-acc", "u-mgr", "u-store", "u-medv"].includes(x.uid))?.uid;
+  for (const [uid, label, want] of [["u-nur", "الممرض/ة", NUR], [secUid, "السكرتارية", SEC], ["u-acc", "المحاسب", ACC], ["u-store", "مدير المستودع", ["#/", "#/inventory", "#/more"]], ["u-mgr", "المدير العام", ["#/", "#/appts", "#/patients", "#/p/p02/info", "#/p/p02/money", "#/money", "#/debts", "#/closing", "#/expenses", "#/reports", "#/inventory", "#/messages", "#/requests", "#/remind", "#/settings", "#/audit", "#/more"]], ["u-medv", "مشرف طبي", ["#/", "#/appts", "#/patients", "#/p/p02/summary", "#/p/p02/visits", "#/p/p02/rx", "#/p/p02/files", "#/more"]]]) {
     const u = Object.values(U).find((x) => x.uid === uid);
     const cctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });
     const cp = await cctx.newPage();
@@ -257,7 +261,7 @@ try {
       const al = await cp.locator("#main .alert").allInnerTexts();
       if (al.length || (await cp.locator("#main .loading").count())) bad.push(`${h}: ${al.join(" ").slice(0, 60) || "loading"}`);
     }
-    log(!bad.length && !perm.length && !perrs2.length, `دور مخصّص «${label}»: كل صفحاته تعمل دون رفض صلاحيات`, [...bad, ...perm, ...perrs2].slice(0, 3).join(" | "));
+    log(!bad.length && !perm.length && !perrs2.length, `حساب «${label}»: كل صفحاته تعمل دون رفض صلاحيات`, [...bad, ...perm, ...perrs2].slice(0, 3).join(" | "));
     if (uid === "u-store") {
       const blocked = await cp.evaluate(async () => { const f = await import("/fb.js"); try { await f.getDoc(f.P.patient("p01")); return false; } catch { return true; } });
       log(blocked, "مدير المستودع لا يستطيع قراءة ملف أي مريض (رفض من الخادم)");

@@ -981,8 +981,11 @@ async function files(p) {
   Object.values(byTest).forEach((a) => a.sort((x, y) => y.date.localeCompare(x.date)));
   fls.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   for (let i = fls.length - 1; i >= 0; i--) if (fls[i].broken) fls.splice(i, 1);
-  const unseen = await list(query(P.col("inbox"), where("patientId", "==", p.id), where("seen", "==", false)));
-  for (const u of unseen) await updateDoc(P.colDoc("inbox", u.id), { seen: true });
+  // تنبيهات الملفات الجديدة للطبيب فقط (القواعد لا تسمح لغيره بقراءتها)
+  if (isDoctor()) {
+    const unseen = await list(query(P.col("inbox"), where("patientId", "==", p.id), where("seen", "==", false)));
+    for (const u of unseen) await updateDoc(P.colDoc("inbox", u.id), { seen: true });
+  }
   const KIND = { echo: "إيكو", lab: "تحليل", other: "ملف", "photo-before": "صورة سريرية قبل", "photo-after": "صورة سريرية بعد", photo: "صورة سريرية" };
   tabEl().innerHTML = `
     <section class="card"><div class="row-between"><h3>نتائج التحاليل</h3><button class="btn primary small addl">+ نتيجة</button></div>
