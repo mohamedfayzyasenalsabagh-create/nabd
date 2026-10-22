@@ -7,6 +7,7 @@ import { makeThumb, tileImg, isImg, showFile, shareImages, CASH_METHODS, freqTex
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, waLink, empty, compressImage, pickFile, printDoc, daysBetween, qrSvg
 } from "./ui.js";
+import { PUB } from "./ui.js";
 import { S } from "./app.js";
 import { isEn as isEnL } from "./i18n.js";
 import { PC, isDoctor, isNurse, isCustom, medView, canAppts, canPay, canMsgs, canPtEdit, specMods, mySpec, myDoctor, docPub, go, bookModal, bookAppointment, slotsFor, paymentModal, printReceipt, showCredentials, STATUS, hasMod, feat, ageText, docName, composeToPatient } from "./staff.js";
@@ -651,7 +652,7 @@ export function maskName(n) {
   return parts.length > 1 ? `${parts[0]} ${parts.slice(1).map((x) => x[0] + ".").join(" ")}` : parts[0] || "";
 }
 export function printRx(p, r) {
-  const qr = r.verify ? qrSvg(`${location.origin}${location.pathname}#/v/${r.verify}`, 96) : "";
+  const qr = r.verify ? qrSvg(`${PUB}#/v/${r.verify}`, 96) : "";
   printDoc(docPub(), "وصفة طبية", `<p><b>المريض:</b> ${esc(p.name)}${ageText(p) ? ` · <b>العمر:</b> ${esc(ageText(p))}` : ""}${r.diagnosis ? ` · <b>التشخيص:</b> ${esc(r.diagnosis)}` : ""}</p>
     <div class="rx-ltr" dir="ltr"><div class="rx-sign">℞</div>
     <ol class="rx-print">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b>${it.qty ? ` <span class="rx-q">${esc(it.qty)}</span>` : ""}<div dir="rtl" class="rx-how">${[esc(it.dose || ""), freqText(it.times), it.days ? `لمدة ${daysText(it.days)}` : ""].filter(Boolean).join(" · ")}</div>${it.note ? `<div class="muted" dir="rtl">${esc(it.note)}</div>` : ""}</li>`).join("")}</ol></div>

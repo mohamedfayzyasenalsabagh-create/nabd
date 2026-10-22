@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import { chromium } from "playwright";
 
-const SITES = ["https://nabdsy.web.app/", "https://mohamedfayzyasenalsabagh-create.github.io/nabd/"];
+const SITES = ["https://nabd.sy/", "https://nabdsy.web.app/", "https://mohamedfayzyasenalsabagh-create.github.io/nabd/"];
 const APK = "https://mohamedfayzyasenalsabagh-create.github.io/nabd/nabd.apk";
 const R = [];
 const ok = (c, name, info = "") => { R.push(`${c ? "PASS" : "FAIL"} | ${name}${info ? " | " + info : ""}`); console.log(R.at(-1)); };
@@ -19,7 +19,9 @@ for (const s of SITES) {
     ok(r.s === 200 && r.b.subarray(0, 4).toString() === "%PDF" && r.b.length > 1e6, `الدليل ${f} على ${s}`, `${r.s} ${(r.b.length / 1e6).toFixed(1)}MB`);
   }
   const app = await get(s + "app.html");
-  ok(app.s === 200 && app.b.toString().includes(APK), `صفحة التنزيل app.html على ${s} تشير إلى ملف التطبيق`);
+  ok(app.s === 200 && app.b.toString().includes('href="nabd.apk"'), `صفحة التنزيل app.html على ${s} تشير إلى ملف التطبيق`);
+  const ap = await get(s + "nabd.apk");
+  ok(ap.s === 200 && ap.b.subarray(0, 2).toString() === "PK" && ap.b.length > 10000, `ملف التطبيق ينزل من ${s}nabd.apk`, `${ap.s} ${ap.b.length} bytes`);
 }
 // 2) ملف التطبيق نفسه
 const apk = await get(APK);

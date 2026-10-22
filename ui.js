@@ -2,7 +2,13 @@ import { t as tr, isEn } from "./i18n.js";
 // أدوات الواجهة المشتركة
 // رابط تنزيل تطبيق أندرويد (آخر نسخة دائماً)
 // صفحة تنزيل تتعرف على نوع الجوال (أندرويد: ينزّل التطبيق، آيفون: يفتح النظام مع الشرح)
-export const APP_URL = "https://mohamedfayzyasenalsabagh-create.github.io/nabd/app.html";
+export const APP_URL = "https://nabd.sy/app.html";
+// العنوان العام للروابط التي تُشارك أو تُطبع (الحجز، الوصفات، تسجيل الحضور، الدعوات): الدومين الرسمي دائماً،
+// إلا في النسخة التجريبية أو التطوير فيبقى العنوان الحالي
+export const PUB = (() => {
+  const h = location.hostname, local = location.origin + location.pathname.replace(/[^/]*$/, "");
+  return /(^|\.)nabd\.sy$|github\.io$|\.web\.app$|\.firebaseapp\.com$/.test(h) && !/\/demo\//.test(location.pathname) ? "https://nabd.sy/" : local;
+})();
 export const COPYRIGHT = "© 2026 جميع الحقوق محفوظة · mohamedfayzyasenalsabagh@gmail.com";
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];

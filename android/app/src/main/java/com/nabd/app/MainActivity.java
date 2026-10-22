@@ -38,8 +38,11 @@ import android.widget.Toast;
 
 // تطبيق نبض: يفتح المنصة نفسها الموجودة على الموقع، وكل شيء متزامن
 public class MainActivity extends Activity {
+    // يبقى عنوان التحميل الداخلي كما هو حتى لا يُسجَّل خروج أحد أو تضيع بيانات الجهاز (العنوان لا يظهر داخل التطبيق)
     static final String HOME = "https://mohamedfayzyasenalsabagh-create.github.io/nabd/";
     static final String HOST = "mohamedfayzyasenalsabagh-create.github.io";
+    // روابط قديمة تبقى داخل التطبيق (حسابات وروابط أُرسلت سابقاً)
+    static final java.util.Set<String> HOSTS = new java.util.HashSet<>(java.util.Arrays.asList("nabd.sy", "www.nabd.sy", "nabdsy.web.app", "nabdsy.firebaseapp.com", "mohamedfayzyasenalsabagh-create.github.io"));
     static final int FILE_REQ = 7;
     static final int MIC_REQ = 8, NOTIF_REQ = 9;
     WebView web;
@@ -72,7 +75,7 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
-                if (HOST.equals(u.getHost())) return false;
+                if (HOSTS.contains(u.getHost())) return false;
                 openExternal(u);
                 return true;
             }

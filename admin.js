@@ -9,13 +9,14 @@ import { APP_URL,
   $, $$, esc, ymd, addDays, fmtDate, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, logoHtml, waLink, empty, compressImage, pickFile, DAYS, qrSvg
 } from "./ui.js";
+import { PUB } from "./ui.js";
 import { S, PLATFORM } from "./app.js";
 import { PAY_METHODS } from "./owner.js";
 import { multiSpec, specMods, docLetter, render, doctors, feat, hasMod, cur, isAdmin, PERMS, PERM_PRESETS, commCats } from "./staff.js";
 
 const main = () => $("#main");
 const plans = () => (S.platform?.plans?.length ? S.platform.plans : DEFAULT_PLANS);
-const baseUrl = () => location.origin + location.pathname;
+const baseUrl = () => PUB;
 
 async function saveClinic(patch) {
   await updateDoc(P.clinic(), patch);

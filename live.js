@@ -1,6 +1,7 @@
 // ميزات الدور الحي لفريق العيادة: تسجيل الحضور بـ QR، أرقام الانتظار للمرضى، الاعتذار من التطبيق، وملخص آخر اليوم للطبيب
 import { P, query, where, onSnapshot, updateDoc, setDoc, getDoc, list, serverTimestamp, audit } from "./fb.js";
 import { $, toast, ymd, addDays, money, qrSvg, printDoc } from "./ui.js";
+import { PUB } from "./ui.js";
 import { S } from "./app.js";
 import { apptDoc, qLab, nextQueueNo, markBusy, multiDoc, readOnly, isDoctor, cur } from "./staff.js";
 
@@ -47,7 +48,7 @@ async function process(arr, today) {
 
 // ---------- رمز QR على باب العيادة ----------
 const newCode = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => "abcdefghjkmnpqrstuvwxyz23456789"[b % 31]).join("");
-export const checkinUrl = (code) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}#/checkin/${S.profile.clinicId}.${code}`;
+export const checkinUrl = (code) => `${PUB}#/checkin/${S.profile.clinicId}.${code}`;
 export async function renderCheckinQr() {
   const main = $("#main");
   let d = (await getDoc(P.colDoc("live", "checkin")).catch(() => null))?.data();

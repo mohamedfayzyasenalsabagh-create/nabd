@@ -20,7 +20,7 @@
   <h1>تطبيق نبض</h1>
   <div id="android">
     <p>يبدأ تنزيل التطبيق الآن. إذا لم يبدأ، اضغط الزر.</p>
-    <a class="btn" href="https://mohamedfayzyasenalsabagh-create.github.io/nabd/nabd.apk" download="nabd.apk">تنزيل التطبيق (أندرويد)</a>
+    <a class="btn" href="nabd.apk" download="nabd.apk">تنزيل التطبيق (أندرويد)</a>
     <p style="font-size:14px;margin-top:14px">بعد التنزيل افتح الملف واختر «تثبيت». قد يطلب الجوال السماح بالتثبيت من هذا المصدر أول مرة.</p>
   </div>
   <div id="ios" class="hide">
@@ -35,7 +35,7 @@
   <div id="desk" class="hide">
     <p>افتح النظام من الحاسوب، أو نزّل تطبيق أندرويد.</p>
     <a class="btn" href="./">فتح النظام</a>
-    <a class="btn alt" href="https://mohamedfayzyasenalsabagh-create.github.io/nabd/nabd.apk" download="nabd.apk">تنزيل تطبيق أندرويد</a>
+    <a class="btn alt" href="nabd.apk" download="nabd.apk">تنزيل تطبيق أندرويد</a>
   </div>
 </div>
 <script>
@@ -55,7 +55,7 @@
   var android = /Android/i.test(ua);
   if (ios) { document.getElementById("android").className = "hide"; document.getElementById("ios").className = ""; }
   else if (!android) { document.getElementById("android").className = "hide"; document.getElementById("desk").className = ""; }
-  else { countDl(); setTimeout(function () { location.href = "https://mohamedfayzyasenalsabagh-create.github.io/nabd/nabd.apk"; }, 800); }
+  else { countDl(); setTimeout(function () { location.href = "nabd.apk"; }, 800); }
 </script>
 </body>
 </html>
