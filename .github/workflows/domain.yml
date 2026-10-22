@@ -1,0 +1,29 @@
+name: ربط الدومين
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "status أو create"
+        default: status
+jobs:
+  domain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Firebase Hosting custom domain
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          echo "$SA" > "$RUNNER_TEMP/sa.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" >/dev/null 2>&1
+          TOK=$(gcloud auth print-access-token)
+          B=https://firebasehosting.googleapis.com/v1beta1/projects/nabd-platfor/sites/nabdsy/customDomains
+          if [ "$ACTION" = "create" ]; then
+            curl -s -X POST -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" "$B?customDomainId=nabd.sy" -d '{}' | head -c 3000; echo
+            curl -s -X POST -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" "$B?customDomainId=www.nabd.sy" -d '{"redirectTarget":"nabd.sy"}' | head -c 3000; echo
+            sleep 20
+          fi
+          for d in nabd.sy www.nabd.sy; do echo "===== $d"; curl -s -H "Authorization: Bearer $TOK" "$B/$d" | jq '{hostState,ownershipState,cert:.cert.state,issues:.issues,required:.requiredDnsUpdates.desired,current:.requiredDnsUpdates.discovered}'; done
+          echo "===== DNS"; for t in NS A AAAA TXT CNAME; do echo "-- $t nabd.sy: $(dig +short $t nabd.sy | tr '\n' ' ')"; done
+          echo "-- CNAME www: $(dig +short CNAME www.nabd.sy)"
+          echo "-- SOA: $(dig +short SOA nabd.sy)"
