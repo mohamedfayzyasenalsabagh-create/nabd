@@ -1,5 +1,5 @@
 // يفتح التطبيق بسرعة ودون إنترنت (البيانات تتزامن عند عودة الاتصال)
-const CACHE = "nabd-v89";
+const CACHE = "nabd-v90";
 const LIBS = "nabd-libs-v1"; // مكتبات Firebase والخطوط: عناوينها ثابتة بالإصدار فلا تتغير
 const SHELL = ["./", "index.html", "app.html", "styles.css", "app.js", "fb.js", "ui.js", "staff.js", "admin.js", "card.js", "mods.js",
   "patient.js", "public.js", "owner.js", "legal.js", "config.js", "i18n.js", "en.js", "qrcode.js", "smart.js", "medref.js", "drugs.js",
@@ -26,7 +26,8 @@ const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error("
 async function appFile(req) {
   const c = await caches.open(CACHE);
   try {
-    const r = await Promise.race([fetch(req), timeout(navigator.onLine === false ? 1 : 4000)]);
+    // no-cache: يتحقق من الخادم دائماً (304 سريع) حتى لا تختلط ملفات نسختين بعد النشر
+    const r = await Promise.race([fetch(req.mode === "navigate" ? req : new Request(req, { cache: "no-cache" })), timeout(navigator.onLine === false ? 1 : 4000)]);
     if (r.ok) c.put(req, r.clone());
     return r;
   } catch {

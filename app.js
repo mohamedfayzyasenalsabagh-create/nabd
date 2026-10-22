@@ -290,8 +290,15 @@ async function reportError(msg, stack) {
     });
   } catch {}
 }
-window.addEventListener("error", (e) => reportError(e.message, e.error?.stack || `${e.filename || ""}:${e.lineno || ""}`));
-window.addEventListener("unhandledrejection", (e) => { const r = e.reason || {}; if (r.code === "permission-denied" || /offline|network/i.test(r.message || "")) return; reportError(r.message || String(r), r.stack || ""); });
+// بعد نشر نسخة جديدة قد يجتمع ملف جديد مع ملف قديم من ذاكرة المتصفح لدقائق: نعيد التحميل مرة واحدة فتكتمل النسخة الجديدة
+function staleModule(m) {
+  if (!/does not provide an export named|Failed to fetch dynamically imported module|Importing a module script failed/i.test(m || "")) return false;
+  try { if (sessionStorage.getItem("reloadedForUpdate")) return false; sessionStorage.setItem("reloadedForUpdate", "1"); } catch { return false; }
+  setTimeout(() => location.reload(), 50);
+  return true;
+}
+window.addEventListener("error", (e) => { if (staleModule(e.message)) return; reportError(e.message, e.error?.stack || `${e.filename || ""}:${e.lineno || ""}`); });
+window.addEventListener("unhandledrejection", (e) => { const r = e.reason || {}; if (staleModule(r.message)) return; if (r.code === "permission-denied" || /offline|network/i.test(r.message || "")) return; reportError(r.message || String(r), r.stack || ""); });
 
 // ---------- شريط الاتصال: العمل دون إنترنت والمزامنة الفورية عند عودته ----------
 function netBar() {
