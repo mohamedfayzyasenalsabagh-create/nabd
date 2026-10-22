@@ -1,16 +1,16 @@
-PASS | آخر نسخة منشورة على https://nabd.sy/ | nabd-v86 (المتوقع nabd-v86)
-PASS | الدليل guide.pdf على https://nabd.sy/ | 200 8.8MB
-PASS | الدليل guide_en.pdf على https://nabd.sy/ | 200 7.8MB
+PASS | آخر نسخة منشورة على https://nabd.sy/ | nabd-v87 (المتوقع nabd-v87)
+PASS | الدليل guide.pdf على https://nabd.sy/ | 200 4.3MB
+PASS | الدليل guide_en.pdf على https://nabd.sy/ | 200 4.3MB
 PASS | صفحة التنزيل app.html على https://nabd.sy/ تشير إلى ملف التطبيق
 PASS | ملف التطبيق ينزل من https://nabd.sy/nabd.apk | 200 34064 bytes
-PASS | آخر نسخة منشورة على https://nabdsy.web.app/ | nabd-v86 (المتوقع nabd-v86)
-PASS | الدليل guide.pdf على https://nabdsy.web.app/ | 200 8.8MB
-PASS | الدليل guide_en.pdf على https://nabdsy.web.app/ | 200 7.8MB
+PASS | آخر نسخة منشورة على https://nabdsy.web.app/ | nabd-v87 (المتوقع nabd-v87)
+PASS | الدليل guide.pdf على https://nabdsy.web.app/ | 200 4.3MB
+PASS | الدليل guide_en.pdf على https://nabdsy.web.app/ | 200 4.3MB
 PASS | صفحة التنزيل app.html على https://nabdsy.web.app/ تشير إلى ملف التطبيق
 PASS | ملف التطبيق ينزل من https://nabdsy.web.app/nabd.apk | 200 34064 bytes
-PASS | آخر نسخة منشورة على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | nabd-v86 (المتوقع nabd-v86)
-PASS | الدليل guide.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 8.8MB
-PASS | الدليل guide_en.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 7.8MB
+PASS | آخر نسخة منشورة على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | nabd-v87 (المتوقع nabd-v87)
+PASS | الدليل guide.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 4.3MB
+PASS | الدليل guide_en.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 4.3MB
 PASS | صفحة التنزيل app.html على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ تشير إلى ملف التطبيق
 PASS | ملف التطبيق ينزل من https://mohamedfayzyasenalsabagh-create.github.io/nabd/nabd.apk | 200 34064 bytes
 PASS | ملف التطبيق nabd.apk ينزل وسليم | 200 34064 bytes
@@ -24,6 +24,6 @@ PASS | الصفحة الرئيسية تعمل وفيها زر التنزيل (ht
 PASS | الضغط على زر التنزيل يبدأ تنزيل التطبيق (https://mohamedfayzyasenalsabagh-create.github.io/nabd/) | nabd.apk
 PASS | لا أخطاء في الصفحة (https://mohamedfayzyasenalsabagh-create.github.io/nabd/)
 PASS | النسخة التجريبية تفتح على الموقع الحقيقي
-INFO | منذ 2026-10-20: زوار الموقع 19 · تنزيلات التطبيق 2
+INFO | منذ 2026-10-20: زوار الموقع 24 · تنزيلات التطبيق 3
 
 TOTAL 26/26
