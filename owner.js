@@ -9,6 +9,10 @@ import {
 } from "./ui.js";
 import { PUB } from "./ui.js";
 import { S, LS, logout, PLATFORM } from "./app.js";
+// الأعطال التي عُلّمت «تم الإصلاح»: بصمة الرسالة ← وقت الإصلاح (يعود العطل للظهور إن تكرر بعده)
+const errKey = (m) => { let h = 5381; for (const ch of String(m || "")) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0; return "e" + h.toString(16); };
+async function resolvedMap() { try { return (await one(doc(db, "platform", "config")))?.resolvedErrors || {}; } catch { return {}; } }
+const openErr = (e, rm) => tsMs(e.at) > Number(rm[errKey(e.msg)] || 0);
 
 const main = () => $("#main");
 const plans = () => (S.platform?.plans?.length ? S.platform.plans : DEFAULT_PLANS);
@@ -45,7 +49,7 @@ async function render() {
   try {
     const pend = await list(query(P.subPays(), where("status", "==", "pending")));
     const b = $('[data-badge="payments"]'); if (b) { b.textContent = pend.length; b.classList.toggle("hidden", !pend.length); }
-    list(query(collection(db, "errors"), where("at", ">=", Timestamp.fromMillis(Date.now() - 864e5)))).then((e) => { const x = $('[data-badge="errors"]'); if (x) { x.textContent = e.length; x.classList.toggle("hidden", !e.length); } }).catch(() => {});
+    Promise.all([list(query(collection(db, "errors"), where("at", ">=", Timestamp.fromMillis(Date.now() - 864e5)))), resolvedMap()]).then(([all, rm]) => { const e = all.filter((x) => openErr(x, rm)); const x = $('[data-badge="errors"]'); if (x) { x.textContent = e.length; x.classList.toggle("hidden", !e.length); } }).catch(() => {});
     if (r === "payments") return await renderPayments();
     if (r === "settings") return renderSettings();
     if (r === "errors") return await renderErrors();
@@ -55,15 +59,25 @@ async function render() {
 
 // ---------- أعطال التطبيق (تُسجَّل تلقائياً من أجهزة المستخدمين، دون بيانات مرضى) ----------
 async function renderErrors() {
-  const arr = (await list(query(collection(db, "errors"), where("at", ">=", Timestamp.fromMillis(Date.now() - 14 * 864e5))))).sort((a, b) => tsMs(b.at) - tsMs(a.at));
+  const rm = await resolvedMap();
+  const arr = (await list(query(collection(db, "errors"), where("at", ">=", Timestamp.fromMillis(Date.now() - 14 * 864e5))))).filter((e) => openErr(e, rm)).sort((a, b) => tsMs(b.at) - tsMs(a.at));
   const groups = {};
   arr.forEach((e) => { const g = (groups[e.msg] ||= { msg: e.msg, n: 0, last: e, routes: new Set(), roles: new Set(), clinics: new Set() }); g.n++; g.routes.add(e.route); g.roles.add(e.role); if (e.cid) g.clinics.add(e.cid); });
   const gs = Object.values(groups).sort((a, b) => tsMs(b.last.at) - tsMs(a.last.at));
   main().innerHTML = `<h2 class="page-title">أعطال التطبيق</h2>
     <p class="muted small">تُسجَّل تلقائياً من أجهزة المستخدمين خلال آخر 14 يوماً: رسالة الخطأ ومكانه فقط، دون أي بيانات مرضى.</p>
     ${gs.length ? gs.map((g) => `<section class="card"><div class="row-between"><b class="notr" dir="ltr" style="word-break:break-word">${esc(g.msg)}</b><span class="chip ${g.n > 3 ? "danger" : ""}">${g.n} مرة</span></div>
+      <div class="row gap"><button class="btn small primary fixed" data-k="${esc(errKey(g.msg))}">تم الإصلاح ✓</button></div>
       <p class="muted small">آخر مرة: ${esc(tsDate(g.last.at))} · الصفحات: <span dir="ltr">${esc([...g.routes].join(" ، "))}</span> · الأدوار: ${esc([...g.roles].join("، "))} · عدد العيادات: ${g.clinics.size}</p>
       <details><summary class="small">التفاصيل التقنية</summary><pre dir="ltr" class="small" style="white-space:pre-wrap">${esc(g.last.stack || "")}\n${esc(g.last.ua || "")}</pre></details></section>`).join("") : empty("لا توجد أعطال مسجلة ✓")}`;
+  $$(".fixed").forEach((b) => b.onclick = async () => {
+    try {
+      await updateDoc(doc(db, "platform", "config"), { [`resolvedErrors.${b.dataset.k}`]: Date.now() });
+      toast("تم إخفاء العطل · يعود للظهور تلقائياً إن تكرر");
+      await renderErrors();
+      const x = $('[data-badge="errors"]'); if (x) { const n = Math.max(0, Number(x.textContent || 0) - 1); x.textContent = n; x.classList.toggle("hidden", !n); }
+    } catch (e) { toast(errMsg(e), true); }
+  });
 }
 
 // ---------- العيادات ----------

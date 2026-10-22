@@ -3302,5 +3302,7 @@ export const EN = {
 "راسلونا على واتساب": "Message us on WhatsApp",
 "مرحباً، أريد الاستفسار عن تطبيق نبض لإدارة العيادات": "Hello, I would like to ask about the Nabd clinic management app",
 "الزائر: جهاز مختلف في اليوم نفسه · الزيارات: عدد مرات فتح الموقع · الضغطات: كم زائراً ضغط كل زر في الصفحة الرئيسية": "Visitor: a different device on the same day · Visits: times the site was opened · Clicks: how many visitors pressed each button on the home page",
-"تنزيل": "Download"
+"تنزيل": "Download",
+"تم الإصلاح ✓": "Fixed ✓",
+"تم إخفاء العطل · يعود للظهور تلقائياً إن تكرر": "Error hidden · it will reappear automatically if it happens again"
 };
