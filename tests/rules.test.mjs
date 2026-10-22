@@ -581,7 +581,7 @@ test("هجوم: لا أحد يرفع صلاحياته أو ينقل حسابه �
   for (const who of ["sec_A", "doc_A", "pat_A", "store_A", "acc_A"]) {
     const d = as(who);
     await no(`${who} admin`, updateDoc(doc(d, `users/${who}`), { admin: true }));
-    await no(`${who} role`, updateDoc(doc(d, `users/${who}`), { role: "doctor" }));
+    await no(`${who} role`, updateDoc(doc(d, `users/${who}`), { role: who === "doc_A" ? "custom" : "doctor" }));
     await no(`${who} clinic`, updateDoc(doc(d, `users/${who}`), { clinicId: "B" }));
     await no(`${who} perms`, updateDoc(doc(d, `users/${who}`), { active: true, perms: { appts: true } }));
     await no(`${who} owner`, setDoc(doc(d, "owners/" + who), { email: "x" }));
