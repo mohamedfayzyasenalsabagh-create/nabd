@@ -297,7 +297,7 @@ let currentActor = { uid: null, name: "" };
 export function setActor(a) { currentActor = a; }
 export async function audit(action, target = "") {
   try {
-    await addDoc(P.col("audit"), { at: serverTimestamp(), by: currentActor.uid, byName: currentActor.name, action, target });
+    await addDoc(P.col("audit"), { at: serverTimestamp(), by: currentActor.uid, byName: currentActor.name || "", action: String(action ?? "").slice(0, 200), target: String(target ?? "").slice(0, 500) });
   } catch (e) { console.warn("audit", e); }
 }
 

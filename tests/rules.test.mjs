@@ -524,3 +524,27 @@ test("حصص الأطباء: الطبيب يرى حصته فقط، والإدا�
   await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A/commPay/cp1"), { void: true, voidBy: "x" }));
   await assertFails(setDoc(doc(as("adm_A"), "clinics/A/commPay/neg"), { doctorId: "d1", type: "payout", amount: -5, date: "2026-10-02", by: "adm_A" }));
 });
+
+// ---------- تقوية أمنية (مراجعة 22 تشرين الأول) ----------
+test("أمان: الدور المخصّص دون صلاحية المرضى لا يرى حسابات المرضى (الاسم والجوال)", async () => {
+  await assertFails(getDoc(doc(as("store_A"), "users/pat_A")));
+  await assertSucceeds(getDoc(doc(as("mgr_A"), "users/pat_A")));
+  await assertSucceeds(getDoc(doc(as("store_A"), "users/adm_A")));
+});
+test("أمان: سجل التعديلات يقبل الحقول المعروفة فقط", async () => {
+  await assertSucceeds(setDoc(doc(as("pat_A"), "clinics/A/audit/ok1"), { at: serverTimestamp(), by: "pat_A", byName: "x", action: "توقيع", target: "y" }));
+  await assertFails(setDoc(doc(as("pat_A"), "clinics/A/audit/bad1"), { at: serverTimestamp(), by: "pat_A", byName: "x", action: "a", target: "y", html: "<img>" }));
+  await assertFails(setDoc(doc(as("pat_A"), "clinics/A/audit/bad2"), { at: serverTimestamp(), by: "pat_A", byName: "x", action: "a".repeat(300), target: "" }));
+  await assertFails(setDoc(doc(as("pat_A"), "clinics/A/audit/bad3"), { at: serverTimestamp(), by: "adm_A", byName: "x", action: "a", target: "" }));
+});
+test("أمان: التسجيل الجديد لا يفعّل باقة المراكز ولا رابطاً غير صالح", async () => {
+  const d = as("new6"); const b = writeBatch(d);
+  b.set(doc(d, "users/new6"), { role: "doctor", admin: true, clinicId: "Q", active: true });
+  b.set(doc(d, "clinics/Q"), { ownerUid: "new6", slug: "dr-q", status: "trial", plan: "trial", expiresAt: future(14), features: { multiSpecialty: true }, maxDoctors: 3, maxStaff: 3 });
+  await assertFails(b.commit());
+  const d2 = as("new7"); const b2 = writeBatch(d2);
+  b2.set(doc(d2, "users/new7"), { role: "doctor", admin: true, clinicId: "R", active: true });
+  b2.set(doc(d2, "clinics/R"), { ownerUid: "new7", slug: "<x>", status: "trial", plan: "trial", expiresAt: future(14), features: {}, maxDoctors: 3, maxStaff: 3 });
+  b2.set(doc(d2, "slugs/<x>"), { cid: "R" });
+  await assertFails(b2.commit());
+});

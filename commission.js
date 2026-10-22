@@ -123,7 +123,7 @@ function linesTable(st) {
 function movesList(st, editable) {
   if (!st.moves.length) return "";
   return `<h4>السلف والتسليم</h4><ul class="plain">${st.moves.map((x) => `<li class="row-between"><span>${esc(x.date)} · ${x.type === "advance" ? "سلفة مالية" : "تسليم حصة"}${x.note ? ` · ${esc(x.note)}` : ""}${x.void ? ` <span class="chip">ملغاة</span>` : ""}</span>
-    <span><b>${esc(money(x.amount, cur()))}</b>${editable && !x.void ? ` <button class="link-btn small vd" data-id="${x.id}">إلغاء</button>` : ""}</span></li>`).join("")}</ul>`;
+    <span><b>${esc(money(x.amount, cur()))}</b>${editable && !x.void ? ` <button class="link-btn small vd" data-id="${esc(x.id)}">إلغاء</button>` : ""}</span></li>`).join("")}</ul>`;
 }
 function printStmt(d, m, st) {
   printDoc(S.pub, `كشف حصة د. ${d.name} · ${m}`, `${stmtTable(st)}${linesTable(st)}${movesList(st, false)}
@@ -139,7 +139,7 @@ export async function renderComm() {
     <p class="muted small"><span>أساس الحساب:</span> <b>${basis() === "value" ? "قيمة العمل" : "المبلغ المقبوض فعلاً"}</b>${commLab() ? `<br><span>كلفة المخبر أو المواد تُخصم قبل النسبة.</span>` : ""}${isAdmin() ? `<br><span>يُغيَّر الأساس من «إعدادات العيادة».</span>` : ""}</p>
     ${docs.map((d) => {
       const st = statement(d.id, m, shares, payouts), rt = rateAt(comms[d.id], m), fx = Object.keys(comms[d.id]?.fixed || {}).length;
-      return `<section class="card" data-did="${d.id}"><div class="row-between"><h3>د. ${esc(d.name)}</h3>
+      return `<section class="card" data-did="${esc(d.id)}"><div class="row-between"><h3>د. ${esc(d.name)}</h3>
         <span class="muted small">${rt ? `<span>${esc(CAT.treat)}</span> ${rt.treat || 0}% · <span>${esc(CAT.surg)}</span> ${rt.surg || 0}%` : `<span class="danger-t">لم تُحدد النسب</span>`}${fx ? ` · ${fx} <span>خدمة بمبلغ ثابت</span>` : ""}</span></div>
         ${stmtTable(st)}
         <div class="row gap wrap">

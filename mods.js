@@ -228,9 +228,9 @@ function planTable(plan) {
   if (!items.length) return empty("أضف إجراءات إلى الخطة من المخطط أو من زر «+ إجراء»");
   const phases = [...new Set(items.map((i) => i.phase || 1))].sort((a, b) => a - b);
   return phases.map((ph) => `<h4>المرحلة ${ph}</h4><div class="tbl-wrap"><table class="tbl"><thead><tr><th></th><th>السن</th><th>الإجراء</th><th>الكلفة</th><th></th></tr></thead><tbody>
-    ${items.filter((i) => (i.phase || 1) === ph).map((i) => `<tr class="${i.status === "done" ? "done-row" : ""}"><td><input type="checkbox" class="pi-done" data-id="${i.id}" ${i.status === "done" ? "checked" : ""} aria-label="منجز"></td>
+    ${items.filter((i) => (i.phase || 1) === ph).map((i) => `<tr class="${i.status === "done" ? "done-row" : ""}"><td><input type="checkbox" class="pi-done" data-id="${esc(i.id)}" ${i.status === "done" ? "checked" : ""} aria-label="منجز"></td>
       <td>${esc(i.tooth || "—")}</td><td>${esc(i.proc)}${i.doneDate ? `<br><small class="muted">${esc(i.doneDate)}</small>` : ""}</td><td>${esc(money(i.cost, cur()))}</td>
-      <td>${i.status !== "done" ? `<button class="icon-btn pi-del" data-id="${i.id}" aria-label="حذف">✕</button>` : ""}</td></tr>`).join("")}
+      <td>${i.status !== "done" ? `<button class="icon-btn pi-del" data-id="${esc(i.id)}" aria-label="حذف">✕</button>` : ""}</td></tr>`).join("")}
     </tbody></table></div>`).join("");
 }
 async function toothModal(p, chart, plan, n, refresh) {
@@ -379,7 +379,7 @@ export async function peds(p, el, refresh) {
       <ul class="plain vac-list">${vs.map((v) => `<li class="vac ${v.st}">
         <div class="row-between"><div><b>${esc(v.name)}</b><div class="muted small">${v.months ? `عمر ${esc(v.months)} شهر` : "عند الولادة"}${v.due ? ` · ${esc(fmtDate(v.due, false))}` : ""}</div>
           ${v.given ? `<div class="small">أُعطي ${esc(v.given.date)}${v.given.lot ? ` · الجرعة رقم ${esc(v.given.lot)}` : ""}</div>` : ""}</div>
-        <div class="row gap"><span class="chip ${VST[v.st][1]}">${VST[v.st][0]}</span>${v.given ? `<button class="icon-btn vundo" data-id="${v.id}" aria-label="تراجع">↺</button>` : `<button class="btn small vgive" data-id="${v.id}">تسجيل</button>`}</div></div></li>`).join("")}</ul>
+        <div class="row gap"><span class="chip ${VST[v.st][1]}">${VST[v.st][0]}</span>${v.given ? `<button class="icon-btn vundo" data-id="${esc(v.id)}" aria-label="تراجع">↺</button>` : `<button class="btn small vgive" data-id="${esc(v.id)}">تسجيل</button>`}</div></div></li>`).join("")}</ul>
     </section>`;
   $(".addg", el).onclick = async () => {
     await modal("قياس نمو", `<form class="stack">${field("التاريخ", "date", { type: "date", value: ymd(), required: true })}
@@ -442,7 +442,7 @@ export function vitalsView(vit, { patient = false } = {}) {
   const f1 = lastBp ? bpFlag(lastBp.sys, lastBp.dia) : null, f2 = lastSugar ? sugarFlag(lastSugar.sugar, lastSugar.sugarType) : null;
   return `
     <div class="stats">
-      <div class="stat"><b dir="ltr">${lastBp ? `${lastBp.sys}/${lastBp.dia}` : "—"}</b><span>آخر ضغط ${f1 ? `<span class="chip ${f1[1]}">${f1[0]}</span>` : ""}</span></div>
+      <div class="stat"><b dir="ltr">${lastBp ? `${esc(lastBp.sys)}/${esc(lastBp.dia)}` : "—"}</b><span>آخر ضغط ${f1 ? `<span class="chip ${f1[1]}">${f1[0]}</span>` : ""}</span></div>
       <div class="stat"><b>${lastSugar ? esc(lastSugar.sugar) : "—"}</b><span>آخر سكر ${lastSugar ? `(${SUGAR[lastSugar.sugarType] || ""})` : ""} ${f2 ? `<span class="chip ${f2[1]}">${f2[0]}</span>` : ""}</span></div>
       <div class="stat"><b>${lastW ? esc(lastW.weight) : "—"}</b><span>الوزن (كغ)</span></div>
       ${lastA1c ? `<div class="stat"><b>${esc(lastA1c.hba1c)}%</b><span>السكر التراكمي</span></div>` : ""}
@@ -536,7 +536,7 @@ export async function physio(p, el, refresh) {
       ${active.length ? active.map((x) => { const n = (x.sessions || []).length; return `<div class="pkg">
         <div class="row-between"><div><b>${esc(x.name)}</b><div class="muted small">بدأت ${esc(x.date)}${x.price ? ` · ${esc(money(x.price, cur()))}` : ""}</div></div><b>${n}/${esc(x.total)}</b></div>
         <div class="progress"><i style="width:${Math.min(100, n / (x.total || 1) * 100)}%"></i></div>
-        <div class="row gap wrap"><button class="btn small primary ses" data-id="${x.id}" ${n >= x.total ? "disabled" : ""}>+ تسجيل جلسة</button><button class="btn small pay" data-id="${x.id}">دفعة</button><button class="btn small fin" data-id="${x.id}">إنهاء الباقة</button></div>
+        <div class="row gap wrap"><button class="btn small primary ses" data-id="${esc(x.id)}" ${n >= x.total ? "disabled" : ""}>+ تسجيل جلسة</button><button class="btn small pay" data-id="${esc(x.id)}">دفعة</button><button class="btn small fin" data-id="${esc(x.id)}">إنهاء الباقة</button></div>
         ${(x.sessions || []).length ? `<details><summary class="muted">الجلسات</summary><ol class="plain num small">${x.sessions.map((s) => `<li>${esc(s.date)}${s.pain !== "" && s.pain != null ? ` · الألم ${esc(s.pain)}/10` : ""}${s.note ? ` · ${esc(s.note)}` : ""}</li>`).join("")}</ol></details>` : ""}
       </div>`; }).join("") : empty("لا توجد باقة حالية")}
       ${pk.length - active.length ? `<p class="muted small">باقات منتهية: ${pk.length - active.length}</p>` : ""}

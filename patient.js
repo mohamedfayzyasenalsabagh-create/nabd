@@ -62,7 +62,7 @@ export async function start() {
 function choose() {
   $("#app").innerHTML = `<div class="center-page"><div class="card narrow stack"><h2>اختر الملف</h2>
     <p class="muted">هذا الرقم مسجّل لأكثر من شخص.</p>
-    ${T.patients.map((p) => `<button class="btn block pick" data-id="${p.id}">${esc(p.name)}</button>`).join("")}
+    ${T.patients.map((p) => `<button class="btn block pick" data-id="${esc(p.id)}">${esc(p.name)}</button>`).join("")}
     <button class="link-btn out">خروج</button></div></div>`;
   $$(".pick").forEach((b) => b.onclick = () => { T.pid = b.dataset.id; sessionStorage.setItem("pid", T.pid); shell(); });
   $(".out").onclick = logout;
@@ -178,13 +178,13 @@ async function home() {
       <h3>موعدك القادم</h3>
       ${next ? `<div class="big-date">${esc(fmtDate(next.date))}</div><div class="big-time">${esc(fmtTime(next.time))}</div><p>${esc(next.type || "")}</p>
         ${confirmBits(next)}
-        <div class="row gap">${next.status === "confirmed" ? `<button class="btn small cx" data-id="${next.id}">إلغاء الموعد</button>` : ""}<a class="btn small" href="#/appts">جميع المواعيد</a></div>`
+        <div class="row gap">${next.status === "confirmed" ? `<button class="btn small cx" data-id="${esc(next.id)}">إلغاء الموعد</button>` : ""}<a class="btn small" href="#/appts">جميع المواعيد</a></div>`
       : `<p class="muted">لا يوجد لديك موعد حالياً.</p><button class="btn primary ask-appt">طلب موعد</button>`}
     </section>
     <div class="q-slot"></div>
     ${NATIVE && AndroidApp.notifyState() !== "granted" && AndroidApp.notifyState() !== "denied" ? `<section class="card alert-card"><h3>🔔 فعّل التذكير</h3><p>يصلك تنبيه على جوالك قبل موعدك بيوم وقبله بساعتين، وبوقت كل جرعة دواء.</p><button class="btn primary en-home">تفعيل التذكير</button></section>` : ""}
-    ${needSign.length ? needSign.map((x) => `<section class="card alert-card"><h3>موافقة بانتظار توقيعك</h3><p>${esc(x.name)}</p><button class="btn primary small sign" data-id="${x.id}">قراءة وتوقيع</button></section>`).join("") : ""}
-    ${toRate ? `<section class="card"><h3>كيف كانت زيارتك يوم ${esc(fmtDate(toRate.date, false))}؟</h3><div class="stars" role="group" aria-label="التقييم">${[1, 2, 3, 4, 5].map((n) => `<button class="star" data-n="${n}" data-id="${toRate.id}" aria-label="${n} من 5">★</button>`).join("")}</div></section>` : ""}
+    ${needSign.length ? needSign.map((x) => `<section class="card alert-card"><h3>موافقة بانتظار توقيعك</h3><p>${esc(x.name)}</p><button class="btn primary small sign" data-id="${esc(x.id)}">قراءة وتوقيع</button></section>`).join("") : ""}
+    ${toRate ? `<section class="card"><h3>كيف كانت زيارتك يوم ${esc(fmtDate(toRate.date, false))}؟</h3><div class="stars" role="group" aria-label="التقييم">${[1, 2, 3, 4, 5].map((n) => `<button class="star" data-n="${n}" data-id="${esc(toRate.id)}" aria-label="${n} من 5">★</button>`).join("")}</div></section>` : ""}
     ${g && hasMod("preg") ? (hide ? `<section class="card"><button class="btn block show-s">إظهار متابعة الحمل</button></section>` : pregCard(g, gc)) : ""}
     ${extra}
     <section class="card"><div class="row-between"><h3>أدوية اليوم</h3><a class="btn small" href="#/meds">التفاصيل</a></div>
@@ -268,7 +268,7 @@ async function appts() {
   main().innerHTML = `<div class="row-between"><h2 class="page-title">مواعيدي</h2><button class="btn primary ask-appt">طلب موعد</button></div>
     ${pend.length ? `<section class="card"><h3>طلبات بانتظار التأكيد</h3>${pend.map((r) => `<p>${esc(fmtDate(r.date))} · ${esc(r.period || "")}</p>`).join("")}<p class="muted small">ستؤكد العيادة الوقت لك.</p></section>` : ""}
     <section class="card"><h3>القادمة</h3>${up.length ? `<ul class="plain">${up.map((a) => `<li class="req"><b>${esc(fmtDate(a.date))}</b> · ${esc(fmtTime(a.time))}<br><span class="muted">${esc(a.type || "")}</span>
-      ${confirmBits(a)}<div><button class="btn small cx" data-id="${a.id}">إلغاء</button></div></li>`).join("")}</ul>` : empty("لا توجد مواعيد قادمة")}</section>
+      ${confirmBits(a)}<div><button class="btn small cx" data-id="${esc(a.id)}">إلغاء</button></div></li>`).join("")}</ul>` : empty("لا توجد مواعيد قادمة")}</section>
     <section class="card"><h3>السابقة</h3>${past.length ? `<ul class="plain">${past.map((a) => `<li class="row-between"><span>${esc(a.date)} · ${esc(a.type || "")}</span><span class="chip">${esc(STATUS[a.status] || "")}</span></li>`).join("")}</ul>` : empty("لا يوجد")}</section>`;
   $(".ask-appt").onclick = requestModal;
   $$(".cx").forEach((b) => b.onclick = () => cancelAppt(apps.find((a) => a.id === b.dataset.id)));
@@ -279,7 +279,7 @@ async function appts() {
 function confirmBits(a) {
   if (a.status !== "confirmed" || a.date > addDays(ymd(), 1)) return "";
   if (a.patientConfirm === "yes") return `<p class="pc-done">✓ أكّدت حضورك، بانتظارك</p>`;
-  return `<div class="pc-ask"><span>هل ستحضر؟</span><button class="btn small primary pc-yes" data-id="${a.id}">✓ سأحضر</button><button class="btn small pc-no" data-id="${a.id}">✕ أعتذر</button></div>`;
+  return `<div class="pc-ask"><span>هل ستحضر؟</span><button class="btn small primary pc-yes" data-id="${esc(a.id)}">✓ سأحضر</button><button class="btn small pc-no" data-id="${esc(a.id)}">✕ أعتذر</button></div>`;
 }
 function bindConfirm(apps) {
   $$(".pc-yes").forEach((b) => b.onclick = async () => {
@@ -526,8 +526,8 @@ async function file() {
     <section class="card"><h3>التحاليل</h3>${labs.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>التحليل</th><th>النتيجة</th></tr></thead><tbody>${labs.map((l) => `<tr><td>${esc(l.date)}</td><td>${esc(l.test)}</td><td dir="ltr">${esc(l.value)} ${esc(l.unit || "")}</td></tr>`).join("")}</tbody></table>` : empty("لا توجد تحاليل")}</section>
     <section class="card"><div class="row-between"><h3>${hasMod("preg") ? "الإيكو والملفات" : "الصور والملفات"}</h3><button class="btn small up">+ رفع تحليل</button></div>
       <p class="muted small">إذا أجريت تحليلاً في مختبر خارجي، صوّره وارفعه ليطّلع عليه الطبيب.</p>
-      ${fls.length ? `<div class="file-grid">${fls.map((f) => `<button class="file-tile" data-id="${f.id}">${tileImg(f)}<span>${esc(KIND[f.kind] || "ملف")} · ${esc(f.date || "")}</span></button>`).join("")}</div>` : empty("لا توجد ملفات")}</section>
-    ${procs.length ? `<section class="card"><h3>الإجراءات</h3>${procs.map((x) => `<div class="visit-mini"><b>${esc(x.name)}</b> · ${esc(fmtDate(x.date, false))}<div>الجلسات: ${x.sessionsDone || 0} / ${x.sessionsTotal || 1}</div>${x.aftercare ? `<div class="pre muted">${esc(x.aftercare)}</div>` : ""}<div>${x.consentSignedAt ? `<span class="chip ok">الموافقة موقّعة</span>` : `<button class="btn small primary sign" data-id="${x.id}">توقيع الموافقة</button>`}</div></div>`).join("")}</section>` : ""}
+      ${fls.length ? `<div class="file-grid">${fls.map((f) => `<button class="file-tile" data-id="${esc(f.id)}">${tileImg(f)}<span>${esc(KIND[f.kind] || "ملف")} · ${esc(f.date || "")}</span></button>`).join("")}</div>` : empty("لا توجد ملفات")}</section>
+    ${procs.length ? `<section class="card"><h3>الإجراءات</h3>${procs.map((x) => `<div class="visit-mini"><b>${esc(x.name)}</b> · ${esc(fmtDate(x.date, false))}<div>الجلسات: ${x.sessionsDone || 0} / ${x.sessionsTotal || 1}</div>${x.aftercare ? `<div class="pre muted">${esc(x.aftercare)}</div>` : ""}<div>${x.consentSignedAt ? `<span class="chip ok">الموافقة موقّعة</span>` : `<button class="btn small primary sign" data-id="${esc(x.id)}">توقيع الموافقة</button>`}</div></div>`).join("")}</section>` : ""}
     <section class="card"><h3>الفواتير</h3>${pays.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>الخدمة</th><th>المدفوع</th></tr></thead><tbody>${pays.sort((a, b) => b.date.localeCompare(a.date)).map((x) => `<tr><td>${esc(x.date)}</td><td>${esc(x.service || "")}</td><td>${esc(money(x.paid, cur))}</td></tr>`).join("")}</tbody></table>${due > 0 ? `<p class="alert">المبلغ المتبقي عليك: ${esc(money(due, cur))}</p>` : ""}` : empty("لا توجد فواتير")}</section>`;
   $(".up").onclick = uploadLab;
   $$(".addvit").forEach((b) => b.onclick = addReading);

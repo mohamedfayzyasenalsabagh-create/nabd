@@ -251,7 +251,7 @@ async function visits(p) {
   const vs = (await list(P.sub(p.id, "visits"))).sort((a, b) => b.date.localeCompare(a.date));
   tabEl().innerHTML = `<div class="row-between"><h3>الزيارات (${vs.length})</h3><button class="btn primary small add">+ زيارة</button></div>
     ${vs.length ? vs.map((v) => `<section class="card visit">
-      <div class="row-between"><b>${esc(fmtDate(v.date))}</b><button class="icon-btn pr" data-id="${v.id}" aria-label="طباعة">🖨</button></div>
+      <div class="row-between"><b>${esc(fmtDate(v.date))}</b><button class="icon-btn pr" data-id="${esc(v.id)}" aria-label="طباعة">🖨</button></div>
       ${v.complaint ? `<p><span class="muted">الشكوى:</span> ${esc(v.complaint)}</p>` : ""}
       ${v.exam ? `<p><span class="muted">الفحص:</span> ${esc(v.exam)}</p>` : ""}
       ${v.diagnosis ? `<p><span class="muted">التشخيص:</span> <b>${esc(v.diagnosis)}</b></p>` : ""}
@@ -300,7 +300,7 @@ export async function visitModal(pid, appt = null) {
 async function rx(p) {
   const rxs = (await list(P.sub(p.id, "prescriptions"))).sort((a, b) => b.date.localeCompare(a.date));
   tabEl().innerHTML = `<div class="row-between"><h3>الوصفات</h3><button class="btn primary small add">+ وصفة</button></div>
-    ${rxs.length ? rxs.map((r) => `<section class="card"><div class="row-between"><b>${esc(fmtDate(r.date, false))}${r.diagnosis ? ` · ${esc(r.diagnosis)}` : ""}</b><button class="icon-btn pr" data-id="${r.id}" aria-label="طباعة">🖨</button></div>
+    ${rxs.length ? rxs.map((r) => `<section class="card"><div class="row-between"><b>${esc(fmtDate(r.date, false))}${r.diagnosis ? ` · ${esc(r.diagnosis)}` : ""}</b><button class="icon-btn pr" data-id="${esc(r.id)}" aria-label="طباعة">🖨</button></div>
       <ol class="rx-items">${(r.items || []).map((it) => `<li><b>${esc(it.drug)}</b> ${esc(it.dose || "")}${it.times ? ` · ${esc(freqText(it.times))}` : ""}${it.days ? ` · ${esc(daysText(it.days))}` : ""}${it.note ? `<br><small>${esc(it.note)}</small>` : ""}</li>`).join("")}</ol>
       ${r.note ? `<p class="muted">${esc(r.note)}</p>` : ""}</section>`).join("") : empty("لا توجد وصفات")}`;
   $(".add").onclick = () => rxModal(p.id);
@@ -548,7 +548,7 @@ export async function dentalLabModal(pid) {
     <div class="grid2">${field("اللون", "shade", { placeholder: "مثلاً: A2", attrs: 'dir="ltr"' })}${field("تاريخ التسليم المطلوب", "due", { type: "date" })}</div>
     <div class="grid2">${field("المخبر", "lab", { placeholder: "اسم المخبر" })}${field("جوال المخبر (لواتساب)", "labPhone", { attrs: 'dir="ltr" inputmode="tel"', placeholder: "09xxxxxxxx", value: localStorage.getItem("labPhone") || "" })}</div>
     ${field("ملاحظات", "note", { type: "textarea" })}
-    ${photos.length ? `<p class="muted small">صور سريرية ترسل مع الطلب:</p><div class="lab-photos">${photos.slice(0, 12).map((f) => `<label class="lab-ph"><input type="checkbox" name="ph" value="${f.id}">${tileImg(f)}<small>${esc(f.date || "")}</small></label>`).join("")}</div>` : `<p class="muted small">لإرسال صور سريرية مع الطلب ارفعها أولاً من تبويب «التحاليل والملفات» بنوع «صورة سريرية».</p>`}
+    ${photos.length ? `<p class="muted small">صور سريرية ترسل مع الطلب:</p><div class="lab-photos">${photos.slice(0, 12).map((f) => `<label class="lab-ph"><input type="checkbox" name="ph" value="${esc(f.id)}">${tileImg(f)}<small>${esc(f.date || "")}</small></label>`).join("")}</div>` : `<p class="muted small">لإرسال صور سريرية مع الطلب ارفعها أولاً من تبويب «التحاليل والملفات» بنوع «صورة سريرية».</p>`}
     <input type="hidden" name="act" value="print">
   </form>`, {
     ok: "🖨 طباعة", wide: true,
@@ -905,11 +905,11 @@ async function cosm(p) {
     ${procs.length ? procs.map((x) => `<section class="card">
       <div class="row-between"><h4>${esc(x.name)}</h4><span class="muted small">${esc(fmtDate(x.date, false))}</span></div>
       ${x.price ? `<p>السعر: ${esc(money(x.price, cur()))}</p>` : ""}
-      <p>الجلسات: <b>${x.sessionsDone || 0} / ${x.sessionsTotal || 1}</b> <button class="btn small ses" data-id="${x.id}" ${(x.sessionsDone || 0) >= (x.sessionsTotal || 1) ? "disabled" : ""}>+ تسجيل جلسة منفذة</button></p>
+      <p>الجلسات: <b>${x.sessionsDone || 0} / ${x.sessionsTotal || 1}</b> <button class="btn small ses" data-id="${esc(x.id)}" ${(x.sessionsDone || 0) >= (x.sessionsTotal || 1) ? "disabled" : ""}>+ تسجيل جلسة منفذة</button></p>
       ${x.details ? `<p><span class="muted">التفاصيل:</span> ${esc(x.details)}</p>` : ""}
       ${x.aftercare ? `<p><span class="muted">تعليمات ما بعد الإجراء (تظهر للمريض):</span> ${esc(x.aftercare)}</p>` : ""}
-      <p>الموافقة: ${x.consentSignedAt ? `<span class="chip ok">موقّعة ${esc(x.consentName || "")} · ${esc(tsDate(x.consentSignedAt))}</span>` : `<span class="chip warn">بانتظار توقيع المريض من التطبيق</span> <button class="btn small sign" data-id="${x.id}">توقيع حضوري</button>`}</p>
-      <div class="row gap wrap"><button class="btn small ph" data-id="${x.id}">صور ما قبل الإجراء وما بعده</button><button class="btn small fu" data-id="${x.id}">موعد متابعة</button></div>
+      <p>الموافقة: ${x.consentSignedAt ? `<span class="chip ok">موقّعة ${esc(x.consentName || "")} · ${esc(tsDate(x.consentSignedAt))}</span>` : `<span class="chip warn">بانتظار توقيع المريض من التطبيق</span> <button class="btn small sign" data-id="${esc(x.id)}">توقيع حضوري</button>`}</p>
+      <div class="row gap wrap"><button class="btn small ph" data-id="${esc(x.id)}">صور ما قبل الإجراء وما بعده</button><button class="btn small fu" data-id="${esc(x.id)}">موعد متابعة</button></div>
     </section>`).join("") : empty("لا توجد إجراءات")}`;
   $(".add").onclick = async () => {
     const svcs = (S.clinic?.services || []).filter((s) => s.kind === "cosmetic");
@@ -954,7 +954,7 @@ async function photosModal(p, x) {
   const load = async () => (await list(query(P.sub(p.id, "private"), where("procedureId", "==", x.id))));
   const draw = async (w) => {
     const ph = await load();
-    const grp = (st) => ph.filter((y) => y.stage === st && !y.broken).map((y) => `<img src="${y.thumb || y.data}" data-id="${y.id}" alt="صورة ${st === "before" ? "قبل" : "بعد"} ${esc(y.date)}" class="thumb">`).join("") || `<span class="muted small">لا توجد صور</span>`;
+    const grp = (st) => ph.filter((y) => y.stage === st && !y.broken).map((y) => `<img src="${y.thumb || y.data}" data-id="${esc(y.id)}" alt="صورة ${st === "before" ? "قبل" : "بعد"} ${esc(y.date)}" class="thumb">`).join("") || `<span class="muted small">لا توجد صور</span>`;
     w.querySelector(".ph-body").innerHTML = `<h4>قبل الإجراء</h4><div class="thumbs">${grp("before")}</div><h4>بعد الإجراء</h4><div class="thumbs">${grp("after")}</div>`;
     w.querySelectorAll(".thumb").forEach((im) => im.onclick = () => { const y = ph.find((z) => z.id === im.dataset.id); showFile(`${x.name} · ${y.stage === "before" ? "قبل" : "بعد"} · ${y.date}`, "", () => fileData(P.sub(p.id, "private"), y), true); });
   };
@@ -995,7 +995,7 @@ async function files(p) {
       </tbody></table></div>` : empty("لا توجد نتائج")}
     </section>
     <section class="card"><div class="row-between"><h3>${hasMod("dental") ? "الصور السريرية والملفات" : "الإيكو والملفات"}</h3><button class="btn primary small addf">+ رفع</button></div>
-      ${fls.length ? `<div class="file-grid">${fls.map((f) => `<button class="file-tile" data-id="${f.id}">
+      ${fls.length ? `<div class="file-grid">${fls.map((f) => `<button class="file-tile" data-id="${esc(f.id)}">
         ${tileImg(f)}
         <span>${esc(KIND[f.kind] || "ملف")} · ${esc(f.date || "")}${f.uploadedBy === "patient" ? " · من المريض" : ""}</span></button>`).join("")}</div>` : empty("لا توجد ملفات")}
     </section>`;
@@ -1046,7 +1046,7 @@ async function appts(p) {
   tabEl().innerHTML = `
     ${reqs.length ? `<div class="alert">لديه ${reqs.length} طلب موعد جديد. <a href="#/requests">افتح الطلبات</a></div>` : ""}
     <div class="row-between"><h3>المواعيد</h3><button class="btn primary small add">+ موعد</button></div>
-    ${arr.length ? `<ul class="appt-list">${arr.map((a) => `<li><button class="appt st-${a.status}" data-a="${a.id}"><span class="t">${esc(a.date)}<br>${esc(fmtTime(a.time))}</span><span class="n">${esc(a.type || "موعد")}${a.rating ? `<small>${"★".repeat(a.rating)}</small>` : ""}</span><span class="chip">${esc(STATUS[a.status])}</span></button></li>`).join("")}</ul>` : empty("لا توجد مواعيد")}`;
+    ${arr.length ? `<ul class="appt-list">${arr.map((a) => `<li><button class="appt st-${a.status}" data-a="${esc(a.id)}"><span class="t">${esc(a.date)}<br>${esc(fmtTime(a.time))}</span><span class="n">${esc(a.type || "موعد")}${a.rating ? `<small>${"★".repeat(a.rating)}</small>` : ""}</span><span class="chip">${esc(STATUS[a.status])}</span></button></li>`).join("")}</ul>` : empty("لا توجد مواعيد")}`;
   $(".add").onclick = () => bookModal({ pid: p.id });
   const { apptActions } = await import("./staff.js");
   $$("[data-a]").forEach((b) => b.onclick = () => apptActions(arr.find((a) => a.id === b.dataset.a)));
@@ -1058,7 +1058,7 @@ async function moneyTab(p) {
   const t = pays.reduce((s, x) => s + (x.total || 0), 0), pd = pays.reduce((s, x) => s + (x.paid || 0), 0);
   tabEl().innerHTML = `<div class="stats"><div class="stat"><b>${esc(money(t, cur()))}</b><span>المطلوب</span></div><div class="stat"><b>${esc(money(pd, cur()))}</b><span>المدفوع</span></div><div class="stat ${t - pd > 0 ? "warn" : ""}"><b>${esc(money(t - pd, cur()))}</b><span>المتبقي</span></div></div>
     <div class="row-between"><h3>الدفعات</h3><div class="row gap">${t - pd > 0 ? `<button class="btn small settle">تسديد المتبقي</button>` : ""}<button class="btn primary small add">+ دفعة</button></div></div>
-    ${pays.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>الخدمة</th><th>المطلوب</th><th>المدفوع</th><th></th></tr></thead><tbody>${pays.map((x) => `<tr><td>${esc(x.date)}</td><td>${esc(x.service || "")}</td><td>${esc(money(x.total, cur()))}</td><td>${esc(money(x.paid, cur()))}</td><td><button class="icon-btn rc" data-id="${x.id}" aria-label="إيصال">🧾</button></td></tr>`).join("")}</tbody></table>` : empty("لا توجد دفعات")}`;
+    ${pays.length ? `<table class="tbl"><thead><tr><th>التاريخ</th><th>الخدمة</th><th>المطلوب</th><th>المدفوع</th><th></th></tr></thead><tbody>${pays.map((x) => `<tr><td>${esc(x.date)}</td><td>${esc(x.service || "")}</td><td>${esc(money(x.total, cur()))}</td><td>${esc(money(x.paid, cur()))}</td><td><button class="icon-btn rc" data-id="${esc(x.id)}" aria-label="إيصال">🧾</button></td></tr>`).join("")}</tbody></table>` : empty("لا توجد دفعات")}`;
   $(".add").onclick = () => paymentModal(p.id);
   $(".settle")?.addEventListener("click", async () => {
     const r = await modal("تسديد", `<form class="stack">${field("المبلغ", "paid", { type: "number", value: t - pd, required: true, attrs: 'min="1"' })}${select("طريقة الدفع", "method", Object.entries(CASH_METHODS), "cash")}</form>`);

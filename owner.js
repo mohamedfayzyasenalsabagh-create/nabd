@@ -135,7 +135,7 @@ async function renderClinics() {
       <ul class="remind-list">${follow.map(({ c, s: x }) => `<li class="${c.renewRemindedAt && tsMs(c.renewRemindedAt) > Date.now() - 3 * 864e5 ? "done" : ""}">
         <span class="t ${x.days <= 0 ? "danger-t" : ""}">${x.days > 0 ? `${x.days} يوم` : x.days === 0 ? "اليوم" : `منذ ${-x.days} يوم`}</span>
         <span class="n">${esc(c.name)}<small>${c.status === "trial" ? "تجربة مجانية" : esc(planOf(c.plan)?.name || c.plan || "")} · <span dir="ltr">${esc(c.ownerPhone || "")}</span></small></span>
-        ${c.ownerPhone ? `<span class="row gap"><a class="btn small primary rn" data-id="${c.id}" target="_blank" rel="noopener" href="${esc(waLink(c.ownerPhone, renewText(c, x.days)))}">📲 تذكير</a><button class="btn small cpm" data-id="${c.id}" data-days="${x.days}" title="نسخ الرسالة لإرسالها من أي واتساب">📋 نسخ</button></span>` : ""}
+        ${c.ownerPhone ? `<span class="row gap"><a class="btn small primary rn" data-id="${esc(c.id)}" target="_blank" rel="noopener" href="${esc(waLink(c.ownerPhone, renewText(c, x.days)))}">📲 تذكير</a><button class="btn small cpm" data-id="${esc(c.id)}" data-days="${x.days}" title="نسخ الرسالة لإرسالها من أي واتساب">📋 نسخ</button></span>` : ""}
       </li>`).join("")}</ul></section>` : ""}
     <input class="search" type="search" id="cq" placeholder="بحث بالاسم أو الرمز أو البريد" value="${esc(q)}" aria-label="بحث">
     <section class="card" id="ctbl">${filter !== "all" ? `<p class="row gap"><span class="chip">${esc(FL[filter] || "")} · ${rows.length}</span><button class="btn small ghost f-all">✕ عرض الكل</button></p>` : ""}${rows.length ? `<div class="tbl-wrap"><table class="tbl wide"><thead><tr><th>العيادة</th><th>الاختصاص</th><th>الحالة</th><th>الاستخدام</th><th>الباقة</th><th>ينتهي</th><th></th></tr></thead><tbody>
@@ -143,7 +143,7 @@ async function renderClinics() {
         <td>${esc(SPECIALTIES[c.specialty]?.name || c.specialty || "")}</td><td>${statusChip(c)}</td><td>${usage(c.id)}</td>
         <td>${esc(c.plan === "trial" ? "تجربة" : c.plan === "gift" ? "هدية" : planOf(c.plan)?.name || c.plan || "")}</td>
         <td>${c.plan === "gift" ? "مدى الحياة" : `${esc(fmtDate(ymd(new Date(tsMs(c.expiresAt))), false))}<br><small class="${s.days <= 7 ? "danger-t" : "muted"}">${s.days > 0 ? `بعد ${s.days} يوم` : "انتهى"}</small>`}</td>
-        <td><button class="btn small man" data-id="${c.id}">إدارة</button></td></tr>`).join("")}
+        <td><button class="btn small man" data-id="${esc(c.id)}">إدارة</button></td></tr>`).join("")}
       </tbody></table></div>` : empty("لا توجد عيادات")}</section>`;
   loadDownloads(); loadVisits();
   $$(".stat.f").forEach((b) => b.onclick = async () => { filter = b.dataset.f; await renderClinics(); $("#ctbl")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
@@ -253,8 +253,8 @@ async function renderPayments() {
     <div class="row-between"><b>${esc(p.clinicName)}</b>${p.status === "pending" ? `<span class="chip warn">بانتظار المراجعة</span>` : p.status === "approved" ? `<span class="chip ok">مقبولة</span>` : `<span class="chip danger">مرفوضة</span>`}</div>
     <div>${esc(planOf(p.plan)?.name || p.plan)} · ${esc(p.months)} شهر · <b>${esc(p.amount)}</b> · ${esc(M[p.method] || p.method)}</div>
     <div class="muted small">${p.txn ? `رقم العملية: <span dir="ltr">${esc(p.txn)}</span> · ` : ""}${esc(tsDate(p.createdAt))}${p.note ? ` · ${esc(p.note)}` : ""}</div>
-    ${p.receipt ? `<button type="button" class="receipt-thumb" data-id="${p.id}" aria-label="عرض صورة الإيصال"><img src="${esc(p.receipt)}" alt=""><span>صورة الإيصال · اضغط للتكبير</span></button>` : ""}
-    ${p.status === "pending" ? `<div class="row gap"><button class="btn primary small ap" data-id="${p.id}">قبول وتفعيل</button><button class="btn small rj" data-id="${p.id}">رفض</button></div>` : ""}</li>`;
+    ${p.receipt ? `<button type="button" class="receipt-thumb" data-id="${esc(p.id)}" aria-label="عرض صورة الإيصال"><img src="${esc(p.receipt)}" alt=""><span>صورة الإيصال · اضغط للتكبير</span></button>` : ""}
+    ${p.status === "pending" ? `<div class="row gap"><button class="btn primary small ap" data-id="${esc(p.id)}">قبول وتفعيل</button><button class="btn small rj" data-id="${esc(p.id)}">رفض</button></div>` : ""}</li>`;
   main().innerHTML = `<h2 class="page-title">دفعات الاشتراك</h2>
     <section class="card"><h3>بانتظار المراجعة</h3>${pend.length ? `<ul class="plain">${pend.map(row).join("")}</ul>` : empty("لا توجد دفعات جديدة")}</section>
     <section class="card"><h3>السابقة</h3>${done.length ? `<ul class="plain">${done.slice(0, 100).map(row).join("")}</ul>` : empty("لا يوجد")}</section>`;

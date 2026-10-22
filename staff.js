@@ -388,7 +388,7 @@ async function renderHome() {
     </section>
     <section class="card">
       <h3>الأسبوع القادم</h3>
-      ${week.length ? `<ul class="appt-list compact">${week.map((a) => `<li><button class="appt" data-a="${a.id}">
+      ${week.length ? `<ul class="appt-list compact">${week.map((a) => `<li><button class="appt" data-a="${esc(a.id)}">
         <span class="t">${esc(DAYS[parseYmd(a.date).getDay()])} ${parseYmd(a.date).getDate()}/${parseYmd(a.date).getMonth() + 1} · ${esc(fmtTime(a.time))}</span>
         <span class="n">${esc(a.patientName)}${multiDoc() ? `<small>د. ${esc(docName(apptDoc(a)))}</small>` : ""}</span><span class="chip">${esc(a.type || "")}</span></button></li>`).join("")}</ul>` : empty("لا توجد مواعيد")}
     </section>`;
@@ -411,7 +411,7 @@ async function centerSummary(today) {
       waiting: mine.filter((a) => a.status === "arrived").length, inn: qLab(mine.find((a) => a.status === "in")?.queueNo, d.id), done: mine.filter((a) => a.status === "done").length };
   });
   return `<section class="card"><h3>أطباء المركز</h3><div class="cdocs">
-    ${rows.map((r) => `<button class="cdoc dc${docIdx(r.d.id)}" data-cdoc="${r.d.id}"><div class="cd-h"><b><span class="notr">${docLetter(r.d.id)}</span> · د. ${esc(r.d.name)}</b><span>${esc(SPECIALTIES[r.d.spec || S.clinic?.specialty]?.name || "")}</span></div>
+    ${rows.map((r) => `<button class="cdoc dc${docIdx(r.d.id)}" data-cdoc="${esc(r.d.id)}"><div class="cd-h"><b><span class="notr">${docLetter(r.d.id)}</span> · د. ${esc(r.d.name)}</b><span>${esc(SPECIALTIES[r.d.spec || S.clinic?.specialty]?.name || "")}</span></div>
       <div class="cd-s"><span><b>${r.patients}</b>مريض</span><span><b>${r.today}</b>موعد اليوم</span><span><b>${r.waiting}</b>بالانتظار</span><span><b>${r.done}</b>انتهت</span></div>
       ${r.inn ? `<div class="cd-now">لديه الآن رقم الدور ${r.inn}</div>` : ""}</button>`).join("")}
     </div><p class="muted small">اضغط على الطبيب لعرض مواعيده. يُحسب المريض لكل طبيب حجز عنده موعداً.</p></section>`;
@@ -449,10 +449,10 @@ async function fillDaySummary() {
 const pcChip = (a) => (a.checkin ? ` <span class="pc-chip">📲 سجّل حضوره</span>` : a.patientConfirm === "yes" && a.status === "confirmed" ? ` <span class="pc-chip">✓ أكّد حضوره</span>` : "");
 function apptRow(a) {
   const quick = a.status === "confirmed" && a.date === ymd();
-  return `<li class="appt-li"><button class="appt st-${a.status}" data-a="${a.id}">
+  return `<li class="appt-li"><button class="appt st-${a.status}" data-a="${esc(a.id)}">
     <span class="t">${esc(fmtTime(a.time))}${a.queueNo ? ` <span class="q" dir="ltr">${multiDoc() ? "" : "#"}${qLab(a.queueNo, apptDoc(a))}</span>` : ""}</span>
     <span class="n">${esc(a.patientName)}<small>${esc(a.type || "")}${pcChip(a)}</small>${multiDoc() ? docTag(apptDoc(a)) : ""}</span>
-    ${quick ? `<span class="chip st ghost-chip"></span>` : `<span class="chip st">${esc(STATUS[a.status] || a.status)}</span>`}</button>${quick ? `<button class="arrive" data-arr="${a.id}" aria-label="تسجيل الحضور">حضر ✓</button>` : ""}</li>`;
+    ${quick ? `<span class="chip st ghost-chip"></span>` : `<span class="chip st">${esc(STATUS[a.status] || a.status)}</span>`}</button>${quick ? `<button class="arrive" data-arr="${esc(a.id)}" aria-label="تسجيل الحضور">حضر ✓</button>` : ""}</li>`;
 }
 function bindApptButtons(arr) {
   const map = Object.fromEntries(arr.map((a) => [a.id, a]));
@@ -814,7 +814,7 @@ export async function bookModal({ pid = "", date = ymd(), time = "", type = "", 
         s.oninput = debounce(() => {
           const q = s.value.trim();
           const res = q ? searchPatients(q).slice(0, 6) : [];
-          w.querySelector(".pt-results").innerHTML = res.map((p) => `<button type="button" class="pt-pick" data-id="${p.id}">${esc(p.name)} <span class="muted" dir="ltr">${esc(p.phone)}</span></button>`).join("");
+          w.querySelector(".pt-results").innerHTML = res.map((p) => `<button type="button" class="pt-pick" data-id="${esc(p.id)}">${esc(p.name)} <span class="muted" dir="ltr">${esc(p.phone)}</span></button>`).join("");
           w.querySelectorAll(".pt-pick").forEach((b) => b.onclick = () => {
             form.pid.value = b.dataset.id; s.value = PC.byId[b.dataset.id].name;
             w.querySelector(".pt-results").innerHTML = "";
@@ -927,8 +927,8 @@ async function renderApptsGrid(v, d) {
   const cell = (c, t) => {
     const a = at[`${c.day}|${t}|${c.doc.id}`];
     const open = slotsFor(c.day).includes(t);
-    if (a) return `<td class="g-a st-${a.status} dc${docIdx(apptDoc(a))}"><div class="g-chip" draggable="true" data-a="${a.id}"><b>${a.patientConfirm === "yes" && a.status === "confirmed" ? "✓ " : ""}${esc(a.patientName)}</b>${a.type ? `<small>${esc(a.type)}</small>` : ""}${a.queueNo ? `<i>${esc(qLab(a.queueNo, apptDoc(a)))}</i>` : ""}</div></td>`;
-    return `<td class="g-free ${open ? "" : "off"}" data-day="${c.day}" data-t="${t}" data-doc="${c.doc.id}">${open ? "" : "·"}</td>`;
+    if (a) return `<td class="g-a st-${a.status} dc${docIdx(apptDoc(a))}"><div class="g-chip" draggable="true" data-a="${esc(a.id)}"><b>${a.patientConfirm === "yes" && a.status === "confirmed" ? "✓ " : ""}${esc(a.patientName)}</b>${a.type ? `<small>${esc(a.type)}</small>` : ""}${a.queueNo ? `<i>${esc(qLab(a.queueNo, apptDoc(a)))}</i>` : ""}</div></td>`;
+    return `<td class="g-free ${open ? "" : "off"}" data-day="${c.day}" data-t="${t}" data-doc="${esc(c.doc.id)}">${open ? "" : "·"}</td>`;
   };
   main().innerHTML = `
     <div class="row-between">
@@ -1271,7 +1271,7 @@ async function renderMoney() {
     <section class="card">
       ${pays.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المريض</th><th>الخدمة</th><th>المدفوع</th><th>التاريخ</th><th></th></tr></thead><tbody>
       ${pays.map((p) => `<tr><td><a href="#/p/${p.patientId}/money">${esc(p.patientName)}</a></td><td>${esc(p.service || "")}</td><td>${esc(money(p.paid, cur()))}${p.total > p.paid ? ` <span class="chip warn">المتبقي ${esc(money(p.total - p.paid, cur()))}</span>` : ""}</td><td>${esc(p.date)}</td>
-      <td><button class="icon-btn rc" data-id="${p.id}" aria-label="إيصال">🧾</button></td></tr>`).join("")}</tbody></table></div>` : empty("لا توجد دفعات")}
+      <td><button class="icon-btn rc" data-id="${esc(p.id)}" aria-label="إيصال">🧾</button></td></tr>`).join("")}</tbody></table></div>` : empty("لا توجد دفعات")}
     </section>${debts}`;
   if (doc_) {
     const upd = () => go(`#/money?from=${$(".f").value}&to=${$(".t").value}`);
@@ -1367,13 +1367,13 @@ async function renderRequests() {
       <div><b>${esc(r.name)}</b> <span class="muted" dir="ltr">${esc(r.phone)}</span> ${PC.list.some((p) => p.phone === r.phone) ? `<span class="chip ok">مريض سابق</span>` : `<span class="chip">جديد</span>`}</div>
       <div>${esc(fmtDate(r.date))} · ${esc(fmtTime(r.time))}${r.service ? " · " + esc(r.service) : ""}${multiDoc() ? ` · د. ${esc(docName(r.doctorId))}` : ""}</div>
       ${r.note ? `<div class="muted">${esc(r.note)}</div>` : ""}
-      <div class="row gap"><button class="btn primary small pok" data-id="${r.id}">تأكيد الموعد</button><button class="btn small pno" data-id="${r.id}">اعتذار</button><a class="btn small" href="tel:${esc(r.phone)}">اتصال</a></div>
+      <div class="row gap"><button class="btn primary small pok" data-id="${esc(r.id)}">تأكيد الموعد</button><button class="btn small pno" data-id="${esc(r.id)}">اعتذار</button><a class="btn small" href="tel:${esc(r.phone)}">اتصال</a></div>
     </li>`).join("")}</ul>` : empty("لا توجد طلبات جديدة")}</section>` : ""}
     <section class="card"><h3>من تطبيق المرضى</h3>${reqs.length ? `<ul class="plain">${reqs.map((r) => `<li class="req">
       <div><b>${esc(r.patientName)}</b> <span class="muted" dir="ltr">${esc(r.phone || "")}</span></div>
       <div>يطلب موعداً: ${esc(fmtDate(r.date))} · ${esc(r.period || "")} ${r.type ? "· " + esc(r.type) : ""}</div>
       ${r.note ? `<div class="muted">${esc(r.note)}</div>` : ""}
-      <div class="row gap"><button class="btn primary small ok" data-id="${r.id}">تثبيت موعد</button><button class="btn small no" data-id="${r.id}">اعتذار</button></div>
+      <div class="row gap"><button class="btn primary small ok" data-id="${esc(r.id)}">تثبيت موعد</button><button class="btn small no" data-id="${esc(r.id)}">اعتذار</button></div>
     </li>`).join("")}</ul>` : empty("لا توجد طلبات جديدة")}</section>`;
   $$(".req .ok").forEach((b) => b.onclick = () => {
     const r = reqs.find((x) => x.id === b.dataset.id);
@@ -1399,7 +1399,7 @@ async function confirmPublic(r) {
   const choice = await modal(`تأكيد موعد ${r.name}`, `<form class="stack">
     <p>${esc(fmtDate(r.date))} · ${esc(fmtTime(r.time))}${multiDoc() ? ` · د. ${esc(docName(r.doctorId))}` : ""}</p>
     <h4>ملف المريض</h4>
-    ${matches.map((p, i) => `<label class="check"><input type="radio" name="who" value="${p.id}" ${i === 0 ? "checked" : ""}><span>${esc(p.name)} (ملف موجود)</span></label>`).join("")}
+    ${matches.map((p, i) => `<label class="check"><input type="radio" name="who" value="${esc(p.id)}" ${i === 0 ? "checked" : ""}><span>${esc(p.name)} (ملف موجود)</span></label>`).join("")}
     <label class="check"><input type="radio" name="who" value="new" ${matches.length ? "" : "checked"}><span>ملف جديد باسم «${esc(r.name)}»</span></label>
   </form>`, {
     ok: "تأكيد",
@@ -1431,7 +1431,7 @@ async function renderWaitlist() {
       <div><b>${esc(w.patientName)}</b> <span class="muted" dir="ltr">${esc(w.phone)}</span></div>
       ${w.note ? `<div class="muted">${esc(w.note)}</div>` : ""}
       <div class="row gap"><a class="btn small" href="tel:${esc(w.phone)}">اتصال</a>
-      <button class="btn primary small bk" data-id="${w.id}">حجز موعد</button><button class="btn small rm" data-id="${w.id}">إزالة</button></div></li>`).join("")}</ol>` : empty("القائمة فارغة")}</section>`;
+      <button class="btn primary small bk" data-id="${esc(w.id)}">حجز موعد</button><button class="btn small rm" data-id="${esc(w.id)}">إزالة</button></div></li>`).join("")}</ol>` : empty("القائمة فارغة")}</section>`;
   $(".add").onclick = async () => {
     await modal("إضافة لقائمة الانتظار", `<form class="stack">
       <label class="field"><span>المريض</span><input class="pt-search" autocomplete="off" placeholder="اكتب الاسم أو الرقم"><input type="hidden" name="pid" required></label>
@@ -1440,7 +1440,7 @@ async function renderWaitlist() {
         const s = w.querySelector(".pt-search"), f = w.querySelector("form");
         s.oninput = debounce(() => {
           const res = s.value.trim() ? searchPatients(s.value.trim()).slice(0, 6) : [];
-          w.querySelector(".pt-results").innerHTML = res.map((p) => `<button type="button" class="pt-pick" data-id="${p.id}">${esc(p.name)}</button>`).join("");
+          w.querySelector(".pt-results").innerHTML = res.map((p) => `<button type="button" class="pt-pick" data-id="${esc(p.id)}">${esc(p.name)}</button>`).join("");
           w.querySelectorAll(".pt-pick").forEach((b) => b.onclick = () => { f.pid.value = b.dataset.id; s.value = PC.byId[b.dataset.id].name; w.querySelector(".pt-results").innerHTML = ""; });
         }, 150);
       },
@@ -1785,12 +1785,12 @@ async function renderExpenses() {
     </div>
     <section class="card"><div class="row-between"><h3>ديون العيادة</h3>${owed.length ? `<span class="chip danger">${esc(money(owedTotal, cur()))}</span>` : ""}</div>
       <p class="muted small">ما على العيادة دفعه للمخبر أو المورد أو غيرهما. سجّله كمصروف مع اختيار «لم يُدفع بعد».</p>
-      ${owed.length ? `<ul class="plain">${owed.map((e) => `<li class="row-between"><span><b>${esc(e.payee || e.category || "")}</b> · ${esc(money(e.amount, cur()))}<br><small class="muted">${esc(e.date)}${e.note ? ` · ${esc(e.note)}` : ""}</small></span><button class="btn small paid" data-id="${e.id}">تم الدفع</button></li>`).join("")}</ul>` : empty("لا توجد ديون على العيادة ✓")}</section>
+      ${owed.length ? `<ul class="plain">${owed.map((e) => `<li class="row-between"><span><b>${esc(e.payee || e.category || "")}</b> · ${esc(money(e.amount, cur()))}<br><small class="muted">${esc(e.date)}${e.note ? ` · ${esc(e.note)}` : ""}</small></span><button class="btn small paid" data-id="${esc(e.id)}">تم الدفع</button></li>`).join("")}</ul>` : empty("لا توجد ديون على العيادة ✓")}</section>
     ${rows.length ? `<section class="card"><h3>حسب البند</h3><div class="bars">${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="bar-row"><span>${esc(k)}</span><div class="bar"><i style="width:${v / maxC * 100}%"></i></div><b>${esc(money(v, cur()))}</b></div>`).join("")}</div></section>` : ""}
     <section class="card">
       ${all.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>التاريخ</th><th>البند</th><th>المبلغ</th><th>ملاحظة</th><th></th></tr></thead><tbody>
       ${all.map((e) => `<tr class="${e.void ? "void" : ""}"><td>${esc(e.date)}</td><td>${esc(e.category || "")}</td><td>${esc(money(e.amount, cur()))}${e.unpaid ? ` <span class="chip danger">غير مدفوع</span>` : ""}</td><td>${esc([e.payee, e.note].filter(Boolean).join(" · "))}${e.void ? ` <span class="chip">ملغى</span>` : ""}</td>
-        <td>${e.void ? "" : `<button class="icon-btn ed" data-id="${e.id}" aria-label="تعديل">✎</button>`}</td></tr>`).join("")}</tbody></table></div>` : empty("لا توجد مصاريف مسجلة لهذا الشهر")}
+        <td>${e.void ? "" : `<button class="icon-btn ed" data-id="${esc(e.id)}" aria-label="تعديل">✎</button>`}</td></tr>`).join("")}</tbody></table></div>` : empty("لا توجد مصاريف مسجلة لهذا الشهر")}
     </section>
     <p class="muted small">المصاريف تظهر للأطباء فقط، وتدخل في التقرير الشهري لحساب صافي الربح.</p>`;
   $(".mp").onchange = (e) => go(`#/expenses?m=${e.target.value}`);

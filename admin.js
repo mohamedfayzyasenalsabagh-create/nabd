@@ -184,8 +184,8 @@ export async function renderTeam() {
         const u = docUsers.find((x) => x.doctorId === d.id);
         const me = d.id === S.profile.doctorId;
         return `<li class="req"><div><b>د. ${esc(d.name)}</b> ${me ? `<span class="chip">أنت · المسؤول</span>` : ""} ${multiSpec() ? `<span class="chip">${esc(SPECIALTIES[d.spec || c0.specialty]?.name || "")}</span>` : ""} ${docs.filter((x) => x.active !== false).length > 1 ? `<span class="chip" title="حرف الدور">الدور <span class="notr">${docLetter(d.id)}</span></span>` : ""} <span class="muted small">${esc(d.title || "")}</span>
-          <button class="link-btn small edd" data-id="${d.id}">تعديل الاختصاص واللقب</button></div>
-          ${u && !me ? `<div class="muted small" dir="ltr">${esc(u.phone)}</div><div class="row gap"><button class="btn small rp" data-uid="${u.id}">كلمة مرور جديدة</button><button class="btn small danger offd" data-id="${d.id}" data-uid="${u.id}">إيقاف</button></div>` : ""}</li>`;
+          <button class="link-btn small edd" data-id="${esc(d.id)}">تعديل الاختصاص واللقب</button></div>
+          ${u && !me ? `<div class="muted small" dir="ltr">${esc(u.phone)}</div><div class="row gap"><button class="btn small rp" data-uid="${esc(u.id)}">كلمة مرور جديدة</button><button class="btn small danger offd" data-id="${esc(d.id)}" data-uid="${esc(u.id)}">إيقاف</button></div>` : ""}</li>`;
       }).join("")}</ul>
       ${!feat("multiDoctor") ? `<p class="muted small">إضافة أطباء متاحة في الباقة الاحترافية. <a href="#/subscription">الترقية</a></p>` : !canDoc ? `<p class="muted small">وصلت إلى الحد الأقصى لباقتك.</p>` : ""}
     </section>
@@ -194,7 +194,7 @@ export async function renderTeam() {
       ${staff.length ? `<ul class="plain">${staff.map((s) => `<li class="req">
         <div><b>${esc(s.name)}</b> <span class="chip">${esc(s.role === "custom" ? s.roleTitle || "دور مخصّص" : RN[s.role] || s.role)}</span> <span class="muted" dir="ltr">${esc(s.phone)}</span>
           ${s.role === "custom" ? `<div class="muted small"><span>الصلاحيات:</span> ${permSum(s).split("، ").map((x) => `<span class="chip">${esc(x)}</span>`).join(" ")}</div>` : ""}</div>
-        <div class="row gap">${s.role === "custom" ? `<button class="btn small edp" data-uid="${s.id}">تعديل الصلاحيات</button>` : ""}<button class="btn small rp" data-uid="${s.id}">كلمة مرور جديدة</button><button class="btn small danger offs" data-uid="${s.id}">إيقاف الحساب</button></div></li>`).join("")}</ul>` : empty("لا يوجد موظفون")}
+        <div class="row gap">${s.role === "custom" ? `<button class="btn small edp" data-uid="${esc(s.id)}">تعديل الصلاحيات</button>` : ""}<button class="btn small rp" data-uid="${esc(s.id)}">كلمة مرور جديدة</button><button class="btn small danger offs" data-uid="${esc(s.id)}">إيقاف الحساب</button></div></li>`).join("")}</ul>` : empty("لا يوجد موظفون")}
     </section>
     <p class="muted small">يسري الإيقاف فوراً، ولا يمكن للحساب الدخول بعده.</p>
     <section class="card"><h3>صلاحيات كل دور</h3><ul class="plain small role-help">
@@ -336,7 +336,7 @@ export async function renderSubscription() {
       <h3>${esc(p.name)}</h3><div class="price"><b>${esc(p.price)}</b><span>${esc(p.currency || "$")} / شهرياً</span></div>
       ${yearlyDisc(p) ? `<div class="yr-deal">🎁 سنوياً: <b>${esc(periodPrice(p, 12))} ${esc(p.currency || "$")}</b> <s>${esc(p.price * 12)}</s> · حسم ${yearlyDisc(p)}%</div>` : ""}
       <ul class="plain checks">${(p.perks || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-      <button class="btn ${p.id === c.plan || i === 1 ? "primary" : ""} block pick" data-id="${p.id}">${p.id === c.plan ? "تجديد" : "اختيار"}</button></article>`).join("")}</div>`}
+      <button class="btn ${p.id === c.plan || i === 1 ? "primary" : ""} block pick" data-id="${esc(p.id)}">${p.id === c.plan ? "تجديد" : "اختيار"}</button></article>`).join("")}</div>`}
     <section class="card stack"><h3>طرق الدفع</h3>
       ${pay.shamcash || pay.shamcashQr ? `<div class="sc-box"><h4>شام كاش</h4>${pay.shamcashQr ? `<img class="sc-qr" src="${esc(pay.shamcashQr)}" alt="رمز QR للدفع عبر شام كاش">` : ""}${pay.shamcash ? `<p>الحساب: <b dir="auto">${esc(pay.shamcash)}</b></p>` : ""}<p class="muted small">امسح الرمز من تطبيق شام كاش وادفع، ثم ارفع صورة الإيصال عند اختيار الباقة.</p></div>` : ""}
       ${pay.syriatel ? `<p>سيريتل كاش: <b dir="ltr">${esc(pay.syriatel)}</b></p>` : ""}
@@ -420,7 +420,7 @@ export async function renderInventory() {
       ${items.map((i) => `<tr class="${low(i) ? "row-warn" : ""}"><td><b>${esc(i.name)}</b>${i.note ? `<br><small class="muted">${esc(i.note)}</small>` : ""}${(i.uses || []).length ? `<br><small class="muted">🔗 يُخصم مع: ${esc(i.uses.map((u) => `${u.service} (${u.n})`).join("، "))}</small>` : ""}</td>
         <td><b>${esc(i.qty)}</b> ${esc(i.unit || "")}</td><td>${esc(i.min ?? "")}</td>
         <td>${i.expiry ? `<span class="${exp(i) ? "danger-t" : ""}">${esc(i.expiry)}</span>` : "—"}</td>
-        <td><button class="btn small mv" data-id="${i.id}">حركة</button></td></tr>`).join("")}</tbody></table></div>` : empty("لم تُضف أصناف بعد")}</section>`;
+        <td><button class="btn small mv" data-id="${esc(i.id)}">حركة</button></td></tr>`).join("")}</tbody></table></div>` : empty("لم تُضف أصناف بعد")}</section>`;
   $(".add").onclick = () => itemModal();
   $$(".mv").forEach((b) => b.onclick = () => moveModal(items.find((i) => i.id === b.dataset.id)));
 }
