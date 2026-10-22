@@ -121,15 +121,19 @@ service cloud.firestore {
     }
     // عدّاد الضغط على أزرار الصفحة الرئيسية: زر واحد يزيد بمقدار 1 في كل مرة
     match /clicks/{day} {
+      function ck(k) {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny([k])
+          || request.resource.data.get(k, 0) == resource.data.get(k, 0) + 1;
+      }
       allow read: if isOwner();
       allow create: if day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$')
         && request.resource.data.keys().hasOnly(['signup', 'demo', 'dl', 'wa'])
         && request.resource.data.keys().size() == 1
-        && request.resource.data.values()[0] == 1;
+        && request.resource.data.get('signup', 1) == 1 && request.resource.data.get('demo', 1) == 1
+        && request.resource.data.get('dl', 1) == 1 && request.resource.data.get('wa', 1) == 1;
       allow update: if request.resource.data.keys().hasOnly(['signup', 'demo', 'dl', 'wa'])
         && request.resource.data.diff(resource.data).affectedKeys().size() == 1
-        && request.resource.data.get(request.resource.data.diff(resource.data).affectedKeys().toList()[0], 0)
-           == resource.data.get(request.resource.data.diff(resource.data).affectedKeys().toList()[0], 0) + 1;
+        && ck('signup') && ck('demo') && ck('dl') && ck('wa');
       allow delete: if false;
     }
     match /owners/{uid} {
