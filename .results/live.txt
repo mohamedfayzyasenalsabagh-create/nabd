@@ -13,6 +13,13 @@ PASS | الدليل guide.pdf على https://mohamedfayzyasenalsabagh-create.git
 PASS | الدليل guide_en.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 4.3MB
 PASS | صفحة التنزيل app.html على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ تشير إلى ملف التطبيق
 PASS | ملف التطبيق ينزل من https://mohamedfayzyasenalsabagh-create.github.io/nabd/nabd.apk | 200 34064 bytes
+PASS | http://nabd.sy يتحول تلقائياً إلى https | 301 https://nabd.sy/
+PASS | www.nabd.sy يتحول إلى nabd.sy | 301 https://nabd.sy/
+PASS | رؤوس الأمان موجودة على nabd.sy
+PASS | الدليل يُعرض في المتصفح (دون منع التضمين) | application/pdf
+PASS | لا ذكر لـ Firebase/Google في legal.js
+PASS | لا ذكر لـ Firebase/Google في faq.js
+PASS | لا ذكر لـ Firebase/Google في en.js
 PASS | ملف التطبيق nabd.apk ينزل وسليم | 200 34064 bytes
 PASS | الصفحة الرئيسية تعمل وفيها زر التنزيل (https://nabd.sy/)
 PASS | الضغط على زر التنزيل يبدأ تنزيل التطبيق (https://nabd.sy/) | nabd.apk
@@ -24,6 +31,12 @@ PASS | الصفحة الرئيسية تعمل وفيها زر التنزيل (ht
 PASS | الضغط على زر التنزيل يبدأ تنزيل التطبيق (https://mohamedfayzyasenalsabagh-create.github.io/nabd/) | nabd.apk
 PASS | لا أخطاء في الصفحة (https://mohamedfayzyasenalsabagh-create.github.io/nabd/)
 PASS | النسخة التجريبية تفتح على الموقع الحقيقي
-INFO | منذ 2026-10-20: زوار الموقع 24 · تنزيلات التطبيق 3
+PASS | الروابط العامة تُنشأ على nabd.sy من https://nabd.sy/ | https://nabd.sy/
+PASS | صفحات الخصوصية والدخول والحجز تعمل دون أخطاء (https://nabd.sy/)
+PASS | الروابط العامة تُنشأ على nabd.sy من https://nabdsy.web.app/ | https://nabd.sy/
+PASS | صفحات الخصوصية والدخول والحجز تعمل دون أخطاء (https://nabdsy.web.app/)
+PASS | الروابط العامة تُنشأ على nabd.sy من https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | https://nabd.sy/
+PASS | صفحات الخصوصية والدخول والحجز تعمل دون أخطاء (https://mohamedfayzyasenalsabagh-create.github.io/nabd/)
+INFO | منذ 2026-10-20: زوار الموقع 28 · تنزيلات التطبيق 3
 
-TOTAL 26/26
+TOTAL 39/39
