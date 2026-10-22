@@ -1,14 +1,14 @@
-PASS | آخر نسخة منشورة على https://nabd.sy/ | nabd-v87 (المتوقع nabd-v87)
+PASS | آخر نسخة منشورة على https://nabd.sy/ | nabd-v88 (المتوقع nabd-v88)
 PASS | الدليل guide.pdf على https://nabd.sy/ | 200 4.3MB
 PASS | الدليل guide_en.pdf على https://nabd.sy/ | 200 4.3MB
 PASS | صفحة التنزيل app.html على https://nabd.sy/ تشير إلى ملف التطبيق
 PASS | ملف التطبيق ينزل من https://nabd.sy/nabd.apk | 200 34064 bytes
-PASS | آخر نسخة منشورة على https://nabdsy.web.app/ | nabd-v87 (المتوقع nabd-v87)
+PASS | آخر نسخة منشورة على https://nabdsy.web.app/ | nabd-v88 (المتوقع nabd-v88)
 PASS | الدليل guide.pdf على https://nabdsy.web.app/ | 200 4.3MB
 PASS | الدليل guide_en.pdf على https://nabdsy.web.app/ | 200 4.3MB
 PASS | صفحة التنزيل app.html على https://nabdsy.web.app/ تشير إلى ملف التطبيق
 PASS | ملف التطبيق ينزل من https://nabdsy.web.app/nabd.apk | 200 34064 bytes
-PASS | آخر نسخة منشورة على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | nabd-v87 (المتوقع nabd-v87)
+PASS | آخر نسخة منشورة على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | nabd-v88 (المتوقع nabd-v88)
 PASS | الدليل guide.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 4.3MB
 PASS | الدليل guide_en.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 4.3MB
 PASS | صفحة التنزيل app.html على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ تشير إلى ملف التطبيق
@@ -37,6 +37,6 @@ PASS | الروابط العامة تُنشأ على nabd.sy من https://nabdsy
 PASS | صفحات الخصوصية والدخول والحجز تعمل دون أخطاء (https://nabdsy.web.app/)
 PASS | الروابط العامة تُنشأ على nabd.sy من https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | https://nabd.sy/
 PASS | صفحات الخصوصية والدخول والحجز تعمل دون أخطاء (https://mohamedfayzyasenalsabagh-create.github.io/nabd/)
-INFO | منذ 2026-10-20: زوار الموقع 28 · تنزيلات التطبيق 3
+INFO | منذ 2026-10-20: زوار الموقع 39 · تنزيلات التطبيق 3
 
 TOTAL 39/39
