@@ -1,8 +1,8 @@
-PASS | آخر نسخة منشورة على https://nabdsy.web.app/ | nabd-v84 (المتوقع nabd-v84)
+PASS | آخر نسخة منشورة على https://nabdsy.web.app/ | nabd-v85 (المتوقع nabd-v85)
 PASS | الدليل guide.pdf على https://nabdsy.web.app/ | 200 8.8MB
 PASS | الدليل guide_en.pdf على https://nabdsy.web.app/ | 200 7.8MB
 PASS | صفحة التنزيل app.html على https://nabdsy.web.app/ تشير إلى ملف التطبيق
-PASS | آخر نسخة منشورة على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | nabd-v84 (المتوقع nabd-v84)
+PASS | آخر نسخة منشورة على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | nabd-v85 (المتوقع nabd-v85)
 PASS | الدليل guide.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 8.8MB
 PASS | الدليل guide_en.pdf على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ | 200 7.8MB
 PASS | صفحة التنزيل app.html على https://mohamedfayzyasenalsabagh-create.github.io/nabd/ تشير إلى ملف التطبيق
