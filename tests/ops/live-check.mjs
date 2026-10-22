@@ -82,6 +82,28 @@ for (const s of SITES) {
   } catch (e) { ok(false, `الروابط العامة (${s})`, e.message.slice(0, 150)); }
   await pg.close();
 }
+
+// 3ج) كل روابط الصفحة الرئيسية على nabd.sy: لا روابط قديمة، وكل صفحة داخلية تفتح بمحتوى ودون أخطاء، وصفحة الآيفون
+{
+  const pg = await b.newPage(); const errs = [];
+  pg.on("pageerror", (e) => errs.push(e.message));
+  try {
+    await pg.goto("https://nabd.sy/", { timeout: 45000 }); await pg.waitForSelector(".lp-hero", { timeout: 30000 });
+    const links = await pg.$$eval("a[href]", (as) => as.map((a) => a.getAttribute("href")));
+    const old = links.filter((h) => /github\.io|web\.app|firebase/i.test(h));
+    ok(!old.length, `روابط الصفحة الرئيسية (${links.length}) لا تشير لعناوين قديمة`, old.join(" "));
+    const inner = [...new Set(links.filter((h) => h.startsWith("#/")))];
+    const empty = [];
+    for (const h of inner) { await pg.evaluate((x) => (location.hash = x), h); await pg.waitForTimeout(2000); const t = (await pg.locator("body").innerText()).trim(); if (t.length < 40) empty.push(h); }
+    ok(!empty.length && !errs.length, `كل الصفحات الداخلية من الرئيسية تفتح (${inner.length})`, [...empty, ...errs.slice(0, 2)].join(" ; "));
+  } catch (e) { ok(false, "روابط الصفحة الرئيسية", e.message.slice(0, 150)); }
+  await pg.close();
+  const ctx = await b.newContext({ userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1" });
+  const p2 = await ctx.newPage();
+  try { await p2.goto("https://nabd.sy/app.html", { timeout: 45000 }); await p2.waitForTimeout(2000); const t = await p2.locator("body").innerText(); ok(/آيفون|iPhone|Safari/.test(t), "صفحة التنزيل تعرض شرح الآيفون على الآيفون"); }
+  catch (e) { ok(false, "صفحة التنزيل على الآيفون", e.message.slice(0, 120)); }
+  await ctx.close();
+}
 await b.close();
 
 // 4) أرقام: زوار وتنزيلات آخر 7 أيام (للتنبيه إذا كان هناك زوار ولا تنزيلات)
