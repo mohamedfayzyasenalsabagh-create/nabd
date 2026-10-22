@@ -576,15 +576,18 @@ test("هجوم: سرد المجموعات الحساسة ممنوع على ال�
     await assertFails(getDocs(collection(d, c)));
 });
 test("هجوم: لا أحد يرفع صلاحياته أو ينقل حسابه لعيادة أخرى", async () => {
+  const bad = [];
+  const no = async (label, pr) => { try { await assertFails(pr); } catch { bad.push(label); } };
   for (const who of ["sec_A", "doc_A", "pat_A", "store_A", "acc_A"]) {
     const d = as(who);
-    await assertFails(updateDoc(doc(d, `users/${who}`), { admin: true }));
-    await assertFails(updateDoc(doc(d, `users/${who}`), { role: "doctor" }));
-    await assertFails(updateDoc(doc(d, `users/${who}`), { clinicId: "B" }));
-    await assertFails(updateDoc(doc(d, `users/${who}`), { active: true, perms: { appts: true } }));
-    await assertFails(setDoc(doc(d, "owners/" + who), { email: "x" }));
+    await no(`${who} admin`, updateDoc(doc(d, `users/${who}`), { admin: true }));
+    await no(`${who} role`, updateDoc(doc(d, `users/${who}`), { role: "doctor" }));
+    await no(`${who} clinic`, updateDoc(doc(d, `users/${who}`), { clinicId: "B" }));
+    await no(`${who} perms`, updateDoc(doc(d, `users/${who}`), { active: true, perms: { appts: true } }));
+    await no(`${who} owner`, setDoc(doc(d, "owners/" + who), { email: "x" }));
   }
-  await assertFails(updateDoc(doc(as("pat_A"), "users/pat_A"), { patientIds: ["p1", "p2"] }));
+  await no("pat patientIds", updateDoc(doc(as("pat_A"), "users/pat_A"), { patientIds: ["p1", "p2"] }));
+  assert.deepStrictEqual(bad, []);
 });
 test("هجوم: المريض لا يصل لمريض آخر ولا يعبث بالمواعيد", async () => {
   const d = as("pat_A");
