@@ -8,6 +8,7 @@ import { APP_URL, COPYRIGHT, CASH_METHODS, methodName,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, logoHtml, waLink, debounce, download, empty, DAYS, daysBetween, printDoc
 } from "./ui.js";
+import { PUB } from "./ui.js";
 import { S, logout, showChangePassword, PLATFORM } from "./app.js";
 
 export const isDoctor = () => S.profile.role === "doctor";
@@ -1158,7 +1159,7 @@ export async function newPatientModal({ silentNav = false, name = "", phone = ""
 }
 
 export function showCredentials(phone, temp, name, shared = false, guardian = false) {
-  const url = `${location.origin}${location.pathname}#/c/${S.clinic?.slug || ""}`;
+  const url = `${PUB}#/c/${S.clinic?.slug || ""}`;
   if (shared) return info("تم التسجيل", `<p>لهذا الرقم حساب سابق. أُضيف الملف الجديد إلى الحساب نفسه، ويُختار الملف عند الدخول.</p>`);
   const from = `\n\nمن ${S.pub.name}${S.pub.doctorName && !S.pub.name.includes(S.pub.doctorName) ? ` · د. ${S.pub.doctorName}` : ""}\nنتمنى لكم الشفاء العاجل 🌿`;
   const text = `${guardian ? `أهلاً بولي أمر المريض ${name}، أهلاً بكم في تطبيق ${PLATFORM()} 👋\nهذا حساب ${name} لدى ${S.pub.name}:` : `أهلاً ${name}، أهلاً بك في تطبيق ${PLATFORM()} 👋\nهذا حسابك لدى ${S.pub.name}:`}\n\nحمّل التطبيق من هنا:\n${APP_URL}\n\nبعد فتحه اضغط «دخول» واكتب:\nرقم الجوال: ${phone}\nكلمة المرور المؤقتة: ${temp}\n${guardian ? "سيُطلب منكم تغييرها عند أول دخول." : "سيُطلب منك تغييرها عند أول دخول."}${from}`;
@@ -1306,7 +1307,7 @@ function customMenu(req) {
   return [
     ...(daily.length ? [["العمل اليومي", daily]] : []),
     ...(mgmt.length ? [["الإدارة", mgmt]] : []),
-    ["المساعدة", [["#/faq", "أسئلة شائعة"], [/NabdApp/.test(navigator.userAgent) ? `https://nabdsy.web.app/${document.documentElement.lang === "en" ? "guide_en.pdf" : "guide.pdf"}` : new URL(document.documentElement.lang === "en" ? "./guide_en.pdf" : "./guide.pdf", import.meta.url).href, "📘 الدليل الشامل لمنصة نبض (PDF)"]]],
+    ["المساعدة", [["#/faq", "أسئلة شائعة"], [/NabdApp/.test(navigator.userAgent) ? `https://nabd.sy/${document.documentElement.lang === "en" ? "guide_en.pdf" : "guide.pdf"}` : new URL(document.documentElement.lang === "en" ? "./guide_en.pdf" : "./guide.pdf", import.meta.url).href, "📘 الدليل الشامل لمنصة نبض (PDF)"]]],
     ["الحساب", [["#/password", "تغيير كلمة المرور"]]],
   ];
 }
@@ -1334,10 +1335,10 @@ function renderMore() {
       ...(commOnS() && S.profile.doctorId ? [["#/myshare", "حصتي"]] : []),
       ...(a ? [["#/team", "الفريق: الأطباء والموظفون"], ["#/settings", "إعدادات العيادة"], ["#/subscription", "الاشتراك والفواتير"], ["#/audit", "سجل التعديلات"], ["#/backup", "النسخة الاحتياطية"]] : []),
     ]]] : []),
-    ["المساعدة", [["#/faq", "أسئلة شائعة"], [/NabdApp/.test(navigator.userAgent) ? `https://nabdsy.web.app/${document.documentElement.lang === "en" ? "guide_en.pdf" : "guide.pdf"}` : new URL(document.documentElement.lang === "en" ? "./guide_en.pdf" : "./guide.pdf", import.meta.url).href, "📘 الدليل الشامل لمنصة نبض (PDF)"]]],
+    ["المساعدة", [["#/faq", "أسئلة شائعة"], [/NabdApp/.test(navigator.userAgent) ? `https://nabd.sy/${document.documentElement.lang === "en" ? "guide_en.pdf" : "guide.pdf"}` : new URL(document.documentElement.lang === "en" ? "./guide_en.pdf" : "./guide.pdf", import.meta.url).href, "📘 الدليل الشامل لمنصة نبض (PDF)"]]],
     ["الحساب", [["#/password", "تغيير كلمة المرور"]]],
   ];
-  const bookLink = S.clinic?.bookingEnabled && feat("booking") ? `${location.origin}${location.pathname}#/b/${S.clinic.slug}` : "";
+  const bookLink = S.clinic?.bookingEnabled && feat("booking") ? `${PUB}#/b/${S.clinic.slug}` : "";
   main().innerHTML = `<h2 class="page-title">المزيد</h2>
     ${groups.map(([g, items]) => `<h4 class="menu-h">${g}</h4><ul class="menu">${items.map(([h, t, n]) => `<li><a href="${h}"${h.startsWith("http") ? ' target="_blank" rel="noopener"' : ""}><span>${esc(t)}</span>${n ? `<b class="badge">${n}</b>` : ""}<span class="chev">‹</span></a></li>`).join("")}</ul>`).join("")}
     ${bookLink ? `<h4 class="menu-h">صفحة الحجز</h4><div class="card stack"><code class="copy" dir="ltr">${esc(bookLink)}</code><div class="row gap"><button class="btn small cp">نسخ الرابط</button><a class="btn small" target="_blank" rel="noopener" href="${esc(waLink("", `احجز موعدك في ${S.pub.name}: ${bookLink}`))}">مشاركة</a></div></div>` : ""}

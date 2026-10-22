@@ -7,6 +7,7 @@ import {
   $, $$, esc, toast, errMsg, modal, confirmBox, info, field, select, empty, tsDate, fmtDate, ymd,
   platformMark, waLink, debounce, applyTheme, pickFile, compressImage
 } from "./ui.js";
+import { PUB } from "./ui.js";
 import { S, LS, logout, PLATFORM } from "./app.js";
 
 const main = () => $("#main");
@@ -20,7 +21,7 @@ function statusChip(c) {
   const [t, cls] = STATUS[key] || [key, ""];
   return `<span class="chip ${cls}">${t}</span>`;
 }
-const baseUrl = () => location.origin + location.pathname;
+const baseUrl = () => PUB;
 
 export function start() {
   document.documentElement.style.setProperty("--accent", "#0E7C7B");

@@ -42,6 +42,13 @@
           }
         ]
       }
+    ],
+    "redirects": [
+      {
+        "source": "/nabd.apk",
+        "destination": "https://mohamedfayzyasenalsabagh-create.github.io/nabd/nabd.apk",
+        "type": 302
+      }
     ]
   },
   "emulators": {
