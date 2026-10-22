@@ -23,6 +23,23 @@ for (const s of SITES) {
   const ap = await get(s + "nabd.apk");
   ok(ap.s === 200 && ap.b.subarray(0, 2).toString() === "PK" && ap.b.length > 10000, `ملف التطبيق ينزل من ${s}nabd.apk`, `${ap.s} ${ap.b.length} bytes`);
 }
+
+// 1ب) الدومين الرسمي: التحويل إلى https، www، رؤوس الأمان، والروابط العامة
+{
+  const r1 = await fetch("http://nabd.sy/", { redirect: "manual" }).catch(() => null);
+  ok(r1 && [301, 302, 307, 308].includes(r1.status) && (r1.headers.get("location") || "").startsWith("https://nabd.sy"), "http://nabd.sy يتحول تلقائياً إلى https", r1 ? `${r1.status} ${r1.headers.get("location")}` : "no response");
+  const r2 = await fetch("https://www.nabd.sy/", { redirect: "manual" }).catch(() => null);
+  ok(r2 && [301, 302, 307, 308].includes(r2.status) && (r2.headers.get("location") || "").startsWith("https://nabd.sy"), "www.nabd.sy يتحول إلى nabd.sy", r2 ? `${r2.status} ${r2.headers.get("location")}` : "no response");
+  const r3 = await fetch("https://nabd.sy/").catch(() => null);
+  const hs = r3 ? ["strict-transport-security", "x-content-type-options", "x-frame-options"].filter((k) => !r3.headers.get(k)) : ["no response"];
+  ok(r3 && r3.status === 200 && !hs.length, "رؤوس الأمان موجودة على nabd.sy", hs.join(","));
+  const r4 = await fetch("https://nabd.sy/guide.pdf", { method: "HEAD" }).catch(() => null);
+  ok(r4 && r4.status === 200 && !r4.headers.get("x-frame-options") && /pdf/.test(r4.headers.get("content-type") || ""), "الدليل يُعرض في المتصفح (دون منع التضمين)", r4 ? r4.headers.get("content-type") : "");
+  for (const f of ["legal.js", "faq.js", "en.js"]) {
+    const t = (await get("https://nabd.sy/" + f)).b.toString();
+    ok(!/Firebase|Google Cloud/.test(t.replace(/مشروع Firebase|إعدادات Firebase|Firebase project|Firebase configuration/g, "")), `لا ذكر لـ Firebase/Google في ${f}`);
+  }
+}
 // 2) ملف التطبيق نفسه
 const apk = await get(APK);
 ok(apk.s === 200 && apk.b.subarray(0, 2).toString() === "PK" && apk.b.length > 10000, "ملف التطبيق nabd.apk ينزل وسليم", `${apk.s} ${apk.b.length} bytes`);
@@ -51,6 +68,20 @@ try {
   await pg.waitForSelector(".stats", { timeout: 40000 });
   ok(true, "النسخة التجريبية تفتح على الموقع الحقيقي");
 } catch (e) { ok(false, "النسخة التجريبية تفتح على الموقع الحقيقي", e.message.slice(0, 150)); }
+
+// 3ب) الروابط العامة (الحجز/الوصفة/الدعوات) تُبنى على nabd.sy من كل العناوين، والصفحات العامة تعمل دون أخطاء
+for (const s of SITES) {
+  const pg = await b.newPage(); const errs = [];
+  pg.on("pageerror", (e) => errs.push(e.message));
+  try {
+    await pg.goto(s, { timeout: 45000 }); await pg.waitForSelector(".lp-hero", { timeout: 30000 });
+    const pub = await pg.evaluate(async () => (await import(new URL("ui.js", location.href).href)).PUB);
+    ok(pub === "https://nabd.sy/", `الروابط العامة تُنشأ على nabd.sy من ${s}`, pub);
+    for (const h of ["#/privacy", "#/login", "#/b/no-such-clinic"]) { await pg.evaluate((x) => (location.hash = x), h); await pg.waitForTimeout(2500); }
+    ok(!errs.length, `صفحات الخصوصية والدخول والحجز تعمل دون أخطاء (${s})`, errs.slice(0, 2).join(" ; "));
+  } catch (e) { ok(false, `الروابط العامة (${s})`, e.message.slice(0, 150)); }
+  await pg.close();
+}
 await b.close();
 
 // 4) أرقام: زوار وتنزيلات آخر 7 أيام (للتنبيه إذا كان هناك زوار ولا تنزيلات)
