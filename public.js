@@ -29,12 +29,33 @@ function bindTheme(rerender) {
 // عدّاد زوار الموقع: زيارة لكل فتح للصفحة، وزائر فريد مرة واحدة يومياً لكل جهاز
 async function trackVisit() {
   try {
+    if (navigator.webdriver) return; // لا نحسب الفحوص الآلية (فحصنا اليومي ومحركات البحث) ضمن الزوار
     const day = ymd(), k = `visit:${day}`, seen = LS.get(k);
     if (sessionStorage.getItem(k)) return;
     sessionStorage.setItem(k, "1");
     await setDoc(doc(db, "visits", day), { views: increment(1), uniq: increment(seen ? 0 : 1) }, { merge: true });
     if (!seen) LS.set(k, "1");
   } catch {}
+}
+// عدّاد الضغط على أزرار الصفحة الرئيسية (مرة لكل زر في الجلسة) لمعرفة ما يفعله الزوار
+function trackClick(k) {
+  try {
+    if (navigator.webdriver) return;
+    const sk = `click:${ymd()}:${k}`;
+    if (sessionStorage.getItem(sk)) return;
+    sessionStorage.setItem(sk, "1");
+    setDoc(doc(db, "clicks", ymd()), { [k]: increment(1) }, { merge: true }).catch(() => {});
+  } catch {}
+}
+// زر رئيسي واحد حسب الجهاز: الجوال ← تنزيل التطبيق، الحاسوب ← التجربة المجانية
+function heroBtns() {
+  const ua = navigator.userAgent, base = location.pathname.replace(/demo\/?(index.html)?$/, "").replace(/index.html$/, "");
+  const ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const inApp = /NabdApp/.test(ua), mobile = !inApp && (ios || /Android/i.test(ua));
+  const dl = inApp ? "" : `<a class="btn ${mobile ? "primary" : ""} lg" data-k="dl" href="${base}app.html">${ios ? "📲 ثبّت التطبيق على الآيفون مجاناً" : mobile ? "📲 حمّل التطبيق مجاناً" : "📲 تنزيل تطبيق أندرويد"}</a>`;
+  const signup = `<a class="btn ${mobile ? "" : "primary"} lg" data-k="signup" href="#/signup">ابدأ تجربة مجانية ${TRIAL_DAYS} يوماً</a>`;
+  const demo = `<a class="btn lg" data-k="demo" href="${base}demo/">🧪 جرّب عيادة تجريبية الآن</a>`;
+  return mobile ? dl + signup + demo : signup + demo + dl;
 }
 export function landing() {
   if (!S.user) trackVisit();
@@ -89,11 +110,7 @@ export function landing() {
           <span class="eyebrow">لكل الاختصاصات الطبية</span>
           <h1>عيادتك كاملة<br>في مكان واحد</h1>
           <p class="lead">المواعيد والسجلات الطبية والوصفات والحسابات، مع تطبيق لمرضاك يتابعون منه مواعيدهم وأدويتهم. يعمل على الحاسوب والجوال، وكل شيء متزامن لحظياً.</p>
-          <div class="row gap wrap">
-            <a class="btn primary lg" href="#/signup">ابدأ تجربة مجانية ${TRIAL_DAYS} يوماً</a>
-            <a class="btn lg" href="${location.pathname.replace(/demo\/?(index.html)?$/, "").replace(/index.html$/, "")}demo/">🧪 جرّب عيادة تجريبية الآن</a>
-            <a class="btn lg" href="${location.pathname.replace(/demo\/?(index.html)?$/, "").replace(/index.html$/, "")}app.html">${/iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ? "📲 تثبيت التطبيق على الآيفون" : "📲 تنزيل تطبيق أندرويد"}</a>
-          </div>
+          <div class="row gap wrap">${heroBtns()}</div>
           <p class="muted small">دون بطاقة دفع. تُفعَّل العيادة فوراً.</p>
         </div>
         <div class="lp-phone" aria-hidden="true">
@@ -156,9 +173,11 @@ export function landing() {
         <p class="muted small"><a href="#/privacy">سياسة الخصوصية</a> · <a href="#/terms">شروط الاستخدام</a></p>
         <p class="copyright">${esc(COPYRIGHT)}</p>
       </footer>
+      <a class="wa-fab" data-k="wa" target="_blank" rel="noopener" href="${esc(waLink(pay.whatsapp || "0986411114", "مرحباً، أريد الاستفسار عن تطبيق نبض لإدارة العيادات"))}" aria-label="راسلونا على واتساب"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2-.2-.2-.4-.3z"/></svg><span>لديكم سؤال؟ راسلونا</span></a>
     </div>`;
     bindTheme(render);
     $(".enter").onclick = () => { location.hash = "#/login"; };
+    $$(".lp [data-k]").forEach((a) => a.addEventListener("click", () => trackClick(a.dataset.k)));
     $$('.lp a[href^="#features"], .lp a[href^="#pricing"], .lp a[href^="#faq"]').forEach((a) => a.onclick = (e) => {
       e.preventDefault(); document.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth" });
     });

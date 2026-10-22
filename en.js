@@ -3295,5 +3295,12 @@ export const EN = {
 "عمليات وإجراءات جراحية": "Operations & surgical procedures",
 "خصم كلفة المخبر أو المواد قبل النسبة (يظهر حقلها مع كل دفعة)": "Deduct lab or materials cost before the rate (its field appears with each payment)",
 "وحدّد نسب كل طبيب من «المزيد ← حصص الأطباء».": "and set each doctor's rates from “More → Doctor shares”.",
-"بعد التفعيل: صنّف كل خدمة في «الخدمات والأسعار» إلى أحد نوعين:": "After enabling: classify each service in “Services and prices” into one of two types:"
+"بعد التفعيل: صنّف كل خدمة في «الخدمات والأسعار» إلى أحد نوعين:": "After enabling: classify each service in “Services and prices” into one of two types:",
+"📲 ثبّت التطبيق على الآيفون مجاناً": "📲 Install the app on iPhone for free",
+"📲 حمّل التطبيق مجاناً": "📲 Download the app for free",
+"لديكم سؤال؟ راسلونا": "Have a question? Message us",
+"راسلونا على واتساب": "Message us on WhatsApp",
+"مرحباً، أريد الاستفسار عن تطبيق نبض لإدارة العيادات": "Hello, I would like to ask about the Nabd clinic management app",
+"الزائر: جهاز مختلف في اليوم نفسه · الزيارات: عدد مرات فتح الموقع · الضغطات: كم زائراً ضغط كل زر في الصفحة الرئيسية": "Visitor: a different device on the same day · Visits: times the site was opened · Clicks: how many visitors pressed each button on the home page",
+"تنزيل": "Download"
 };

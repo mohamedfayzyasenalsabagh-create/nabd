@@ -119,6 +119,19 @@ service cloud.firestore {
       allow update: if request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == resource.data.n + 1;
       allow delete: if false;
     }
+    // عدّاد الضغط على أزرار الصفحة الرئيسية: زر واحد يزيد بمقدار 1 في كل مرة
+    match /clicks/{day} {
+      allow read: if isOwner();
+      allow create: if day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['signup', 'demo', 'dl', 'wa'])
+        && request.resource.data.keys().size() == 1
+        && request.resource.data.values()[0] == 1;
+      allow update: if request.resource.data.keys().hasOnly(['signup', 'demo', 'dl', 'wa'])
+        && request.resource.data.diff(resource.data).affectedKeys().size() == 1
+        && request.resource.data.get(request.resource.data.diff(resource.data).affectedKeys().toList()[0], 0)
+           == resource.data.get(request.resource.data.diff(resource.data).affectedKeys().toList()[0], 0) + 1;
+      allow delete: if false;
+    }
     match /owners/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isOwner());
       allow create: if (bootstrapping() && request.auth.uid == uid) || isOwner();

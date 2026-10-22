@@ -405,7 +405,9 @@ async function showVisits() {
   let body;
   try {
     const all = (await list(collection(db, "visits"))).filter((x) => /^\d{4}-\d\d-\d\d$/.test(x.id || "")).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 30);
-    body = all.length ? `<p class="muted small">الزائر: جهاز مختلف في اليوم نفسه · الزيارات: عدد مرات فتح الموقع</p><table class="tbl"><thead><tr><th>اليوم</th><th>الزوار</th><th>الزيارات</th></tr></thead><tbody>${all.map((x) => `<tr><td>${esc(fmtDate(x.id, false))}</td><td><b>${x.uniq || 0}</b></td><td>${x.views || 0}</td></tr>`).join("")}</tbody></table>` : empty("لا توجد زيارات مسجلة بعد");
+    const ck = {}; (await list(collection(db, "clicks")).catch(() => [])).forEach((x) => { ck[x.id] = x; });
+    const n = (d, k) => Number(ck[d]?.[k] || 0);
+    body = all.length ? `<p class="muted small">الزائر: جهاز مختلف في اليوم نفسه · الزيارات: عدد مرات فتح الموقع · الضغطات: كم زائراً ضغط كل زر في الصفحة الرئيسية</p><div class="tbl-wrap"><table class="tbl"><thead><tr><th>اليوم</th><th>الزوار</th><th>الزيارات</th><th>تنزيل</th><th>تجربة مجانية</th><th>عيادة تجريبية</th><th>واتساب</th></tr></thead><tbody>${all.map((x) => `<tr><td>${esc(fmtDate(x.id, false))}</td><td><b>${x.uniq || 0}</b></td><td>${x.views || 0}</td><td>${n(x.id, "dl")}</td><td>${n(x.id, "signup")}</td><td>${n(x.id, "demo")}</td><td>${n(x.id, "wa")}</td></tr>`).join("")}</tbody></table></div>` : empty("لا توجد زيارات مسجلة بعد");
   } catch (e) { body = `<p class="alert">${esc(errMsg(e))}</p>`; }
   info("زوار الموقع", body);
 }

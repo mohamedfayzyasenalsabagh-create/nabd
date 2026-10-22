@@ -609,3 +609,14 @@ test("هجوم: طلب الحجز العام لا يقبل حقولاً إضاف
   await assertFails(setDoc(doc(d, "clinics/A/publicRequests/r2"), { name: "x", phone: "0", date: "2026-11-01", time: "10:00", status: "new", admin: true }));
   await assertFails(setDoc(doc(d, "clinics/B/publicRequests/r3"), { name: "x", phone: "0", date: "2026-11-01", time: "10:00", status: "new" }));
 });
+test("عدّاد ضغطات الصفحة الرئيسية: زيادة 1 لزر واحد فقط", async () => {
+  const d = anon();
+  await assertSucceeds(setDoc(doc(d, "clicks/2026-10-22"), { dl: 1 }));
+  await assertSucceeds(setDoc(doc(d, "clicks/2026-10-22"), { dl: increment(1) }, { merge: true }));
+  await assertSucceeds(setDoc(doc(d, "clicks/2026-10-22"), { wa: increment(1) }, { merge: true }));
+  await assertFails(setDoc(doc(d, "clicks/2026-10-22"), { dl: increment(5) }, { merge: true }));
+  await assertFails(setDoc(doc(d, "clicks/2026-10-22"), { dl: increment(1), wa: increment(1) }, { merge: true }));
+  await assertFails(setDoc(doc(d, "clicks/2026-10-23"), { hack: 1 }));
+  await assertFails(getDoc(doc(d, "clicks/2026-10-22")));
+  await assertSucceeds(getDoc(doc(as("own1"), "clicks/2026-10-22")));
+});

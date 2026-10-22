@@ -41,7 +41,7 @@
 <script>
   // عدّاد التنزيلات (مرة واحدة لكل جهاز في اليوم)
   function countDl() {
-    try {
+    try { if (navigator.webdriver) return;
       var d = new Date(), day = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
       if (localStorage.getItem("dl:" + day)) return; localStorage.setItem("dl:" + day, "1");
       var P = "projects/nabd-platfor/databases/(default)/documents";

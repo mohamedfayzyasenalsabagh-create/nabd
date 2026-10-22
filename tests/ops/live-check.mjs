@@ -54,7 +54,7 @@ for (const s of SITES) {
   try {
     await pg.goto(s, { timeout: 45000 }); await pg.waitForSelector(".lp-hero", { timeout: 30000 });
     const btns = await pg.$$eval(".lp-hero a", (e) => e.map((x) => x.textContent.trim()));
-    ok(btns.some((t) => t.includes("تنزيل تطبيق أندرويد")) && btns.some((t) => t.includes("تجربة")), `الصفحة الرئيسية تعمل وفيها زر التنزيل (${s})`);
+    ok(btns.some((t) => t.includes("حمّل التطبيق")) && btns.some((t) => t.includes("تجربة")), `الصفحة الرئيسية تعمل وفيها زر التنزيل (${s})`);
     const dl = pg.waitForEvent("download", { timeout: 30000 });
     await pg.click(".lp-hero a[href$='app.html']");
     const d = await dl; ok(d.suggestedFilename().endsWith(".apk"), `الضغط على زر التنزيل يبدأ تنزيل التطبيق (${s})`, d.suggestedFilename());
