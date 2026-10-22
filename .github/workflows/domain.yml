@@ -19,11 +19,10 @@ jobs:
           TOK=$(gcloud auth print-access-token)
           B=https://firebasehosting.googleapis.com/v1beta1/projects/nabd-platfor/sites/nabdsy/customDomains
           if [ "$ACTION" = "create" ]; then
-            curl -s -X POST -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" "$B?customDomainId=nabd.sy" -d '{}' | head -c 3000; echo
-            curl -s -X POST -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" "$B?customDomainId=www.nabd.sy" -d '{"redirectTarget":"nabd.sy"}' | head -c 3000; echo
+            echo "::notice title=create apex::$(curl -s -X POST -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" "$B?customDomainId=nabd.sy" -d '{}' | jq -c '.error.message // .name' )"
+            echo "::notice title=create www::$(curl -s -X POST -H "Authorization: Bearer $TOK" -H "Content-Type: application/json" "$B?customDomainId=www.nabd.sy" -d '{"redirectTarget":"nabd.sy"}' | jq -c '.error.message // .name')"
             sleep 20
           fi
-          for d in nabd.sy www.nabd.sy; do echo "===== $d"; curl -s -H "Authorization: Bearer $TOK" "$B/$d" | jq '{hostState,ownershipState,cert:.cert.state,issues:.issues,required:.requiredDnsUpdates.desired,current:.requiredDnsUpdates.discovered}'; done
-          echo "===== DNS"; for t in NS A AAAA TXT CNAME; do echo "-- $t nabd.sy: $(dig +short $t nabd.sy | tr '\n' ' ')"; done
-          echo "-- CNAME www: $(dig +short CNAME www.nabd.sy)"
-          echo "-- SOA: $(dig +short SOA nabd.sy)"
+          for d in nabd.sy www.nabd.sy; do echo "===== $d"; curl -s -H "Authorization: Bearer $TOK" "$B/$d" | jq -c '{hostState,ownershipState,cert:.cert.state,issues:[.issues[]?.message],required:[.requiredDnsUpdates.desired[]?|{d:.domainName,r:[.records[]?|{t:.type,v:.rdata,a:.requiredAction}]}]}' > o.json; echo "::notice title=$d::$(cat o.json)"; done
+          D=""; for t in NS A TXT; do D="$D $t=[$(dig +short $t nabd.sy | tr '\n' ' ')]"; done
+          echo "::notice title=DNS::$D www=[$(dig +short www.nabd.sy | tr '\n' ' ')]"
