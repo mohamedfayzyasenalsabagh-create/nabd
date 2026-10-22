@@ -548,3 +548,61 @@ test("أمان: التسجيل الجديد لا يفعّل باقة المرا�
   b2.set(doc(d2, "slugs/<x>"), { cid: "R" });
   await assertFails(b2.commit());
 });
+
+// ---------- مصفوفة هجمات شائعة (تُشغَّل مع كل تعديل) ----------
+const SENSITIVE = ["clinics/A", "clinics/A/patients/p1", "clinics/A/patients/p1/visits/v1", "clinics/A/patients/p1/private/n1",
+  "clinics/A/appointments/a1", "clinics/A/payments/pay1", "clinics/A/expenses/e1", "clinics/A/inventory/i1", "clinics/A/audit/x1",
+  "clinics/A/stats/s1", "clinics/A/comm/d1", "clinics/A/commPay/cp1", "users/adm_A", "users/pat_A"];
+test("هجوم: الغرباء (زائر، عيادة أخرى، حساب موقوف، صاحب المنصة) لا يقرؤون بيانات العيادة", async () => {
+  for (const who of [null, "adm_B", "mgr_B", "off_A"]) {
+    const d = who ? as(who) : anon();
+    for (const p of SENSITIVE) await assertFails(getDoc(doc(d, p)));
+  }
+  for (const p of SENSITIVE.filter((x) => x.includes("/patients/") || x.includes("/appointments/") || x.includes("/payments/"))) await assertFails(getDoc(doc(as("own1"), p)));
+});
+test("هجوم: الغرباء لا يكتبون في العيادة", async () => {
+  for (const who of [null, "adm_B", "mgr_B", "off_A"]) {
+    const d = who ? as(who) : anon();
+    await assertFails(setDoc(doc(d, "clinics/A/patients/evil"), { name: "x", phone: "0" }));
+    await assertFails(updateDoc(doc(d, "clinics/A/patients/p1"), { name: "hacked" }));
+    await assertFails(setDoc(doc(d, "clinics/A/patients/p1/visits/evil"), { date: "x" }));
+    await assertFails(setDoc(doc(d, "clinics/A/payments/evil"), { total: 1 }));
+    await assertFails(updateDoc(doc(d, "clinics/A"), { name: "hacked" }));
+  }
+});
+test("هجوم: سرد المجموعات الحساسة ممنوع على الزائر", async () => {
+  const d = anon();
+  for (const c of ["users", "clinics", "loginIdx", "slugs", "owners", "errors", "visits", "subscriptionPayments", "rxVerify", "clinics/A/patients", "clinics/A/publicRequests"])
+    await assertFails(getDocs(collection(d, c)));
+});
+test("هجوم: لا أحد يرفع صلاحياته أو ينقل حسابه لعيادة أخرى", async () => {
+  for (const who of ["sec_A", "doc_A", "pat_A", "store_A", "acc_A"]) {
+    const d = as(who);
+    await assertFails(updateDoc(doc(d, `users/${who}`), { admin: true }));
+    await assertFails(updateDoc(doc(d, `users/${who}`), { role: "doctor" }));
+    await assertFails(updateDoc(doc(d, `users/${who}`), { clinicId: "B" }));
+    await assertFails(updateDoc(doc(d, `users/${who}`), { active: true, perms: { appts: true } }));
+    await assertFails(setDoc(doc(d, "owners/" + who), { email: "x" }));
+  }
+  await assertFails(updateDoc(doc(as("pat_A"), "users/pat_A"), { patientIds: ["p1", "p2"] }));
+});
+test("هجوم: المريض لا يصل لمريض آخر ولا يعبث بالمواعيد", async () => {
+  const d = as("pat_A");
+  await assertFails(getDoc(doc(d, "clinics/A/patients/p2")));
+  await assertFails(getDoc(doc(d, "clinics/A/patients/p2/visits/v1")));
+  await assertFails(getDocs(collection(d, "clinics/A/patients")));
+  await assertFails(updateDoc(doc(d, "clinics/A/appointments/a1"), { date: "2030-01-01" }));
+  await assertFails(updateDoc(doc(d, "clinics/A/appointments/a1"), { status: "done" }));
+  await assertFails(setDoc(doc(d, "clinics/A/payments/x"), { patientId: "p1", total: 0, paid: 999 }));
+});
+test("هجوم: لا حذف لأي سجل حتى من المسؤول", async () => {
+  const { deleteDoc } = await import("firebase/firestore");
+  for (const p of ["clinics/A/patients/p1", "clinics/A/patients/p1/visits/v1", "clinics/A/appointments/a1", "clinics/A/payments/pay1", "clinics/A/audit/x1", "users/sec_A", "clinics/A"])
+    await assertFails(deleteDoc(doc(as("adm_A"), p)));
+});
+test("هجوم: طلب الحجز العام لا يقبل حقولاً إضافية ولا حالة مزورة", async () => {
+  const d = anon();
+  await assertFails(setDoc(doc(d, "clinics/A/publicRequests/r1"), { name: "x", phone: "0", date: "2026-11-01", time: "10:00", status: "done" }));
+  await assertFails(setDoc(doc(d, "clinics/A/publicRequests/r2"), { name: "x", phone: "0", date: "2026-11-01", time: "10:00", status: "new", admin: true }));
+  await assertFails(setDoc(doc(d, "clinics/B/publicRequests/r3"), { name: "x", phone: "0", date: "2026-11-01", time: "10:00", status: "new" }));
+});
