@@ -5,7 +5,7 @@ import { mySpec } from "./staff.js";
 import { isEn } from "./i18n.js";
 
 const main = () => $("#main");
-const SPECS = [["", "كل الاختصاصات"], ["dental", "الأسنان"], ["general", "الباطنية والعامة"], ["peds", "الأطفال"], ["obgyn", "النسائية والتوليد"], ["derm", "الجلدية"], ["ent", "الأنف والأذن والحنجرة"], ["eye", "العين"], ["uro", "البولية"], ["ortho", "العظمية"]];
+const SPECS = [["", "كل الاختصاصات"], ["dental", "الأسنان"], ["general", "الداخلية والعامة"], ["peds", "الأطفال"], ["obgyn", "النسائية والتوليد"], ["derm", "الجلدية"], ["ent", "الأنف والأذن والحنجرة"], ["eye", "العين"], ["uro", "البولية"], ["ortho", "العظمية"]];
 
 export async function renderLibrary() {
   const { DISEASES, searchDiseases } = await import("./diseases.js");

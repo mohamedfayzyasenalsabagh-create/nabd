@@ -122,7 +122,7 @@ export const SPECIALTIES = {
   dental: { name: "طب الأسنان", modules: ["dental"] },
   peds: { name: "أطفال", modules: ["peds"] },
   derm: { name: "جلدية وتجميل", modules: ["cosm"] },
-  internal: { name: "باطنية", modules: ["chronic"] },
+  internal: { name: "داخلية", modules: ["chronic"] },
   cardio: { name: "قلبية", modules: ["chronic"] },
   ortho: { name: "عظمية", modules: ["physio"] },
   physio: { name: "علاج فيزيائي", modules: ["physio"] },

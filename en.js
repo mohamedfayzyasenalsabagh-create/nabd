@@ -3352,5 +3352,7 @@ export const EN = {
 "التبديل إلى الوضع الفاتح": "Switch to light mode",
 "التبديل إلى الوضع الداكن": "Switch to dark mode",
 "مع نبض عيادتكم": "With Nabd, your clinic",
-"صارت أسهل": "just got easier"
+"صارت أسهل": "just got easier",
+"داخلية": "Internal medicine",
+"الداخلية والعامة": "Internal and general medicine"
 };
