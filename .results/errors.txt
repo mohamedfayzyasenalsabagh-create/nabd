@@ -1,3 +1,5 @@
-أعطال آخر 24 ساعة: 0
+أعطال آخر 24 ساعة: 1
 
-
+1x | The requested module './ui.js' does not provide an export named 'PUB' | #/clinics | owner
+   SyntaxError: The requested module './ui.js' does not provide an export named 'PUB'
+   Mozilla/5.0 (Linux; Android 16; SM-A075F Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.43 Mobile Safari/537.36
