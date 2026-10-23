@@ -47,6 +47,7 @@ function trackClick(k) {
     setDoc(doc(db, "clicks", ymd()), { [k]: increment(1) }, { merge: true }).catch(() => {});
   } catch {}
 }
+const imgBase = () => location.pathname.replace(/demo\/?(index.html)?$/, "").replace(/index.html$/, "");
 // زر رئيسي واحد حسب الجهاز: الجوال ← تنزيل التطبيق، الحاسوب ← التجربة المجانية
 function heroBtns() {
   const ua = navigator.userAgent, base = location.pathname.replace(/demo\/?(index.html)?$/, "").replace(/index.html$/, "");
@@ -91,6 +92,9 @@ export function landing() {
   const render = () => {
     root().innerHTML = `
     <div class="lp">
+     <div class="lp-band">
+      <div class="lp-glow g1"></div><div class="lp-glow g2"></div>
+      <svg class="lp-pulse" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60 H330 l20 -25 l16 25 h28 l18 -55 l24 110 l18 -80 h30 l18 -20 l18 20 H760 l20 -30 l16 30 h30 l16 -50 l22 95 l16 -45 H1200"/></svg>
       <header class="lp-top">
         <a class="lp-brand" href="#/home">${platformMark(34)}<b>${esc(PLATFORM())}</b></a>
         <nav class="lp-nav">
@@ -102,25 +106,27 @@ export function landing() {
 
       <a class="lp-patient" href="#/doctors">
         <span class="lp-patient-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
-        <span><b>هل أنت مريض؟</b> ابحث عن طبيب واحجز موعدك</span><span class="chev">‹</span>
+        <span><b>هل أنتم مرضى؟</b> ابحثوا عن طبيب واحجزوا موعدكم</span><span class="chev">‹</span>
       </a>
 
       <section class="lp-hero">
         <div class="lp-hero-text">
-          <span class="eyebrow">لكل الاختصاصات الطبية</span>
-          <h1>عيادتك كاملة<br>في مكان واحد</h1>
-          <p class="lead">المواعيد والسجلات الطبية والوصفات والحسابات، مع تطبيق لمرضاك يتابعون منه مواعيدهم وأدويتهم. يعمل على الحاسوب والجوال، وكل شيء متزامن لحظياً.</p>
+          <span class="eyebrow">💓 لكل الاختصاصات · يعمل دون إنترنت</span>
+          <h1>نبض عيادتكم<br><em>صار أسهل</em></h1>
+          <p class="lead">المواعيد، والتذكير، وملفات المرضى، والوصفات، والحسابات… مع تطبيق لمرضاكم يتابعون منه مواعيدهم وأدويتهم. على الجوال والحاسوب، وكل شيء متزامن لحظياً.</p>
           <div class="row gap wrap">${heroBtns()}</div>
-          <p class="muted small">دون بطاقة دفع. تُفعَّل العيادة فوراً.</p>
+          <p class="lp-note">دون بطاقة دفع · التفعيل فوري · دعم بالعربية على واتساب</p>
         </div>
-        <div class="lp-phone" aria-hidden="true">
-          <div class="ph-bar"><span></span></div>
-          <div class="ph-head"><div class="ph-av"></div><div><b>مواعيد اليوم</b><small>٧ مرضى · ٢ في الانتظار</small></div></div>
-          ${[["09:30", "سارة", "معاينة", "done"], ["10:00", "أحمد", "حشوة ضرس 36", "in"], ["10:20", "ليلى", "متابعة حمل · أسبوع 24", "wait"], ["10:40", "كريم", "لقاح الشهر الرابع", ""], ["11:00", "هالة", "جلسة ليزر 3/6", ""]].map(([t, n, s, st]) => `
-            <div class="ph-row ${st}"><span class="t">${t}</span><span class="n">${n}<small>${s}</small></span><i></i></div>`).join("")}
-          <div class="ph-stat"><div><b>١٢٠٬٠٠٠</b><small>دخل اليوم</small></div><div><b>٣</b><small>مرضى جدد</small></div></div>
+        <div class="lp-scene" aria-hidden="true">
+          <div class="lp-shot"><img src="${imgBase()}img/lp-screen.webp" alt="" width="520" height="1000" loading="eager"></div>
+          <img class="lp-doc" src="${imgBase()}img/lp-doctor.webp" alt="" width="420" height="876" loading="eager">
+          <span class="lp-chip">✓ 3 مرضى أكّدوا حضورهم</span>
+          <div class="lp-float f1"><span class="ic">🔔</span><div><b>أحمد أكّد حضوره</b><small>قبل دقيقة · من التطبيق</small></div></div>
+          <div class="lp-float f2"><small>دخل اليوم</small><b>250,000 ل.س</b></div>
         </div>
       </section>
+     </div>
+      <div class="lp-trust"><div><b>${TRIAL_DAYS}</b>يوماً مجاناً</div><div><b>📴</b>يعمل دون إنترنت</div><div><b>🔒</b>بيانات مشفّرة</div><div><b>💬</b>دعم محلي</div></div>
 
       <section class="lp-specs">
         ${specs.map((s) => `<span class="chip lg">${esc(s)}</span>`).join("")}
@@ -178,6 +184,9 @@ export function landing() {
     bindTheme(render);
     $(".enter").onclick = () => { location.hash = "#/login"; };
     $$(".lp [data-k]").forEach((a) => a.addEventListener("click", () => trackClick(a.dataset.k)));
+    // زر واتساب العائم يظهر بعد تجاوز أزرار الصفحة الأولى حتى لا يغطيها
+    const fab = $(".wa-fab"), onSc = () => fab?.classList.toggle("show", window.scrollY > 380);
+    onSc(); window.addEventListener("scroll", onSc, { passive: true });
     $$('.lp a[href^="#features"], .lp a[href^="#pricing"], .lp a[href^="#faq"]').forEach((a) => a.onclick = (e) => {
       e.preventDefault(); document.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth" });
     });
