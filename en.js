@@ -3348,5 +3348,7 @@ export const EN = {
 "يعمل دون إنترنت": "Works offline",
 "بيانات مشفّرة": "Encrypted data",
 "دعم محلي": "Local support",
-"ثيم لوحة المالك (لكم فقط، ولا يغيّر شيئاً عند العيادات):": "Owner dashboard theme (just for you; it changes nothing for clinics):"
+"ثيم لوحة المالك (لكم فقط، ولا يغيّر شيئاً عند العيادات):": "Owner dashboard theme (just for you; it changes nothing for clinics):",
+"التبديل إلى الوضع الفاتح": "Switch to light mode",
+"التبديل إلى الوضع الداكن": "Switch to dark mode"
 };
