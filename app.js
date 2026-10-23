@@ -6,6 +6,7 @@ import {
   syncNow, isOffline, pending
 } from "./fb.js";
 import { COPYRIGHT, $, esc, toast, errMsg, field, logoHtml, info, applyTheme, platformMark, modal } from "./ui.js";
+import { paintAccent, applySkin, viewSkin } from "./themes.js";
 
 export const S = { user: null, profile: null, pub: null, clinic: null, platform: null, unsub: [], owner: false };
 const root = () => $("#app");
@@ -18,11 +19,9 @@ export const PLATFORM = () => S.platform?.name || "نبض";
 
 export function applyBrand(pub) {
   S.pub = pub || {};
-  const accent = S.pub.accent || "#0E7C7B";
-  document.documentElement.style.setProperty("--accent", accent);
+  if (!S.profile) viewSkin("");
+  paintAccent(S.pub.accent || "#0E7C7B");
   document.title = S.pub.name || PLATFORM();
-  const m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.content = accent;
 }
 
 const hashParts = () => location.hash.replace(/^#\/?/, "").split(/[/?]/);
@@ -30,6 +29,7 @@ const PUBLIC_ROUTES = ["b", "v", "privacy", "terms", "doctors"];
 
 async function boot() {
   applyTheme(LS.get("theme") || "auto");
+  viewSkin(LS.get("skin") || "");
   if (!configured) {
     root().innerHTML = `<div class="center-page"><div class="card narrow">
       <h2>تحتاج المنصة إلى إعدادات Firebase</h2>
@@ -51,6 +51,7 @@ async function onUser(user) {
   S.unsub = [];
   S.user = user;
   S.owner = false;
+  if (!user) S.profile = null;
   if (PUBLIC_ROUTES.includes(hashParts()[0])) return publicRoute();
   if (!user) return publicRoute();
 
@@ -125,6 +126,7 @@ export async function route() {
   S.unsub.forEach((u) => { try { u(); } catch {} });
   S.unsub = [];
   if (prof.role === "patient") {
+    try { applySkin((await one(P.clinic()))?.skin || ""); } catch {}
     const m = await import("./patient.js");
     if (!prof.consentAt) return m.showConsent();
     return m.start();
@@ -133,6 +135,7 @@ export async function route() {
   await new Promise((resolve) => {
     S.unsub.push(onSnapshot(P.clinic(), (s) => {
       S.clinic = s.data() || {};
+      applySkin(typeof S.profile?.skin === "string" ? S.profile.skin : (S.clinic.skin || ""));
       applyBrand({ ...S.pub, ...pickBrand(S.clinic) });
       if (first) { first = false; resolve(); }
       else window.dispatchEvent(new Event("clinic-updated"));

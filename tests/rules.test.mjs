@@ -620,3 +620,12 @@ test("عدّاد ضغطات الصفحة الرئيسية: زيادة 1 لزر �
   await assertFails(getDoc(doc(d, "clicks/2026-10-22")));
   await assertSucceeds(getDoc(doc(as("own1"), "clicks/2026-10-22")));
 });
+test("الثيمات: المستخدم يختار ثيمه، والمسؤول يختار ثيم العيادة", async () => {
+  await assertSucceeds(updateDoc(doc(as("sec_A"), "users/sec_A"), { skin: "rose" }));
+  await assertSucceeds(updateDoc(doc(as("sec_A"), "users/sec_A"), { skin: null }));
+  await assertFails(updateDoc(doc(as("sec_A"), "users/sec_A"), { skin: "x".repeat(40) }));
+  await assertFails(updateDoc(doc(as("sec_A"), "users/sec_A"), { skin: "rose", admin: true }));
+  await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), { skin: "blue" }));
+  await assertFails(updateDoc(doc(as("sec_A"), "clinics/A"), { skin: "blue" }));
+  await assertSucceeds(updateDoc(doc(as("pat_A"), "users/pat_A"), { skin: "gold" }));
+});

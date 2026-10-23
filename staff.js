@@ -8,6 +8,7 @@ import { APP_URL, COPYRIGHT, CASH_METHODS, methodName,
   $, $$, esc, ymd, addDays, parseYmd, fmtDate, fmtTime, tsDate, money, toast, errMsg, modal, confirmBox, info,
   field, select, logoHtml, waLink, debounce, download, empty, DAYS, daysBetween, printDoc
 } from "./ui.js";
+import { SKINS, skinById, applySkin, viewSkin } from "./themes.js";
 import { PUB } from "./ui.js";
 import { S, logout, showChangePassword, PLATFORM } from "./app.js";
 
@@ -1342,13 +1343,14 @@ function renderMore() {
   main().innerHTML = `<h2 class="page-title">المزيد</h2>
     ${groups.map(([g, items]) => `<h4 class="menu-h">${g}</h4><ul class="menu">${items.map(([h, t, n]) => `<li><a href="${h}"${h.startsWith("http") ? ' target="_blank" rel="noopener"' : ""}><span>${esc(t)}</span>${n ? `<b class="badge">${n}</b>` : ""}<span class="chev">‹</span></a></li>`).join("")}</ul>`).join("")}
     ${bookLink ? `<h4 class="menu-h">صفحة الحجز</h4><div class="card stack"><code class="copy" dir="ltr">${esc(bookLink)}</code><div class="row gap"><button class="btn small cp">نسخ الرابط</button><a class="btn small" target="_blank" rel="noopener" href="${esc(waLink("", `احجز موعدك في ${S.pub.name}: ${bookLink}`))}">مشاركة</a></div></div>` : ""}
-    <ul class="menu"><li><button class="theme"><span>المظهر</span><span class="muted">${{ auto: "تلقائي", light: "فاتح", dark: "داكن" }[localStorage.getItem("theme") || "auto"] || "تلقائي"}</span></button></li>
+    <ul class="menu"><li><button class="skin"><span>الثيم</span><span class="muted">${esc(skinById(typeof S.profile?.skin === "string" ? S.profile.skin : (S.clinic?.skin || "")).name)}</span></button></li><li><button class="theme"><span>الوضع الليلي</span><span class="muted">${{ auto: "تلقائي", light: "فاتح", dark: "داكن" }[localStorage.getItem("theme") || "auto"] || "تلقائي"}</span></button></li>
     <li><button class="lng" onclick="window.__setLang(document.documentElement.lang==='en'?'ar':'en')"><span>اللغة</span><span class="muted">${document.documentElement.lang === "en" ? "الإنكليزية" : "العربية"} ⇄ ${document.documentElement.lang === "en" ? "العربية" : "الإنكليزية"}</span></button></li>
     <li><button class="out"><span>تسجيل الخروج</span></button></li></ul>
     <p class="muted small center">${esc(PLATFORM())}</p>
     <p class="copyright">${esc(COPYRIGHT)}</p>`;
   $(".out").onclick = logout;
   $(".cp")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(bookLink); toast("تم نسخ الرابط"); } catch { toast("انسخ الرابط يدوياً", true); } });
+  $(".skin").onclick = () => skinModal();
   $(".theme").onclick = async () => {
     const { applyTheme } = await import("./ui.js");
     const curT = localStorage.getItem("theme") || "auto";
@@ -1356,6 +1358,41 @@ function renderMore() {
     try { localStorage.setItem("theme", next); } catch {}
     applyTheme(next); renderMore();
   };
+}
+
+// ---------- الثيمات ----------
+// المسؤول يختار ثيم العيادة للجميع، وكل مستخدم يستطيع اختيار ثيم لنفسه أو اتباع ثيم العيادة
+async function skinModal() {
+  const clinicSkin = S.clinic?.skin || "", mine = typeof S.profile?.skin === "string" ? S.profile.skin : null;
+  let pick = mine ?? clinicSkin, scope = isAdmin() ? "clinic" : "me";
+  const tile = (k) => `<button type="button" class="skin-tile${k.id === pick ? " on" : ""}" data-id="${esc(k.id)}"><span class="sw">${k.sw.map((c) => `<i style="background:${c}"></i>`).join("")}</span><b>${esc(k.name)}</b><small>${esc(k.desc)}</small></button>`;
+  const r = await modal("الثيم", `<div class="stack">
+      ${isAdmin() ? `<div class="seg row gap"><label class="check"><input type="radio" name="scope" value="clinic" checked><span>ثيم العيادة (لكل الفريق والمرضى)</span></label><label class="check"><input type="radio" name="scope" value="me"><span>لي فقط</span></label></div>` : `<p class="muted small">ثيم العيادة: <b>${esc(skinById(clinicSkin).name)}</b>. يمكنكم اختيار ثيم آخر لأنفسكم فقط.</p>`}
+      <div class="skin-grid">${SKINS.map(tile).join("")}</div>
+      ${!isAdmin() && mine !== null ? `<button type="button" class="btn small follow">↩︎ العودة إلى ثيم العيادة</button>` : ""}
+      <p class="muted small">الأوراق المطبوعة (الوصفات والتقارير) تبقى بلون العيادة دائماً.</p></div>`, {
+    ok: "حفظ", wide: true,
+    onOpen: (w) => {
+      w.querySelectorAll(".skin-tile").forEach((b) => b.onclick = () => { pick = b.dataset.id; w.querySelectorAll(".skin-tile").forEach((x) => x.classList.toggle("on", x === b)); viewSkin(pick); });
+      w.querySelectorAll('[name="scope"]').forEach((x) => x.onchange = () => { scope = x.value; });
+      w.querySelector(".follow")?.addEventListener("click", () => { pick = null; w.querySelector(".ok").click(); });
+    }
+  });
+  if (!r) { applySkin(typeof S.profile?.skin === "string" ? S.profile.skin : clinicSkin); return; }
+  try {
+    if (scope === "clinic" && isAdmin()) {
+      await updateDoc(P.clinic(), { skin: pick || "" });
+      if (mine !== null) { await updateDoc(P.user(S.user.uid), { skin: null }); S.profile.skin = null; }
+      S.clinic.skin = pick || "";
+      await audit("تغيير ثيم العيادة", skinById(pick).name);
+    } else {
+      await updateDoc(P.user(S.user.uid), { skin: pick });
+      S.profile.skin = pick;
+    }
+    applySkin(typeof S.profile?.skin === "string" ? S.profile.skin : (S.clinic?.skin || ""));
+    toast(`تم تطبيق ثيم «${skinById(typeof S.profile?.skin === "string" ? S.profile.skin : S.clinic?.skin).name}»`);
+    renderMore();
+  } catch (e) { toast(errMsg(e), true); applySkin(typeof S.profile?.skin === "string" ? S.profile.skin : clinicSkin); }
 }
 
 // ---------- طلبات المواعيد ----------

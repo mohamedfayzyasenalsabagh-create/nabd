@@ -208,7 +208,8 @@ service cloud.firestore {
                 // إعادة تعيين كلمة المرور: الحساب الجديد يرث ملفات الحساب السابق للرقم نفسه فقط
                 || request.resource.data.patientIds == get(/databases/$(database)/documents/users/$(get(/databases/$(database)/documents/clinics/$(request.resource.data.clinicId)/phones/$(request.resource.data.phone)).data.patientUid)).data.patientIds));
       allow update: if
-        (request.auth.uid == uid && onlyChanged(['mustChangePassword', 'consentAt', 'hideSensitive', 'fcmTokens', 'theme']))
+        (request.auth.uid == uid && onlyChanged(['mustChangePassword', 'consentAt', 'hideSensitive', 'fcmTokens', 'theme', 'skin'])
+          && (request.resource.data.get('skin', null) == null || (request.resource.data.skin is string && request.resource.data.skin.size() <= 20)))
         || (isAdmin(resource.data.clinicId) && resource.data.role in ['secretary', 'doctor', 'nurse', 'accountant']
             && resource.data.get('admin', false) == false
             && onlyChanged(['active', 'name', 'title', 'mustChangePassword']))
