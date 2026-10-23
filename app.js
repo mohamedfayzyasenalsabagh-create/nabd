@@ -60,7 +60,7 @@ async function onUser(user) {
   if (own) {
     S.owner = true;
     S.profile = { role: "owner", name: own.name, email: own.email };
-    viewSkin("");
+    viewSkin(S.platform?.ownerSkin || "");
     setActor({ uid: user.uid, name: own.name || own.email });
     const m = await import("./owner.js");
     return m.start();
@@ -136,7 +136,7 @@ export async function route() {
   await new Promise((resolve) => {
     S.unsub.push(onSnapshot(P.clinic(), (s) => {
       S.clinic = s.data() || {};
-      applySkin(typeof S.profile?.skin === "string" ? S.profile.skin : (S.clinic.skin || ""));
+      if (!S.owner) applySkin(typeof S.profile?.skin === "string" ? S.profile.skin : (S.clinic.skin || ""));
       applyBrand({ ...S.pub, ...pickBrand(S.clinic) });
       if (first) { first = false; resolve(); }
       else window.dispatchEvent(new Event("clinic-updated"));

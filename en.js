@@ -3347,5 +3347,6 @@ export const EN = {
 "يوماً مجاناً": "days free",
 "يعمل دون إنترنت": "Works offline",
 "بيانات مشفّرة": "Encrypted data",
-"دعم محلي": "Local support"
+"دعم محلي": "Local support",
+"ثيم لوحة المالك (لكم فقط، ولا يغيّر شيئاً عند العيادات):": "Owner dashboard theme (just for you; it changes nothing for clinics):"
 };

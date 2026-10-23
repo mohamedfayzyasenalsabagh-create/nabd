@@ -8,6 +8,7 @@ import {
   platformMark, waLink, debounce, applyTheme, pickFile, compressImage
 } from "./ui.js";
 import { PUB } from "./ui.js";
+import { SKINS, skinById, viewSkin } from "./themes.js";
 import { S, LS, logout, PLATFORM } from "./app.js";
 // الأعطال التي عُلّمت «تم الإصلاح»: بصمة الرسالة ← وقت الإصلاح (يعود العطل للظهور إن تكرر بعده)
 const errKey = (m) => { let h = 5381; for (const ch of String(m || "")) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0; return "e" + h.toString(16); };
@@ -304,6 +305,8 @@ function renderSettings() {
         ${field("اسم المنصة", "name", { value: pf.name || "نبض", required: true })}
         <div class="row gap wrap"><span class="muted small">المظهر:</span>
           ${["auto", "light", "dark"].map((m) => `<button type="button" class="btn small th ${(LS.get("theme") || "auto") === m ? "primary" : ""}" data-m="${m}">${{ auto: "تلقائي", light: "فاتح", dark: "داكن" }[m]}</button>`).join("")}</div>
+        <div class="stack"><span class="muted small">ثيم لوحة المالك (لكم فقط، ولا يغيّر شيئاً عند العيادات):</span>
+          <div class="skin-grid">${SKINS.map((k) => `<button type="button" class="skin-tile${k.id === (pf.ownerSkin || "") ? " on" : ""}" data-id="${esc(k.id)}"><span class="sw">${k.sw.map((c) => `<i style="background:${c}"></i>`).join("")}</span><b>${esc(k.name)}</b><small>${esc(k.desc)}</small></button>`).join("")}</div></div>
       </section>
       <section class="card stack"><h3>طرق الدفع (تظهر للعيادات)</h3>
         <fieldset class="stack"><legend>شام كاش</legend>
@@ -333,6 +336,12 @@ function renderSettings() {
       <p>تسجيل عيادة جديدة مباشرة:</p><code class="copy" dir="ltr">${esc(baseUrl())}#/signup</code>
     </section>`;
   $$(".th").forEach((b) => b.onclick = () => { LS.set("theme", b.dataset.m); applyTheme(b.dataset.m); renderSettings(); });
+  $$(".skin-tile").forEach((b) => b.onclick = async () => {
+    const id = b.dataset.id;
+    viewSkin(id);
+    try { await updateDoc(doc(db, "platform", "config"), { ownerSkin: id }); S.platform = { ...(S.platform || {}), ownerSkin: id }; toast(`تم تطبيق ثيم «${skinById(id).name}»`); renderSettings(); }
+    catch (e) { toast(errMsg(e), true); viewSkin(S.platform?.ownerSkin || ""); }
+  });
   let qrImg = pay.shamcashQr || null;
   $(".up-qr").onclick = async () => {
     const file = await pickFile("image/*"); if (!file) return;
