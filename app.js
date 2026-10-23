@@ -60,6 +60,7 @@ async function onUser(user) {
   if (own) {
     S.owner = true;
     S.profile = { role: "owner", name: own.name, email: own.email };
+    viewSkin("");
     setActor({ uid: user.uid, name: own.name || own.email });
     const m = await import("./owner.js");
     return m.start();
