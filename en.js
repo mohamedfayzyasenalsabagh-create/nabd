@@ -3350,5 +3350,7 @@ export const EN = {
 "دعم محلي": "Local support",
 "ثيم لوحة المالك (لكم فقط، ولا يغيّر شيئاً عند العيادات):": "Owner dashboard theme (just for you; it changes nothing for clinics):",
 "التبديل إلى الوضع الفاتح": "Switch to light mode",
-"التبديل إلى الوضع الداكن": "Switch to dark mode"
+"التبديل إلى الوضع الداكن": "Switch to dark mode",
+"مع نبض عيادتكم": "With Nabd, your clinic",
+"صارت أسهل": "just got easier"
 };

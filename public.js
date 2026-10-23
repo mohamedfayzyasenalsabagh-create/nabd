@@ -119,7 +119,7 @@ export function landing() {
       <section class="lp-hero">
         <div class="lp-hero-text">
           <span class="eyebrow">💓 لكل الاختصاصات · يعمل دون إنترنت</span>
-          <h1>نبض عيادتكم<br><em>صار أسهل</em></h1>
+          <h1>مع نبض عيادتكم<br><em>صارت أسهل</em></h1>
           <p class="lead">المواعيد، والتذكير، وملفات المرضى، والوصفات، والحسابات… مع تطبيق لمرضاكم يتابعون منه مواعيدهم وأدويتهم. على الجوال والحاسوب، وكل شيء متزامن لحظياً.</p>
           <div class="row gap wrap">${heroBtns()}</div>
           <p class="lp-note">دون بطاقة دفع · التفعيل فوري · دعم بالعربية على واتساب</p>
