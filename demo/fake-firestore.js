@@ -46,6 +46,7 @@ export async function updateDoc(ref, data) {
   for (const k in data) n[k] = resolve(data[k], old[k]);
   store.set(ref.path, n); notify();
 }
+export async function deleteDoc(ref) { store.delete(ref.path); notify(); }
 export async function addDoc(col, data) { const r = doc(col); await setDoc(r, data); return r; }
 export const where = (f, op, v) => ({ f, op, v }); export const orderBy = (f, dir) => ({ ob: f, dir }); export const limit = (n) => ({ lim: n });
 export function query(col, ...c) { return { ...col, c }; }
@@ -70,4 +71,4 @@ export function onSnapshot(ref, opt, cb) {
   return () => listeners.delete(fire);
 }
 export async function runTransaction(db, fn) { return fn({ get: getDoc, set: (r, d) => setDoc(r, d), update: (r, d) => updateDoc(r, d) }); }
-export function writeBatch() { const ops = []; return { set: (r, d, o) => ops.push(() => setDoc(r, d, o)), update: (r, d) => ops.push(() => updateDoc(r, d)), commit: async () => { for (const o of ops) await o(); } }; }
+export function writeBatch() { const ops = []; const b = { set: (r, d, o) => { ops.push(() => setDoc(r, d, o)); return b; }, update: (r, d) => { ops.push(() => updateDoc(r, d)); return b; }, delete: (r) => { ops.push(() => deleteDoc(r)); return b; }, commit: async () => { for (const o of ops) await o(); } }; return b; }
