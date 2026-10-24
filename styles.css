@@ -178,6 +178,11 @@ legend { padding: 0 6px; font-weight: 700; }
 .bottomnav a.on svg { stroke-width: 2.4; }
 .bottomnav .badge { position: absolute; top: 8px; inset-inline-start: calc(50% + 8px); }
 .menu-h { margin: 18px 4px 6px; }
+/* أسماء القائمة السفلية الطويلة (خصوصاً بالإنكليزية) تلتف على سطرين داخل خانتها بدل أن تتداخل */
+@media (max-width: 899px) {
+  .bottomnav a { padding: 0 2px; text-align: center; line-height: 1.15; white-space: normal; overflow: hidden; }
+  html[lang="en"] .bottomnav a { font-size: .68rem; }
+}
 
 @media (min-width: 900px) {
   .bottomnav { top: 61px; bottom: 0; right: 0; left: auto; width: 220px; grid-template-columns: 1fr !important; grid-auto-flow: row; grid-auto-rows: 52px; align-content: start; border-top: 0; border-inline-start: 1px solid var(--line); padding: 12px 10px; gap: 4px; }
