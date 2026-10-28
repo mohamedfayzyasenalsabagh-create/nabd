@@ -3387,5 +3387,10 @@ export const EN = {
 "ستُحذف العيادة وكل بياناتها وحساباتها نهائياً خلال ساعة، ولا يمكن استرجاعها.": "The clinic and all its data and accounts will be permanently deleted within an hour, and cannot be recovered.",
 "صاحب العيادة": "the clinic owner",
 "قيد الحذف بطلب ": "Pending deletion, requested by ",
-"، وستُحذف نهائياً يوم ": ", to be permanently deleted on "
+"، وستُحذف نهائياً يوم ": ", to be permanently deleted on ",
+"حذف من الفريق": "Remove from team",
+" من الفريق؟ لن يستطيع الدخول بعد الآن، ويبقى ما سجّله في العيادة محفوظاً.": " from the team? They will no longer be able to sign in, and everything they recorded in the clinic stays saved.",
+" من الفريق؟ لن يستطيع الدخول بعد الآن، وتبقى مواعيده وملفاته محفوظة.": " from the team? They will no longer be able to sign in, and their appointments and files stay saved.",
+"حذف موظف من الفريق": "Removed a staff member from the team",
+"حذف طبيب من الفريق": "Removed a doctor from the team"
 };
