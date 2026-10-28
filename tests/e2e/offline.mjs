@@ -301,6 +301,46 @@ try {
     }
     await cctx.close();
   }
+
+  // 7) حذف حساب العيادة: صاحب المنصة يطلبه من لوحته، فتُقفل العيادة، وصاحبها يتراجع فتعود كما كانت
+  {
+    await rest("POST", `${AUTH}/accounts`, { localId: "own-e2e", email: "owner@e2e.test", password: "owner1234" });
+    await rest("PATCH", `${FS}/owners/own-e2e`, { fields: { email: { stringValue: "owner@e2e.test" } } });
+    if (!(await getDocREST("platform/bootstrap"))?.fields) await rest("PATCH", `${FS}/platform/bootstrap`, { fields: { done: { booleanValue: true } } });
+    const cname = sv(await getDocREST("clinics/demo"), "name");
+    const octx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: "ar" });
+    const op = await octx.newPage(); const oerrs = []; op.on("pageerror", (e) => oerrs.push(String(e).slice(0, 140)));
+    await op.goto(B + "#/owner"); await op.waitForSelector("#ol", { timeout: 30000 });
+    await op.fill('#ol [name="email"]', "owner@e2e.test"); await op.fill('#ol [name="pw"]', "owner1234"); await op.click("#ol button");
+    await op.waitForSelector('.man[data-id="demo"]', { timeout: 30000 });
+    await op.click('.man[data-id="demo"]'); await op.waitForSelector(".delreq", { timeout: 10000 });
+    await op.click(".delreq");
+    const conf = op.locator(".modal-wrap").last();
+    await conf.locator('[name="confirm"]').fill(cname || ""); await conf.locator(".ok").click();
+    await op.waitForSelector(".toast:has-text('العيادة قيد الحذف')", { timeout: 10000 }).catch(() => {});
+    await sleep(1500);
+    const del1 = (await getDocREST("clinics/demo"))?.fields?.deletion?.mapValue?.fields;
+    const chip = await op.locator("#ctbl").innerText().catch(() => "");
+    log(!!del1?.at && sv({ fields: del1 }, "by") === "own-e2e" && chip.includes("قيد الحذف"), "صاحب المنصة يطلب حذف حساب عيادة (تُعلَّم «قيد الحذف»)", (chip.match(/قيد الحذف[^\n]*/) || [""])[0]);
+    await op.screenshot({ path: path.join(OUT, "7-owner-delete.png") });
+    const dctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });
+    const dp = await dctx.newPage(); const derrs = []; dp.on("pageerror", (e) => derrs.push(String(e).slice(0, 140)));
+    await dp.goto(B + "#/login"); await dp.waitForSelector("#lf", { timeout: 30000 });
+    await dp.fill('#lf [name="id"]', "demo@nabd.app"); await dp.fill('#lf [name="pw"]', "demo1234"); await dp.click('#lf [type="submit"]');
+    const locked = await dp.waitForSelector(".del-screen", { timeout: 30000 }).then(() => true, () => false);
+    log(locked && (await dp.locator(".undo").count()) === 1, "العيادة مقفلة خلال مهلة الحذف، ولصاحبها زر التراجع");
+    await dp.screenshot({ path: path.join(OUT, "7-clinic-locked.png") });
+    const blocked = await dp.evaluate(async () => { const f = await import("/fb.js"); try { await f.setDoc(f.doc(f.P.patients()), { name: "x", phone: "0999999999" }); await f.syncNow?.(); return false; } catch { return true; } });
+    await sleep(1500);
+    const pts = await rest("GET", `${FS}/clinics/demo/patients?pageSize=300`);
+    const leaked = (pts.documents || []).some((d) => sv(d, "phone") === "0999999999");
+    log(!leaked, "خلال المهلة يرفض الخادم أي إضافة على بيانات العيادة", String(blocked));
+    await dp.click(".undo");
+    const back = await dp.waitForSelector(".stats", { timeout: 30000 }).then(() => true, () => false);
+    const del2 = (await getDocREST("clinics/demo"))?.fields?.deletion;
+    log(back && (!del2 || "nullValue" in del2) && !derrs.length && !oerrs.length, "صاحب العيادة يتراجع عن الحذف فتعود العيادة للعمل", [...derrs, ...oerrs].join(" | ").slice(0, 120));
+    await octx.close(); await dctx.close();
+  }
 } catch (e) {
   log(false, "توقف الاختبار بخطأ", String(e?.stack || e).slice(0, 600));
   for (const c of browser.contexts()) for (const p of c.pages()) await p.screenshot({ path: path.join(OUT, `fail-${Date.now()}.png`) }).catch(() => {});

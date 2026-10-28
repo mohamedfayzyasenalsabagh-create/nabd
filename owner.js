@@ -1,7 +1,8 @@
 // لوحة مالك المنصة: العيادات، الاشتراكات، الدفعات، والإعدادات
 import {
   P, list, one, doc, updateDoc, setDoc, query, where, orderBy, serverTimestamp, Timestamp, collection, db,
-  SPECIALTIES, DEFAULT_PLANS, ALL_FEATURES, tsMs, clinicState, yearlyDisc, periodPrice
+  SPECIALTIES, DEFAULT_PLANS, ALL_FEATURES, tsMs, clinicState, yearlyDisc, periodPrice,
+  requestClinicDeletion, cancelClinicDeletion, deletionDate
 } from "./fb.js";
 import {
   $, $$, esc, toast, errMsg, modal, confirmBox, info, field, select, empty, tsDate, fmtDate, ymd,
@@ -21,6 +22,7 @@ const planOf = (id) => plans().find((p) => p.id === id);
 export const PAY_METHODS = { shamcash: "شام كاش", syriatel: "سيريتل كاش", mtn: "MTN كاش", bank: "تحويل بنكي", cash: "نقداً", other: "أخرى" };
 const STATUS = { trial: ["تجربة", "warn"], active: ["فعّال", "ok"], suspended: ["موقوف", "danger"], expired: ["منتهٍ", "danger"] };
 function statusChip(c) {
+  if (c.deletion) return `<span class="chip danger">🗑 ${c.deletion.now ? "يُحذف الآن" : `قيد الحذف · ${esc(fmtDate(ymd(deletionDate(c)), false))}`}</span>`;
   const st = clinicState(c);
   const key = !st.ok && c.status !== "suspended" ? "expired" : c.status;
   const [t, cls] = STATUS[key] || [key, ""];
@@ -218,6 +220,14 @@ async function manageClinic(c, use = {}) {
     <div class="row gap wrap">
       ${c.ownerPhone ? `<a class="btn small" target="_blank" rel="noopener" href="${esc(waLink(c.ownerPhone, `مرحباً د. ${c.doctorName}، `))}">مراسلة واتساب</a>` : ""}
       ${c.status === "suspended" ? `<button class="btn small unsus">إلغاء الإيقاف</button>` : `<button class="btn small danger sus">إيقاف العيادة</button>`}
+    </div>
+    <div class="card stack del-zone">
+      <h4>حذف حساب العيادة</h4>
+      ${c.deletion
+        ? `<p class="small">${c.deletion.now ? "مطلوب حذفها الآن، وستُحذف نهائياً خلال ساعة." : `قيد الحذف بطلب ${c.deletion.by === c.ownerUid ? "صاحب العيادة" : "صاحب المنصة"}، وستُحذف نهائياً يوم <b>${esc(fmtDate(ymd(deletionDate(c)), false))}</b>.`}</p>
+           <div class="row gap wrap"><button class="btn small undel">إلغاء الحذف واستعادة العيادة</button>${c.deletion.now ? "" : `<button class="btn small danger delnow">حذف نهائي الآن</button>`}</div>`
+        : `<p class="muted small">تُقفل العيادة فوراً، وتُحذف نهائياً مع كل بياناتها وحساباتها بعد 30 يوماً، ويمكن التراجع خلال المدة.</p>
+           <button class="btn small danger delreq">حذف حساب العيادة</button>`}
     </div>`, {
     ok: null, cancel: "إغلاق", wide: true,
     onOpen: (w) => {
@@ -232,6 +242,24 @@ async function manageClinic(c, use = {}) {
       w.querySelector(".sus")?.addEventListener("click", async () => {
         if (!(await confirmBox("إيقاف العيادة", "ستصبح العيادة للقراءة فقط حتى إلغاء الإيقاف.", "إيقاف", true))) return;
         await updateDoc(P.clinic(c.id), { status: "suspended" }); w.remove(); render();
+      });
+      const typed = async (title, warn, okText) => {
+        const r = await modal(title, `<form class="stack"><div class="alert danger">⚠️ ${warn}</div>
+          <label class="field"><span>للتأكيد اكتب اسم العيادة: <b>${esc(c.name)}</b></span><input name="confirm" autocomplete="off" required></label></form>`, { ok: okText, danger: true });
+        if (!r) return false;
+        if (String(r.confirm || "").trim() !== String(c.name || "").trim()) { toast("اسم العيادة غير مطابق", true); return false; }
+        return true;
+      };
+      w.querySelector(".delreq")?.addEventListener("click", async () => {
+        if (!(await typed("حذف حساب العيادة", "ستُقفل العيادة فوراً لكل فريقها ومرضاها، وتُحذف نهائياً بعد 30 يوماً.", "حذف الحساب"))) return;
+        try { await requestClinicDeletion(c.id); toast("العيادة قيد الحذف"); w.remove(); render(); } catch (e) { toast(errMsg(e), true); }
+      });
+      w.querySelector(".delnow")?.addEventListener("click", async () => {
+        if (!(await typed("حذف نهائي الآن", "ستُحذف العيادة وكل بياناتها وحساباتها نهائياً خلال ساعة، ولا يمكن استرجاعها.", "حذف نهائي"))) return;
+        try { await requestClinicDeletion(c.id, true); toast("ستُحذف العيادة نهائياً خلال ساعة"); w.remove(); render(); } catch (e) { toast(errMsg(e), true); }
+      });
+      w.querySelector(".undel")?.addEventListener("click", async () => {
+        try { await cancelClinicDeletion(c.id); toast("تمت استعادة العيادة"); w.remove(); render(); } catch (e) { toast(errMsg(e), true); }
       });
       w.querySelector(".unsus")?.addEventListener("click", async () => {
         await updateDoc(P.clinic(c.id), { status: c.plan === "trial" ? "trial" : "active" }); w.remove(); render();

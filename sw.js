@@ -1,7 +1,7 @@
 // يفتح التطبيق بسرعة ودون إنترنت (البيانات تتزامن عند عودة الاتصال)
-const CACHE = "nabd-v99";
+const CACHE = "nabd-v100";
 const LIBS = "nabd-libs-v1"; // مكتبات Firebase والخطوط: عناوينها ثابتة بالإصدار فلا تتغير
-const SHELL = ["./", "index.html", "app.html", "styles.css", "app.js", "fb.js", "ui.js", "staff.js", "admin.js", "card.js", "mods.js",
+const SHELL = ["./", "index.html", "app.html", "styles.css", "app.js", "fb.js", "ui.js", "staff.js", "admin.js", "del.js", "card.js", "mods.js",
   "patient.js", "public.js", "owner.js", "legal.js", "config.js", "i18n.js", "en.js", "qrcode.js", "smart.js", "medref.js", "drugs.js",
   "drugsafety.js", "diseases.js", "faq.js", "importx.js", "live.js", "commission.js", "themes.js", "lib/xlsx.full.min.js", "manifest.json", "icon.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png"];
 const FB = "https://www.gstatic.com/firebasejs/10.14.1/";

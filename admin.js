@@ -12,6 +12,7 @@ import { APP_URL,
 import { PUB } from "./ui.js";
 import { S, PLATFORM } from "./app.js";
 import { PAY_METHODS } from "./owner.js";
+import { deletionCard, bindDeletion } from "./del.js";
 import { multiSpec, specMods, docLetter, render, doctors, feat, hasMod, cur, isAdmin, PERMS, PERM_PRESETS, commCats } from "./staff.js";
 
 const main = () => $("#main");
@@ -94,7 +95,7 @@ export async function renderSettings() {
       ${field("ملاحظة أسفل الوصفة", "rxFooter", { value: c.rxFooter ?? "يجب مراسلة العيادة من خلال التطبيق عند ظهور أي أعراض جانبية." })}
     </section>
     <button class="btn primary block" type="submit">حفظ الإعدادات</button>
-  </form>`;
+  </form>${deletionCard()}`;
   const drawSvcs = () => {
     $(".svc-list").innerHTML = services.map((s, i) => `<div class="svc-row">
       <input value="${esc(s.name)}" data-i="${i}" data-k="name" aria-label="اسم الخدمة" placeholder="الخدمة">
@@ -131,6 +132,7 @@ export async function renderSettings() {
   $(".rst")?.addEventListener("click", () => { newLogo = null; $(".lg").innerHTML = logoHtml({ specialty: c.specialty }, 88); });
   const drawSpecMods = () => { const box = $(".spec-mods"); if (box) { const ms = specMods($("#set").specialty.value); box.innerHTML = ms.length ? ms.map((k) => `<span class="chip">${esc(MODULES[k])}</span>`).join("") : `<span class="muted small">لا توجد وحدة خاصة لهذا الاختصاص، وتتوفر كل الميزات العامة.</span>`; } };
   drawSpecMods(); $("#set").specialty.addEventListener("change", drawSpecMods);
+  bindDeletion();
   $("#set").onsubmit = async (e) => {
     e.preventDefault();
     const f = e.target;

@@ -127,21 +127,28 @@ export async function route() {
   S.unsub.forEach((u) => { try { u(); } catch {} });
   S.unsub = [];
   if (prof.role === "patient") {
-    try { applySkin((await one(P.clinic()))?.skin || ""); } catch {}
+    let cl = null;
+    try { cl = await one(P.clinic()); applySkin(cl?.skin || ""); } catch {}
+    // حساب العيادة قيد الحذف: لا يُستخدم التطبيق خلال المهلة
+    if (cl?.deletion) { S.clinic = cl; return (await import("./del.js")).deletionScreen(); }
     const m = await import("./patient.js");
     if (!prof.consentAt) return m.showConsent();
     return m.start();
   }
-  let first = true;
+  let first = true, prevDel = null;
   await new Promise((resolve) => {
     S.unsub.push(onSnapshot(P.clinic(), (s) => {
       S.clinic = s.data() || {};
       if (!S.owner) applySkin(typeof S.profile?.skin === "string" ? S.profile.skin : (S.clinic.skin || ""));
       applyBrand({ ...S.pub, ...pickBrand(S.clinic) });
       if (first) { first = false; resolve(); }
+      else if (!!S.clinic.deletion !== !!prevDel) location.reload();
       else window.dispatchEvent(new Event("clinic-updated"));
+      prevDel = S.clinic.deletion;
     }, () => { if (first) { first = false; resolve(); } }));
   });
+  // حساب العيادة قيد الحذف: شاشة واحدة فيها التراجع لصاحب العيادة فقط
+  if (S.clinic?.deletion) return (await import("./del.js")).deletionScreen();
   // أُلغي الخروج التلقائي بعد عدم الاستخدام بطلب صاحب المنصة
   const m = await import("./staff.js");
   m.start();

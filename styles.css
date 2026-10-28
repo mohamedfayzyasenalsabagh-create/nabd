@@ -968,3 +968,8 @@ body:has(.lp) { overflow-x: hidden; }
 }
 .lp .wa-fab { opacity: 0; transform: translateY(20px); pointer-events: none; transition: opacity .25s, transform .25s; }
 .lp .wa-fab.show { opacity: 1; transform: none; pointer-events: auto; }
+/* حذف حساب العيادة */
+.del-zone { border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line)); background: color-mix(in srgb, var(--danger) 4%, var(--card)); }
+.del-zone h3, .del-zone h4 { color: var(--danger); }
+.del-screen { max-width: 440px; width: 100%; text-align: center; }
+.del-screen h2 { color: var(--danger); }

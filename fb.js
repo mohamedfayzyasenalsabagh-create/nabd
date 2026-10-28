@@ -615,3 +615,17 @@ export function clinicState(c) {
   const ok = ["trial", "active"].includes(c.status) && ms > 0;
   return { ok, days, status: c.status, trial: c.status === "trial" };
 }
+
+// ---------- حذف حساب العيادة ----------
+// يطلبه صاحب العيادة (منشئها) أو صاحب المنصة؛ تُقفل العيادة فوراً وتُحذف نهائياً بعد 30 يوماً
+// (يتولى الحذف النهائي سكربت purge.yml على GitHub كل ساعة). صاحب المنصة يستطيع طلب «حذف الآن».
+export const DELETE_DAYS = 30;
+export async function requestClinicDeletion(cid = C, now = false) {
+  await updateDoc(P.clinic(cid), { deletion: { at: serverTimestamp(), by: auth.currentUser.uid, ...(now ? { now: true } : {}) } });
+}
+export async function cancelClinicDeletion(cid = C) { await updateDoc(P.clinic(cid), { deletion: null }); }
+export function deletionDate(clinic) {
+  const at = clinic?.deletion?.at;
+  const t = at?.toMillis ? at.toMillis() : at?.seconds ? at.seconds * 1000 : at ? +new Date(at) : Date.now();
+  return new Date(t + DELETE_DAYS * 864e5);
+}

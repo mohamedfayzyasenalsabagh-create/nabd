@@ -629,3 +629,44 @@ test("الثيمات: المستخدم يختار ثيمه، والمسؤول ي
   await assertFails(updateDoc(doc(as("sec_A"), "clinics/A"), { skin: "blue" }));
   await assertSucceeds(updateDoc(doc(as("pat_A"), "users/pat_A"), { skin: "gold" }));
 });
+
+// ---------- حذف حساب العيادة (مهلة 30 يوماً) ----------
+const delReq = (uid, extra = {}) => ({ deletion: { at: serverTimestamp(), by: uid, ...extra } });
+test("حذف العيادة: صاحب العيادة يطلب الحذف ويتراجع عنه", async () => {
+  await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), delReq("adm_A")));
+  await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), { deletion: null }));
+});
+test("حذف العيادة: لا يطلبه غير صاحبها (طبيب، سكرتيرة، دور مخصص بصلاحية الإعدادات، مريض، عيادة أخرى)", async () => {
+  for (const u of ["doc_A", "sec_A", "mgr_A", "pat_A", "adm_B"]) await assertFails(updateDoc(doc(as(u), "clinics/A"), delReq(u)));
+});
+test("حذف العيادة: صاحب العيادة لا يطلب الحذف الفوري ولا ينتحل غيره ولا يغيّر حقولاً أخرى معه", async () => {
+  await assertFails(updateDoc(doc(as("adm_A"), "clinics/A"), delReq("adm_A", { now: true })));
+  await assertFails(updateDoc(doc(as("adm_A"), "clinics/A"), delReq("own1")));
+  await assertFails(updateDoc(doc(as("adm_A"), "clinics/A"), { ...delReq("adm_A"), name: "x" }));
+  await assertFails(updateDoc(doc(as("adm_A"), "clinics/A"), { deletion: { at: Timestamp.fromMillis(Date.now() - 40 * DAY), by: "adm_A" } }));
+});
+test("حذف العيادة: صاحب المنصة يطلب الحذف الفوري ويلغيه", async () => {
+  await assertSucceeds(updateDoc(doc(as("own1"), "clinics/A"), delReq("own1", { now: true })));
+  await assertSucceeds(updateDoc(doc(as("own1"), "clinics/A"), { deletion: null }));
+});
+test("حذف العيادة: صاحب العيادة يطلبه حتى بعد انتهاء الاشتراك", async () => {
+  await assertSucceeds(updateDoc(doc(as("adm_X"), "clinics/X"), delReq("adm_X")));
+});
+test("حذف العيادة: خلال المهلة تُقفل الكتابة على بيانات العيادة ويبقى التراجع ممكناً", async () => {
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), "clinics/A"), { deletion: { at: Timestamp.now(), by: "adm_A" } }));
+  await assertFails(setDoc(doc(as("adm_A"), "clinics/A/patients/p9"), { name: "x", phone: "0999" }));
+  await assertFails(updateDoc(doc(as("adm_A"), "clinics/A"), { name: "جديد" }));
+  await assertSucceeds(getDoc(doc(as("adm_A"), "clinics/A/patients/p1")));
+  await assertSucceeds(updateDoc(doc(as("adm_A"), "clinics/A"), { deletion: null }));
+  await assertSucceeds(setDoc(doc(as("adm_A"), "clinics/A/patients/p9"), { name: "x", phone: "0999" }));
+});
+test("حذف العيادة: لا يُنشأ حساب عيادة جديد وهو قيد الحذف", async () => {
+  const mk = async (uid, cid, extra) => {
+    const d = as(uid); const b = writeBatch(d);
+    b.set(doc(d, `users/${uid}`), { role: "doctor", admin: true, clinicId: cid, active: true });
+    b.set(doc(d, `clinics/${cid}`), { ownerUid: uid, slug: `dr-${cid.toLowerCase()}`, status: "trial", plan: "trial", expiresAt: future(14), features: {}, maxDoctors: 3, maxStaff: 3, ...extra });
+    return b.commit();
+  };
+  await assertSucceeds(mk("newOk", "OK1", {}));
+  await assertFails(mk("newDel", "DEL1", { deletion: { at: serverTimestamp(), by: "newDel" } }));
+});

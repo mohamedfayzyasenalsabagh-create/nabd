@@ -36,7 +36,15 @@ service cloud.firestore {
     function isPatient(c, pid) { return inClinic(c) && me().role == 'patient' && pid in me().patientIds; }
     function isOwner() { return signedIn() && exists(/databases/$(database)/documents/owners/$(request.auth.uid)); }
     function cl(c) { return get(/databases/$(database)/documents/clinics/$(c)).data; }
-    function clinicOK(c) { return cl(c).status in ['trial', 'active'] && cl(c).expiresAt > request.time; }
+    // العيادة تعمل: اشتراك ساري، وليست قيد الحذف (خلال مهلة الحذف تُقفل الكتابة ويبقى الاسترجاع ممكناً)
+    function clinicOK(c) { return cl(c).status in ['trial', 'active'] && cl(c).expiresAt > request.time && cl(c).get('deletion', null) == null; }
+    // طلب حذف حساب العيادة: null للإلغاء، أو {at: وقت الطلب, by: صاحبه, now: حذف فوري لصاحب المنصة فقط}
+    function validDeletion(isPlat) {
+      let d = request.resource.data.get('deletion', null);
+      return d == null || (d is map && d.keys().hasOnly(['at', 'by', 'now']) && d.at == request.time && d.by == request.auth.uid
+        && (isPlat || d.get('now', false) == false));
+    }
+    function deletionChanged() { return request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletion']); }
     function feature(c, f) { return cl(c).features.get(f, false) == true; }
     function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
     function bootPath() { return /databases/$(database)/documents/platform/bootstrap; }
@@ -239,8 +247,11 @@ service cloud.firestore {
         && request.resource.data.expiresAt <= request.time + duration.value(15, 'd')
         && request.resource.data.maxDoctors <= 3 && request.resource.data.maxStaff <= 3
         && request.resource.data.get('features', {}).get('multiSpecialty', false) == false
-        && !request.resource.data.keys().hasAny(['referralRewarded', 'referrals']);
-      allow update: if isOwner()
+        && !request.resource.data.keys().hasAny(['referralRewarded', 'referrals', 'deletion']);
+      // حذف حساب العيادة: صاحب العيادة (منشئها) يطلبه أو يتراجع عنه حتى بعد انتهاء الاشتراك، وصاحب المنصة كذلك
+      allow update: if (deletionChanged() && onlyChanged(['deletion'])
+          && ((isOwner() && validDeletion(true)) || (inClinic(c) && request.auth.uid == resource.data.ownerUid && validDeletion(false))))
+        || (!deletionChanged() && (isOwner()
         || (isAdmin(c) && clinicOK(c)
             && !request.resource.data.diff(resource.data).affectedKeys()
                  .hasAny(['status', 'plan', 'expiresAt', 'features', 'maxDoctors', 'maxStaff', 'ownerUid', 'slug', 'referredBy', 'referralRewarded', 'referrals'])
@@ -253,7 +264,7 @@ service cloud.firestore {
             && !request.resource.data.diff(resource.data).affectedKeys()
                  .hasAny(['status', 'plan', 'expiresAt', 'features', 'maxDoctors', 'maxStaff', 'ownerUid', 'slug', 'referredBy', 'referralRewarded', 'referrals', 'doctors', 'modules']))
         // أي طبيب في العيادة يحفظ وصفاته الجاهزة وأسماء الأدوية
-        || (isDoctor(c) && clinicOK(c) && onlyChanged(['drugs', 'rxTemplates']));
+        || (isDoctor(c) && clinicOK(c) && onlyChanged(['drugs', 'rxTemplates']))));
       allow delete: if false;
 
       match /phones/{phone} {
