@@ -27,7 +27,7 @@
 - `scene.html` يرسم الإطار عند الزمن t من `cfg.js` (مثال كامل: `cfg_example.js` — hook/steps/q/cta، ring وtap بإحداثيات لقطة 390 عرضاً، extra للخيارات، sprite اختياري {src,w,h} للشخصية، prop.kind من props.js).
 - اللقطات: dm_t.py مع سكربت يعترض seed.js (مثال `swap_derm_example.py`؛ لا تستخدم exec داخل السكربت)، `goto(..., wait_until="domcontentloaded")`. رفع ملف: `pg.expect_file_chooser()`.
 - البناء: `FNT=<scratch>/fntfiles python3 build.py <workdir فيه cfg.js واللقطات> out.mp4 <M>` (30fps، QR تلقائي، موسيقى mus.py، ‎-1.5dB).
-- صور الشخصيات الأصلية فُقدت مع إعادة ضبط البيئة؛ ضعها في workdir وعرّف sprite عند توفرها، وإلا فالريل دون شخصية (الجوال يتوسط الشاشة).
+- صور الشخصيات محفوظة في `reel/chars/` (man 428x848، girl 396x824، hijab 286x824 بخلفية شفافة): انسخ المطلوبة إلى workdir وعرّف sprite:{src,w,h} بمقاسها.
 
 ## الكابشن (فصحى)
 يبدأ بالخطاف نفسه، 3-5 فوائد بالرموز، «مع نبض عيادتكم صارت أسهل 🩺»، سؤال التعليقات، ثم:
