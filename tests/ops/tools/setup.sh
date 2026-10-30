@@ -24,4 +24,5 @@ open("nfonts.css","w").write("\n".join(out))
 PY
 fi
 pip list 2>/dev/null | grep -qi "^playwright " || pip install --break-system-packages -q playwright
+python3 -c "import qrcode,openpyxl" 2>/dev/null || pip install --break-system-packages -q qrcode pillow openpyxl
 echo "TOOLS=$W"
