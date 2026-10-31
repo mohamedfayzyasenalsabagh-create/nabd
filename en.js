@@ -3392,5 +3392,10 @@ export const EN = {
 " من الفريق؟ لن يستطيع الدخول بعد الآن، ويبقى ما سجّله في العيادة محفوظاً.": " from the team? They will no longer be able to sign in, and everything they recorded in the clinic stays saved.",
 " من الفريق؟ لن يستطيع الدخول بعد الآن، وتبقى مواعيده وملفاته محفوظة.": " from the team? They will no longer be able to sign in, and their appointments and files stay saved.",
 "حذف موظف من الفريق": "Removed a staff member from the team",
-"حذف طبيب من الفريق": "Removed a doctor from the team"
+"حذف طبيب من الفريق": "Removed a doctor from the team",
+"تجديد الفترة التجريبية": "Renew free trial",
+"تبقى العيادة على التجربة المجانية بكل ميزاتها. إن كانت التجربة سارية تُضاف المدة إلى ما تبقى منها، وإلا تبدأ من اليوم.": "The clinic stays on the free trial with all its features. If the trial is still running, the days are added to what is left; otherwise they start today.",
+"تجديد التجربة": "Renew trial",
+"المدة من يوم واحد إلى 90 يوماً": "Duration must be 1 to 90 days",
+"تم تجديد الفترة التجريبية": "Free trial renewed"
 };

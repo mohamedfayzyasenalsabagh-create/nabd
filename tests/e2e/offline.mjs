@@ -341,6 +341,42 @@ try {
     log(back && (!del2 || "nullValue" in del2) && !derrs.length && !oerrs.length, "صاحب العيادة يتراجع عن الحذف فتعود العيادة للعمل", [...derrs, ...oerrs].join(" | ").slice(0, 120));
     await octx.close(); await dctx.close();
   }
+
+  // 8) تجديد الفترة التجريبية من لوحة صاحب المنصة: عيادة انتهت تجربتها تعود للعمل بالمدة التي يحددها
+  {
+    const orig = (await getDocREST("clinics/demo"))?.fields || {};
+    const mask = ["status", "plan", "expiresAt", "features", "maxDoctors", "maxStaff"].map((k) => `updateMask.fieldPaths=${k}`).join("&");
+    await rest("PATCH", `${FS}/clinics/demo?updateMask.fieldPaths=status&updateMask.fieldPaths=plan&updateMask.fieldPaths=expiresAt`, { fields: {
+      status: { stringValue: "trial" }, plan: { stringValue: "trial" }, expiresAt: { timestampValue: new Date(Date.now() - 864e5).toISOString() } } });
+    const octx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });
+    const op = await octx.newPage(); const oerrs = []; op.on("pageerror", (e) => oerrs.push(String(e).slice(0, 140)));
+    await op.goto(B + "#/owner"); await op.waitForSelector("#ol", { timeout: 30000 });
+    await op.fill('#ol [name="email"]', "owner@e2e.test"); await op.fill('#ol [name="pw"]', "owner1234"); await op.click("#ol button");
+    await op.waitForSelector('.man[data-id="demo"]', { timeout: 30000 });
+    await op.click('.man[data-id="demo"]'); await op.waitForSelector(".trl", { timeout: 10000 });
+    await op.locator('.trl-q [data-d="30"]').click();
+    const endTxt = await op.locator(".trl-end").innerText();
+    await op.screenshot({ path: path.join(OUT, "8-owner-trial.png") });
+    await op.click(".trl-go");
+    await op.waitForSelector(".toast:has-text('تم تجديد الفترة التجريبية')", { timeout: 10000 }).catch(() => {});
+    await sleep(1500);
+    const f = (await getDocREST("clinics/demo"))?.fields || {};
+    const exp = Date.parse(f.expiresAt?.timestampValue || 0), want = Date.now() + 30 * 864e5;
+    log(sv({ fields: f }, "status") === "trial" && Math.abs(exp - want) < 3 * 3600e3 && !!f.trialRenewedAt, "صاحب المنصة يجدد الفترة التجريبية لعيادة منتهية بالمدة التي يحددها (30 يوماً)", endTxt);
+    const dctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "ar" });
+    const dp = await dctx.newPage(); const derrs = []; dp.on("pageerror", (e) => derrs.push(String(e).slice(0, 140)));
+    await dp.goto(B + "#/login"); await dp.waitForSelector("#lf", { timeout: 30000 });
+    await dp.fill('#lf [name="id"]', "demo@nabd.app"); await dp.fill('#lf [name="pw"]', "demo1234"); await dp.click('#lf [type="submit"]');
+    await dp.waitForSelector(".stats", { timeout: 30000 });
+    const ok = await dp.evaluate(async () => { const f = await import("/fb.js"); try { await f.setDoc(f.doc(f.P.patients()), { name: "تجربة التجديد", phone: "0999888777" }); await f.syncNow?.(); return true; } catch { return false; } });
+    await sleep(1500);
+    const pts = await rest("GET", `${FS}/clinics/demo/patients?pageSize=300`);
+    const saved = (pts.documents || []).some((d) => sv(d, "phone") === "0999888777");
+    log(ok && saved && !derrs.length && !oerrs.length, "بعد التجديد تعود العيادة للعمل ويقبل الخادم الإضافة", [...derrs, ...oerrs].join(" | ").slice(0, 120));
+    const restore = {}; for (const k of ["status", "plan", "expiresAt", "features", "maxDoctors", "maxStaff"]) if (orig[k]) restore[k] = orig[k];
+    await rest("PATCH", `${FS}/clinics/demo?${mask}`, { fields: restore });
+    await octx.close(); await dctx.close();
+  }
 } catch (e) {
   log(false, "توقف الاختبار بخطأ", String(e?.stack || e).slice(0, 600));
   for (const c of browser.contexts()) for (const p of c.pages()) await p.screenshot({ path: path.join(OUT, `fail-${Date.now()}.png`) }).catch(() => {});
