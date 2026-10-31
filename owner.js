@@ -1,7 +1,7 @@
 // لوحة مالك المنصة: العيادات، الاشتراكات، الدفعات، والإعدادات
 import {
   P, list, one, doc, updateDoc, setDoc, query, where, orderBy, serverTimestamp, Timestamp, collection, db,
-  SPECIALTIES, DEFAULT_PLANS, ALL_FEATURES, tsMs, clinicState, yearlyDisc, periodPrice,
+  SPECIALTIES, DEFAULT_PLANS, ALL_FEATURES, TRIAL_FEATURES, TRIAL_DAYS, tsMs, clinicState, yearlyDisc, periodPrice,
   requestClinicDeletion, cancelClinicDeletion, deletionDate
 } from "./fb.js";
 import {
@@ -217,6 +217,14 @@ async function manageClinic(c, use = {}) {
       </div>
       <button type="button" class="btn primary go">تفعيل</button>
     </form>
+    ${c.plan === "trial" || !s.ok ? `<form class="stack trl">
+      <h4>تجديد الفترة التجريبية</h4>
+      <p class="muted small">تبقى العيادة على التجربة المجانية بكل ميزاتها. إن كانت التجربة سارية تُضاف المدة إلى ما تبقى منها، وإلا تبدأ من اليوم.</p>
+      <div class="row gap wrap trl-q">${[7, 14, 30].map((d) => `<button type="button" class="btn small ghost" data-d="${d}">${d <= 10 ? `${d} أيام` : `${d} يوماً`}</button>`).join("")}</div>
+      <label class="field"><span>المدة بالأيام</span><input name="days" type="number" min="1" max="90" value="${TRIAL_DAYS}" inputmode="numeric"></label>
+      <p class="small trl-end"></p>
+      <button type="button" class="btn trl-go">تجديد التجربة</button>
+    </form>` : ""}
     <div class="row gap wrap">
       ${c.ownerPhone ? `<a class="btn small" target="_blank" rel="noopener" href="${esc(waLink(c.ownerPhone, `مرحباً د. ${c.doctorName}، `))}">مراسلة واتساب</a>` : ""}
       ${c.status === "suspended" ? `<button class="btn small unsus">إلغاء الإيقاف</button>` : `<button class="btn small danger sus">إيقاف العيادة</button>`}
@@ -239,6 +247,17 @@ async function manageClinic(c, use = {}) {
           toast("تم التفعيل"); w.remove(); render();
         } catch (e) { toast(errMsg(e), true); }
       };
+      const tf = w.querySelector(".trl");
+      if (tf) {
+        const end = () => { const d = Number(tf.days.value); tf.querySelector(".trl-end").textContent = d >= 1 && d <= 90 ? `تنتهي التجربة يوم ${fmtDate(ymd(new Date(trialEnd(c, d))), false)}` : "المدة من يوم واحد إلى 90 يوماً"; };
+        tf.days.oninput = end; end();
+        tf.querySelectorAll(".trl-q button").forEach((b) => b.onclick = () => { tf.days.value = b.dataset.d; end(); });
+        tf.querySelector(".trl-go").onclick = async () => {
+          const d = Number(tf.days.value);
+          if (!Number.isInteger(d) || d < 1 || d > 90) return toast("المدة من يوم واحد إلى 90 يوماً", true);
+          try { await renewTrial(c, d); toast("تم تجديد الفترة التجريبية"); w.remove(); render(); } catch (e) { toast(errMsg(e), true); }
+        };
+      }
       w.querySelector(".sus")?.addEventListener("click", async () => {
         if (!(await confirmBox("إيقاف العيادة", "ستصبح العيادة للقراءة فقط حتى إلغاء الإيقاف.", "إيقاف", true))) return;
         await updateDoc(P.clinic(c.id), { status: "suspended" }); w.remove(); render();
@@ -265,6 +284,20 @@ async function manageClinic(c, use = {}) {
         await updateDoc(P.clinic(c.id), { status: c.plan === "trial" ? "trial" : "active" }); w.remove(); render();
       });
     }
+  });
+}
+
+// تجديد الفترة التجريبية (لصاحب المنصة فقط): تمدد من نهاية التجربة إن كانت سارية، وإلا من الآن
+export function trialEnd(c, days) {
+  const live = c.status === "trial" && c.plan === "trial" ? tsMs(c.expiresAt) : 0;
+  return Math.max(Date.now(), live) + days * 864e5;
+}
+export async function renewTrial(c, days) {
+  const fresh = (await one(P.clinic(c.id))) || c;
+  await updateDoc(P.clinic(c.id), {
+    status: "trial", plan: "trial", expiresAt: Timestamp.fromMillis(trialEnd(fresh, days)),
+    features: TRIAL_FEATURES, maxDoctors: Math.max(3, Number(fresh.maxDoctors) || 0), maxStaff: Math.max(3, Number(fresh.maxStaff) || 0),
+    trialRenewedAt: serverTimestamp()
   });
 }
 
