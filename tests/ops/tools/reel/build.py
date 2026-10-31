@@ -28,5 +28,5 @@ async def main():
 total=asyncio.run(main())
 wav=os.path.join(W,"music.wav")
 subprocess.run([sys.executable,os.path.join(HERE,"mus.py"),str(MS),str(total),wav],check=True)
-subprocess.run(["ffmpeg","-y","-loglevel","error","-framerate",str(FPS),"-i",f"{FR}/f%05d.jpg","-i",wav,"-c:v","libx264","-pix_fmt","yuv420p","-crf","22","-preset","medium","-c:a","aac","-b:a","160k","-af","volume=-1.5dB","-shortest","-movflags","+faststart",OUT],check=True)
+subprocess.run(["ffmpeg","-y","-loglevel","error","-framerate",str(FPS),"-i",f"{FR}/f%05d.jpg","-i",wav,"-c:v","libx264","-pix_fmt","yuv420p","-crf","22","-preset","medium","-c:a","aac","-b:a","160k","-af","volume=-4dB","-shortest","-movflags","+faststart",OUT],check=True)
 print("done",OUT,round(total,1),"s",round(os.path.getsize(OUT)/1e6,1),"MB")
