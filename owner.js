@@ -220,7 +220,7 @@ async function manageClinic(c, use = {}) {
     ${c.plan === "trial" || !s.ok ? `<form class="stack trl">
       <h4>تجديد الفترة التجريبية</h4>
       <p class="muted small">تبقى العيادة على التجربة المجانية بكل ميزاتها. إن كانت التجربة سارية تُضاف المدة إلى ما تبقى منها، وإلا تبدأ من اليوم.</p>
-      <div class="row gap wrap trl-q">${[7, 14, 30].map((d) => `<button type="button" class="btn small ghost" data-d="${d}">${d} يوماً</button>`).join("")}</div>
+      <div class="row gap wrap trl-q">${[7, 14, 30].map((d) => `<button type="button" class="btn small ghost" data-d="${d}">${d <= 10 ? `${d} أيام` : `${d} يوماً`}</button>`).join("")}</div>
       <label class="field"><span>المدة بالأيام</span><input name="days" type="number" min="1" max="90" value="${TRIAL_DAYS}" inputmode="numeric"></label>
       <p class="small trl-end"></p>
       <button type="button" class="btn trl-go">تجديد التجربة</button>
