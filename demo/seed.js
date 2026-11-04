@@ -7,7 +7,8 @@ export const DEMO = {
   patient: { uid: "u-pt", phone: "0944555666", pid: "p01" },
 };
 import { t as i18nT, LANG } from "../i18n.js";
-const VERSION = "8-" + LANG;
+// أوقات الطلبين خارج TIMES وخارج موعد أحمد (11:20) كي لا تتعارض مع المواعيد العشوائية
+const VERSION = "9-" + LANG;
 
 // أرقام عشوائية ثابتة حتى تبقى البيانات نفسها في كل مرة
 let seed = 20261002;
@@ -217,8 +218,8 @@ export async function ensureSeed() {
 
   // ---------- طلبات ورسائل بانتظار الرد ----------
   const p5 = pts[13];
-  C("requests", "r1", { patientId: p5.id, patientName: p5.name, phone: p5.phone, date: addDays(today, 3), time: "11:00", service: "تنظيف", note: "أفضّل الصباح", status: "new", createdAt: ts(today, "08:30") });
-  C("publicRequests", "pr1", { name: "مروة الخياط", phone: "0991234567", date: addDays(today, 1), time: "13:00", doctorId, service: "معاينة", note: "ألم في السن الأمامي", status: "new", createdAt: ts(today, "09:10") });
+  C("requests", "r1", { patientId: p5.id, patientName: p5.name, phone: p5.phone, date: addDays(today, 3), time: "12:00", service: "تنظيف", note: "أفضّل الصباح", status: "new", createdAt: ts(today, "08:30") });
+  C("publicRequests", "pr1", { name: "مروة الخياط", phone: "0991234567", date: addDays(today, 1), time: "12:40", doctorId, service: "معاينة", note: "ألم في السن الأمامي", status: "new", createdAt: ts(today, "09:10") });
   const p6 = pts[15];
   PS(p6.id, "messages", "m1", { from: "patient", text: "هل يمكن تقديم موعدي إلى يوم الأحد؟", at: ts(today, "09:45"), byName: p6.name });
   put(`clinics/${cid}/patients/${p6.id}`, { ...F.get(`clinics/${cid}/patients/${p6.id}`), lastMsgAt: ts(today, "09:45"), lastMsgFrom: "patient" });

@@ -7,7 +7,7 @@ async def step(label):
     if await b.count()==0: print(label,"NOT FOUND"); return
     await b.first.click(); await pg.wait_for_timeout(1500)
     if label=="تثبيت موعد":
-        sl=pg.locator(".modal button:has-text('11:00 ص')")
+        sl=pg.locator(".modal button.slot:not([disabled])")  # أول خانة متاحة (الأوقات المحجوزة معطّلة)
         if await sl.count(): await sl.first.click()
         else:
             tm=pg.locator(".modal input[type=time]")
