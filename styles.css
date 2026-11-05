@@ -973,3 +973,19 @@ body:has(.lp) { overflow-x: hidden; }
 .del-zone h3, .del-zone h4 { color: var(--danger); }
 .del-screen { max-width: 440px; width: 100%; text-align: center; }
 .del-screen h2 { color: var(--danger); }
+
+/* القائمة السفلية على الجوال: التبويب المختار يرتفع في دائرة بلون العيادة فوق الشريط، مع بقاء اسمه ونقطة مضيئة تحته */
+@media (max-width: 899px) {
+  .bottomnav { overflow: visible; }
+  .bottomnav a svg { transition: transform .28s cubic-bezier(.2, .8, .2, 1), background-color .2s, box-shadow .2s; border-radius: 50%; box-sizing: content-box; padding: 0; }
+  .bottomnav a span { transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
+  .bottomnav a.on { overflow: visible; background: none !important; margin: 0 !important; height: var(--nav-h) !important; border-radius: 0 !important; color: var(--accent-fg); }
+  .bottomnav a.on svg {
+    padding: 8px; color: #fff; background: var(--accent); stroke-width: 2.2;
+    transform: translateY(-20px);
+    box-shadow: 0 0 0 5px var(--card), 0 8px 18px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .bottomnav a.on span { transform: translateY(-7px); }
+  .bottomnav a.on::after { content: ""; position: absolute; bottom: 4px; width: 18px; height: 3px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .bottomnav a.on .badge, .bottomnav a.on .nb { top: -14px; }
+}
