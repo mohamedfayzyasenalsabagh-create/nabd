@@ -1,0 +1,113 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «شاشة الإشعارات»: سيل إشعارات فوضوي على شاشة قفل الجوال ← مسح الكل ← إشعارات نبض الهادئة ← الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-300-normal.woff2);font-weight:300}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-300-normal.woff2);font-weight:300;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;color:#fff;background:#000}
+#R{position:absolute;inset:0;overflow:hidden}
+#wp{position:absolute;inset:-60px;transition:none}
+#wpA{position:absolute;inset:0;background:radial-gradient(900px 700px at 20% 15%,#7a2431 0%,transparent 60%),radial-gradient(900px 900px at 90% 80%,#3a1a4d 0%,transparent 60%),#140b12}
+#wpB{position:absolute;inset:0;opacity:0;background:radial-gradient(900px 800px at 25% 20%,#14b8a6 0%,transparent 60%),radial-gradient(900px 900px at 85% 85%,#0d6b66 0%,transparent 60%),#06201e}
+#sb{position:absolute;top:34px;left:60px;right:60px;display:flex;justify-content:space-between;font-size:38px;font-weight:500;direction:ltr;z-index:5}
+#bat{display:inline-block;width:70px;height:34px;border:3px solid #fff;border-radius:9px;position:relative;vertical-align:middle;margin-left:8px}
+#bat i{position:absolute;left:3px;top:3px;bottom:3px;border-radius:4px;background:#ff4d4f}
+#clk{position:absolute;top:150px;left:0;right:0;text-align:center;z-index:2}
+#dt{font-size:44px;font-weight:500;opacity:.85}
+#tm{font-size:250px;font-weight:300;line-height:1;letter-spacing:-6px;direction:ltr;margin-top:6px}
+#cap{position:absolute;top:500px;left:60px;right:60px;text-align:center;font-size:62px;font-weight:700;z-index:4;text-shadow:0 6px 30px rgba(0,0,0,.6)}
+#cap b{color:#ffb3b8}
+#list{position:absolute;top:640px;left:50px;right:50px;bottom:0;z-index:3}
+.n{position:absolute;left:0;right:0;border-radius:44px;padding:30px 34px;display:flex;gap:28px;align-items:center;background:rgba(255,255,255,.16);backdrop-filter:blur(18px);box-shadow:0 20px 50px rgba(0,0,0,.25);border:1.5px solid rgba(255,255,255,.12)}
+.ic{flex:0 0 96px;height:96px;border-radius:26px;display:grid;place-items:center;font-size:54px}
+.tx{flex:1;min-width:0}
+.hd{display:flex;justify-content:space-between;font-size:32px;opacity:.75;font-weight:500}
+.bd{font-size:44px;font-weight:700;margin-top:6px;line-height:1.3}
+.n.nb{background:rgba(255,255,255,.92);color:#08302d;border:none}
+.n.nb .hd{opacity:.6}
+.n.nb .bd{font-size:48px}
+.n.nb .ic{background:linear-gradient(135deg,#14b8a6,#0d6b66)}
+#xbadge{position:absolute;top:560px;left:0;right:0;text-align:center;z-index:4}
+#badge span{display:inline-block;background:#ff3b47;font-size:46px;font-weight:700;padding:12px 36px;border-radius:99px;box-shadow:0 10px 40px rgba(255,59,71,.5)}
+#clr{position:absolute;bottom:200px;left:0;right:0;text-align:center;z-index:6;opacity:0}
+#clr span{display:inline-block;background:rgba(255,255,255,.22);backdrop-filter:blur(12px);font-size:46px;font-weight:700;padding:20px 54px;border-radius:99px}
+#hand{position:absolute;font-size:120px;z-index:7;opacity:0}
+#logo{position:absolute;left:0;right:0;top:520px;text-align:center;z-index:8;display:none}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#fff;display:grid;place-items:center;box-shadow:0 30px 90px rgba(0,0,0,.35)}
+#nm{font-family:K;font-size:150px;margin-top:30px}
+#sl{font-size:58px;margin-top:16px;color:#e6fffb}
+#fr{display:inline-block;margin-top:70px;background:#ffd166;color:#08403d;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px}
+#url{font-size:46px;margin-top:40px;color:#ccfbf1;direction:ltr;font-weight:500}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:20}
+</style></head><body><div id="R">
+<div id="wp"><div id="wpA"></div><div id="wpB"></div></div>
+<div id="sb"><span id="sbt">9:41</span><span><span id="pct">4%</span><span id="bat"><i id="bi"></i></span></span></div>
+<div id="clk"><div id="dt"></div><div id="tm"></div></div>
+<div id="cap"></div><div id="list"></div>
+<div id="clr"><span>مسح الكل ✕</span></div><div id="hand">👆</div>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#0d6b66" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+<div id="flash"></div></div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s);
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+// الخط الزمني: إشعارات الفوضى تتسارع، ثم المسح، ثم إشعارات نبض، ثم الشعار
+const T0=0.7, chaosT=[]; let t=T0, gap=C.gap0;
+C.chaos.forEach(()=>{chaosT.push(t); t+=gap; gap=Math.max(C.gapMin,gap*C.accel);});
+const FREEZE=t+0.25, SWIPE=FREEZE+0.9, CALM=SWIPE+0.9;
+const calmT=C.calm.map((_,i)=>CALM+0.5+i*C.calmGap);
+const LOGO=calmT[calmT.length-1]+C.calmGap+0.4, TOTAL=LOGO+C.endDur;
+window.TOTAL=TOTAL;
+window.EVENTS={total:TOTAL,dings:chaosT,freeze:FREEZE,swipe:SWIPE,calm:CALM,chimes:calmT,logo:LOGO};
+$("#dt").textContent=C.date; $("#sl").textContent=C.slogan;
+const H=C.cardH;
+function card(n,cls){return `<div class="ic" style="background:${n.bg||''}">${n.ic}</div><div class="tx"><div class="hd"><span>${n.app}</span><span>${n.when||'الآن'}</span></div><div class="bd">${n.body}</div></div>`;}
+const L=$("#list"), chaosEl=C.chaos.map(n=>{const d=document.createElement("div");d.className="n";d.innerHTML=card(n);L.appendChild(d);return d;});
+const calmEl=C.calm.map(n=>{const d=document.createElement("div");d.className="n nb";d.innerHTML=card(Object.assign({ic:'<svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5"/></svg>',app:"نبض"},n));L.appendChild(d);return d;});
+function render(t){
+  const calm=t>=CALM, k=cl((t-SWIPE)/.9);
+  $("#wpB").style.opacity=ease(k);
+  // ساعة وبطارية
+  const mins=Math.floor(C.min0+(calm?C.calmMin:Math.min(1,t/FREEZE)*C.chaosMin)); const hh=8+Math.floor(mins/60), mm=mins%60;
+  const ts=hh+":"+String(mm).padStart(2,"0"); $("#tm").textContent=ts; $("#sbt").textContent=ts;
+  const pct=calm?82:Math.max(2,Math.round(40-36*Math.min(1,t/FREEZE))); $("#pct").textContent=pct+"%"; $("#bi").style.width=(pct/100*58)+"px"; $("#bi").style.background=pct<20?"#ff4d4f":"#34d399";
+  // اهتزاز الشاشة مع كل إشعار فوضى
+  let sh=0; chaosT.forEach(c=>{const a=t-c; if(a>=0&&a<.25) sh+=Math.sin(a*120)*14*(1-a/.25);});
+  $("#wp").style.transform=`translateX(${sh*.5}px)`; L.style.transform=`translateX(${sh}px)`;
+  // العنوان
+  const cp=$("#cap");
+  if(t<SWIPE){const a=cl((t-.2)*3); cp.innerHTML=C.capA; cp.style.opacity=a*(1-cl((t-SWIPE+.4)*3)); cp.style.top="490px";}
+  else if(t<LOGO){const a=cl((t-CALM)*3); cp.innerHTML=C.capB; cp.style.opacity=a*(1-cl((t-LOGO+.3)*4)); cp.style.top="490px";}
+  else cp.style.opacity=0;
+  // عدّاد غير المقروء
+  // إشعارات الفوضى: الأحدث في الأعلى، والأقدم ينزل ويصغر
+  chaosEl.forEach((el,i)=>{const a=t-chaosT[i]; if(a<0||t>=CALM){el.style.opacity=0;return;}
+    const newer=chaosT.filter((c,j)=>j>i&&t>=c).length; const pos=newer;
+    const yIn=(1-ease(a*4))*-180, y=pos*(H+14)*Math.max(.8,1-pos*.03)+yIn, s=Math.max(.85,1-pos*.03)*(a<.2?back(a*5):1);
+    let x=0,rot=0,op=Math.min(1,a*6)*(pos>6?0:1-pos*.1);
+    if(t>=SWIPE){const s2=cl((t-SWIPE-i*.025)/.45); x=-ease(s2)*1300; rot=-ease(s2)*12;}
+    el.style.zIndex=100-pos; el.style.opacity=op; el.style.transform=`translate(${x}px,${y}px) scale(${s}) rotate(${rot}deg)`;
+    el.style.filter=pos>0?`brightness(${1-pos*.05})`:"none";});
+  // زر «مسح الكل» واليد
+  const ca=cl((t-FREEZE)*4)*(1-cl((t-SWIPE-.2)*4)); $("#clr").style.opacity=ca; $("#clr").style.transform=`scale(${.9+.1*ease((t-FREEZE)*4)})`;
+  const hd=$("#hand"); const ha=t-FREEZE; hd.style.opacity=ha>0&&t<SWIPE+.3?cl(ha*4)*(1-cl((t-SWIPE)*4)):0;
+  const press=t>SWIPE-.15&&t<SWIPE+.1?.85:1; hd.style.left="590px"; hd.style.top=(1690-Math.min(1,ha*2)*40)+"px"; hd.style.transform=`scale(${press})`;
+  $("#flash").style.opacity=t>=SWIPE&&t<SWIPE+.25?.35*(1-(t-SWIPE)/.25):0;
+  // إشعارات نبض: تدخل بهدوء من الأعلى وتتكدّس بترتيب
+  calmEl.forEach((el,i)=>{const a=t-calmT[i]; if(a<0){el.style.opacity=0;return;}
+    const pos=calmT.filter((c,j)=>j>i&&t>=c).length; const y=pos*(H+44)+(1-ease(a*2.5))*-120;
+    let op=Math.min(1,a*3); if(t>=LOGO) op*=1-cl((t-LOGO)*3);
+    el.style.zIndex=50-pos; el.style.opacity=op; el.style.transform=`translateY(${y}px) scale(${.94+.06*back(a*2.5)})`;});
+  // الساعة تختفي مع الشعار
+  const lg=t-LOGO; $("#clk").style.opacity=1-cl(lg*3); $("#sb").style.opacity=1-cl(lg*3);
+  const LG=$("#logo"); LG.style.display=lg>0?"block":"none";
+  if(lg>0){$("#mk").style.transform=`scale(${back(lg*2)})`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.5],["#sl",1.0],["#fr",1.7],["#url",2.2]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
