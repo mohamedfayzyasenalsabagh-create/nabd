@@ -1,0 +1,74 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «بطاقات سؤال وجواب»: خلفية فاتحة بشبكة، بطاقة ملوّنة تنقلب ثلاثياً من السؤال إلى الجواب على الإيقاع، ثم الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#f6f1e7;color:#10302d}
+#R{position:absolute;inset:0;overflow:hidden}
+#grid{position:absolute;inset:-80px;background-image:linear-gradient(#e4dccb 2px,transparent 2px),linear-gradient(90deg,#e4dccb 2px,transparent 2px);background-size:80px 80px}
+#top{position:absolute;top:150px;left:0;right:0;text-align:center}
+#tag{display:inline-block;background:#10302d;color:#f6f1e7;font-size:44px;font-weight:700;padding:14px 40px;border-radius:99px}
+#ttl{font-size:84px;font-weight:700;margin-top:34px;line-height:1.2}
+#cnt{position:absolute;top:470px;left:0;right:0;text-align:center;font-size:44px;font-weight:700;direction:ltr;letter-spacing:4px;color:#8a7f6a}
+#stage{position:absolute;left:90px;right:90px;top:600px;height:1020px;perspective:2400px}
+.card{position:absolute;inset:0;transform-style:preserve-3d}
+.face{position:absolute;inset:0;border-radius:64px;backface-visibility:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:80px;border:5px solid #10302d;box-shadow:18px 22px 0 #10302d}
+.q{font-size:88px;font-weight:700;line-height:1.35}
+.qm{font-size:220px;font-weight:700;line-height:1;margin-bottom:30px;opacity:.9}
+.back{transform:rotateY(180deg);background:#fff}
+.yn{font-size:180px;font-weight:700;line-height:1;margin-bottom:40px}
+.a{font-size:64px;font-weight:700;line-height:1.45}
+#stk{position:absolute;font-size:56px;font-weight:700;padding:16px 36px;border-radius:24px;background:#ffd166;border:5px solid #10302d;transform:rotate(-6deg);left:70px;top:1590px;opacity:0;box-shadow:8px 10px 0 #10302d}
+#logo{position:absolute;left:0;right:0;top:500px;text-align:center;display:none}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#14b8a6;display:grid;place-items:center;border:5px solid #10302d;box-shadow:14px 16px 0 #10302d}
+#nm{font-family:K;font-size:150px;margin-top:40px;color:#10302d}
+#sl{font-size:58px;margin-top:16px;font-weight:700}
+#fr{display:inline-block;margin-top:70px;background:#ffd166;color:#10302d;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px;border:5px solid #10302d;box-shadow:8px 10px 0 #10302d}
+#url{font-size:48px;margin-top:44px;direction:ltr;font-weight:700;color:#0d6b66}
+#bar{position:absolute;bottom:0;left:0;height:12px;background:#14b8a6}
+</style></head><body><div id="R">
+<div id="grid"></div>
+<div id="top"><div id="tag"></div><div id="ttl"></div></div>
+<div id="cnt"></div>
+<div id="stage"></div>
+<div id="stk"></div>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+<div id="bar"></div></div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),B=60/C.bpm;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), io=x=>{x=Math.max(0,Math.min(1,x));return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2}, back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+// خط زمني بالضربات: مقدمة، ثم لكل بطاقة: دخول+سؤال (qB) ثم انقلاب وجواب (aB)
+const intro=C.introB*B; const per=(C.qB+C.aB)*B;
+const cardsT=C.cards.map((_,i)=>intro+i*per);
+const LOGO=intro+C.cards.length*per, TOTAL=LOGO+C.endB*B; window.TOTAL=TOTAL;
+window.EVENTS={bpm:C.bpm,total:TOTAL,intro,cards:cardsT,flips:cardsT.map(t=>t+C.qB*B),logo:LOGO};
+$("#tag").textContent=C.tag; $("#ttl").innerHTML=C.title; $("#sl").textContent=C.slogan;
+const els=C.cards.map((c,i)=>{const d=document.createElement("div");d.className="card";
+  d.innerHTML=`<div class="face" style="background:${c.col}"><div class="qm">؟</div><div class="q">${c.q}</div></div><div class="face back"><div class="yn" style="color:${c.yc||'#0d9488'}">${c.yn}</div><div class="a">${c.a}</div></div>`;
+  $("#stage").appendChild(d);return d;});
+function render(t){
+  $("#bar").style.width=(t/TOTAL*100)+"%";
+  $("#grid").style.transform=`translate(${(t*20)%80}px,${(t*30)%80}px)`;
+  const tp=$("#top"), ta=ease(t/.5), out=cl((t-LOGO)*3);
+  tp.style.opacity=ta*(1-out); tp.style.transform=`translateY(${(1-ta)*-60}px)`;
+  const ci=cardsT.filter(c=>t>=c).length-1;
+  $("#cnt").textContent=ci>=0&&t<LOGO?`${ci+1} / ${C.cards.length}`:""; $("#cnt").style.opacity=1-out;
+  els.forEach((el,i)=>{const a=t-cardsT[i]; const f=a-C.qB*B; const leave=a-per+.25;
+    if(a<0||leave>.5||t>=LOGO+.4){el.style.display="none";return;} el.style.display="block";
+    const inn=back(a*2.4); const flip=io(f/.45)*180; const pump=f>.45&&f<.75?1+.04*Math.sin((f-.45)/.3*Math.PI):1;
+    let x=0,r=0,op=1; if(leave>0){x=ease(leave*2)*-1400; r=ease(leave*2)*-14;}
+    el.style.transform=`translateX(${x}px) translateY(${(1-inn)*900}px) rotate(${r+(1-inn)*8}deg) rotateY(${flip}deg) scale(${pump})`; el.style.opacity=op;});
+  // ملصق صغير يظهر مع آخر جواب
+  const st=$("#stk"); const last=cardsT[cardsT.length-1]+C.qB*B; const sa=t-last-.3;
+  st.textContent=C.sticker; st.style.opacity=sa>0&&t<LOGO?1:0; st.style.transform=`rotate(-6deg) scale(${back(sa*3)})`;
+  const lg=t-LOGO; const LG=$("#logo"); LG.style.display=lg>0?"block":"none";
+  if(lg>0){$("#mk").style.transform=`scale(${back(lg*2)}) rotate(${(1-ease(lg*2))*-20}deg)`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.4],["#sl",.9],["#fr",1.5],["#url",2.0]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
