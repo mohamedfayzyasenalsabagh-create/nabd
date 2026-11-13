@@ -1,0 +1,94 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «عدّاد الأرقام»: أسئلة آخر الشهر ← أرقام تدور كعدّاد ميكانيكي (إيرادات، مصاريف، صافي ربح) ← ختم PDF ← الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#0b1530;color:#f4efe3}
+#R{position:absolute;inset:0;overflow:hidden;background:radial-gradient(1000px 900px at 50% 30%,#18295a 0%,#0b1530 70%)}
+#rays{position:absolute;left:50%;top:40%;width:2600px;height:2600px;margin:-1300px 0 0 -1300px;background:repeating-conic-gradient(rgba(255,209,102,.05) 0 6deg,transparent 6deg 18deg);opacity:0}
+.big{position:absolute;left:60px;right:60px;text-align:center;font-weight:700}
+#h1{top:330px;font-size:92px;line-height:1.25}
+#qs{position:absolute;top:640px;left:90px;right:90px}
+.qq{font-size:84px;font-weight:700;margin-bottom:40px;padding:26px 44px;border-radius:30px;background:rgba(255,255,255,.07);border:3px solid rgba(255,255,255,.15)}
+.qq b{color:#ffd166}
+#ex{position:absolute;top:340px;left:0;right:0;text-align:center}
+#ex span{display:inline-block;font-size:40px;font-weight:500;padding:10px 30px;border-radius:99px;border:3px solid rgba(255,209,102,.6);color:#ffd166}
+#rep{position:absolute;top:470px;left:70px;right:70px}
+#rt{font-size:84px;font-weight:700;text-align:center;margin-bottom:80px}
+.row{margin-bottom:60px}
+.lb{font-size:60px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.lb i{font-style:normal;font-size:40px;opacity:.6}
+.odo{display:flex;justify-content:center;gap:10px;direction:ltr}
+.dg{width:104px;height:150px;border-radius:18px;background:linear-gradient(#0a0f20,#1d2a52 50%,#0a0f20);overflow:hidden;position:relative;box-shadow:inset 0 0 0 3px rgba(255,255,255,.12),0 10px 30px rgba(0,0,0,.4)}
+.dg .s{position:absolute;left:0;right:0;top:0}
+.dg .s div{height:150px;line-height:150px;text-align:center;font-size:112px;font-weight:700;font-family:P}
+.dg:after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.45),transparent 30%,transparent 70%,rgba(0,0,0,.45))}
+.cm{width:30px;font-size:110px;font-weight:700;line-height:150px;text-align:center}
+.row.net .dg{background:linear-gradient(#063b36,#0d8577 50%,#063b36)}
+.row.net .lb{color:#5eead4}
+.row.exp .lb{color:#fda4af}
+#stamp{position:absolute;top:1630px;left:0;right:0;text-align:center;opacity:0}
+#stamp span{display:inline-block;font-size:56px;font-weight:700;padding:22px 50px;border-radius:26px;background:#ffd166;color:#0b1530;transform:rotate(-4deg)}
+#sub{position:absolute;top:1790px;left:0;right:0;text-align:center;font-size:44px;font-weight:500;opacity:0;color:#cbd5e1}
+#logo{position:absolute;left:0;right:0;top:520px;text-align:center;display:none}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#14b8a6;display:grid;place-items:center;box-shadow:0 30px 90px rgba(20,184,166,.35)}
+#nm{font-family:K;font-size:150px;margin-top:30px}
+#sl{font-size:58px;margin-top:16px;font-weight:700}
+#fr{display:inline-block;margin-top:70px;background:#ffd166;color:#0b1530;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px}
+#url{font-size:48px;margin-top:44px;direction:ltr;font-weight:700;color:#5eead4}
+</style></head><body><div id="R">
+<div id="rays"></div>
+<div id="h1" class="big"></div>
+<div id="qs"></div>
+<div id="ex"><span></span></div>
+<div id="rep"><div id="rt"></div></div>
+<div id="stamp"><span></span></div><div id="sub"></div>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+</div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),B=60/C.bpm;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+// الخط الزمني بالضربات
+const qT=C.qs.map((_,i)=>(1+i*2)*B), TURN=(2+C.qs.length*2)*B, REP=TURN+4*B;
+const rowT=C.rows.map((_,i)=>REP+2*B+i*4*B), STAMP=rowT[rowT.length-1]+6*B, LOGO=STAMP+6*B, TOTAL=LOGO+C.endB*B;
+window.TOTAL=TOTAL; window.EVENTS={bpm:C.bpm,total:TOTAL,qs:qT,turn:TURN,rep:REP,rows:rowT,rollDur:C.roll,stamp:STAMP,logo:LOGO};
+$("#sl").textContent=C.slogan; $("#ex span").textContent=C.example; $("#rt").textContent=C.repTitle; $("#stamp span").textContent=C.stamp; $("#sub").textContent=C.sub;
+const qEl=C.qs.map(q=>{const d=document.createElement("div");d.className="qq";d.innerHTML=q;$("#qs").appendChild(d);return d;});
+// بناء العدّادات: كل خانة شريط 0..9 مكرر
+const rows=C.rows.map(r=>{const d=document.createElement("div");d.className="row "+(r.cls||"");
+  const digits=String(r.v).replace(/\B(?=(\d{3})+(?!\d))/g,",");
+  let h=`<div class="lb"><span>${r.label}</span><i>${r.note||""}</i></div><div class="odo">`; const strips=[];
+  [...digits].forEach(ch=>{if(ch===","){h+=`<div class="cm">,</div>`;return;} h+=`<div class="dg"><div class="s">${Array.from({length:30},(_,k)=>`<div>${k%10}</div>`).join("")}</div></div>`;});
+  d.innerHTML=h+"</div>"; $("#rep").appendChild(d);
+  const ss=[...d.querySelectorAll(".s")]; const ds=[...digits].filter(c=>c!==",").map(Number);
+  return {el:d,ss,ds};});
+function render(t){
+  $("#rays").style.transform=`rotate(${t*6}deg)`;
+  // المرحلة الأولى: العنوان والأسئلة
+  const h=$("#h1"); const pre=t<REP;
+  h.innerHTML=t<TURN?C.h1:C.turn;
+  const ha=t<TURN?ease(t*3):back((t-TURN)*2.5); h.style.opacity=pre?(t<TURN?ha:1)*(1-cl((t-REP+.3)*4)):0;
+  h.style.transform=`scale(${t<TURN?.9+.1*ha:.6+.4*ha})`; h.style.top=t<TURN?"330px":"760px"; h.style.fontSize=t<TURN?"92px":"110px"; h.style.color=t<TURN?"#f4efe3":"#ffd166";
+  $("#rays").style.opacity=t>=TURN&&t<REP?.9*ease((t-TURN)*2):t>=LOGO?.6*ease((t-LOGO)*2):0;
+  qEl.forEach((e,i)=>{const a=t-qT[i]; const out=cl((t-TURN)*5); e.style.opacity=a<0?0:ease(a*4)*(1-out); e.style.transform=`translateX(${(1-back(a*3))*(i%2?-700:700)}px) rotate(${(1-ease(a*3))*(i%2?-6:6)}deg)`;});
+  // التقرير
+  const ra=t-REP, vis=ra>=0&&t<LOGO+.3; const fo=1-cl((t-LOGO)*4);
+  $("#rep").style.opacity=vis?ease(ra*3)*fo:0; $("#ex").style.opacity=vis?ease(ra*3)*fo:0;
+  rows.forEach((r,i)=>{const a=t-rowT[i]; r.el.style.opacity=a<0?0:ease(a*4); r.el.style.transform=`translateY(${(1-ease(a*4))*60}px)`;
+    r.ss.forEach((s,j)=>{const n=r.ss.length; const dur=C.roll*(.55+.45*(n-j)/n); // الخانات اليمنى تتوقف أخيراً
+      const p=ease(cl(a/dur)); const target=20+r.ds[j]; const pos=p*target; s.style.transform=`translateY(${-pos*150}px)`;
+      s.style.filter=p<1&&a>0?`blur(${(1-p)*4}px)`:"none";});
+    const done=a-C.roll; r.el.style.scale=done>0&&done<.3?1+.05*Math.sin(done/.3*Math.PI):1;});
+  const sa=t-STAMP; const st=$("#stamp"); st.style.opacity=sa>0?cl(sa*6)*fo:0; st.style.transform=`scale(${sa>0?1+1.5*(1-back(sa*3)):2})`;
+  $("#sub").style.opacity=sa>.6?ease((sa-.6)*3)*fo:0;
+  const lg=t-LOGO; $("#logo").style.display=lg>0?"block":"none";
+  if(lg>0){$("#mk").style.transform=`scale(${back(lg*2)})`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.4],["#sl",.9],["#fr",1.5],["#url",2.0]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
