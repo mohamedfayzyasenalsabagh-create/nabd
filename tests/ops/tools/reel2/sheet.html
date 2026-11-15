@@ -1,0 +1,98 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «جدول يتحوّل»: جدول إكسل فاتح ← وسوم الأعمدة تُكتشف تلقائياً ← الصف المكرر يُشطب ← الصفوف تطير وتتحول إلى بطاقات مرضى ← الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#eef1f4;color:#1f2933}
+#R{position:absolute;inset:0;overflow:hidden}
+#bgT{position:absolute;inset:0;background:linear-gradient(170deg,#0f766e,#064e48);opacity:0}
+#cap{position:absolute;top:150px;left:60px;right:60px;text-align:center;font-size:76px;font-weight:700;line-height:1.3;z-index:5}
+#cap b{color:#0d9488}
+#win{position:absolute;left:40px;right:40px;top:440px;height:1080px;border-radius:30px;background:#fff;box-shadow:0 30px 80px rgba(15,40,60,.18);overflow:visible;border:2px solid #d5dbe1}
+#wtop{height:80px;background:#1d6f42;border-radius:28px 28px 0 0;display:flex;align-items:center;padding:0 34px;gap:16px;color:#fff;font-size:36px;font-weight:700;direction:ltr}
+#wtop i{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.4);display:inline-block}
+#wtop span{margin-left:auto;direction:rtl}
+table{width:100%;border-collapse:collapse;font-size:46px}
+th{height:160px;vertical-align:top;padding-top:18px;background:#f3f6f8;font-weight:700;border-bottom:3px solid #c9d2da;border-left:2px solid #e2e7ec;position:relative;color:#52606d}
+td{height:124px;border-bottom:2px solid #e2e7ec;border-left:2px solid #e2e7ec;padding:0 20px;text-align:center;font-weight:500;white-space:nowrap}
+td.ph{direction:ltr;font-size:38px;color:#52606d}
+tr.r{position:relative}
+.chip{position:absolute;left:50%;top:86px;transform:translateX(-50%);background:#0d9488;color:#fff;font-size:32px;font-weight:700;padding:8px 22px;border-radius:99px;white-space:nowrap;box-shadow:0 8px 20px rgba(13,148,136,.35)}
+.strike{position:absolute;right:20px;left:20px;top:50%;height:8px;background:#e11d48;border-radius:4px;transform-origin:right}
+#cards{position:absolute;inset:0;pointer-events:none}
+.pc{position:absolute;left:90px;right:90px;height:150px;border-radius:36px;background:#fff;display:flex;align-items:center;gap:30px;padding:0 36px;box-shadow:0 16px 40px rgba(0,0,0,.18)}
+.av{width:96px;height:96px;border-radius:50%;background:#ccfbf1;color:#0f766e;display:grid;place-items:center;font-size:48px;font-weight:700}
+.pn{font-size:50px;font-weight:700;flex:1}
+.pt{font-size:34px;color:#0d9488;font-weight:700}
+#prog{position:absolute;left:90px;right:90px;top:1420px;text-align:center;font-size:52px;font-weight:700;color:#fff;opacity:0}
+#logo{position:absolute;left:0;right:0;top:520px;text-align:center;display:none;color:#fff}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#fff;display:grid;place-items:center;box-shadow:0 30px 90px rgba(0,0,0,.3)}
+#nm{font-family:K;font-size:150px;margin-top:30px}
+#sl{font-size:58px;margin-top:16px;font-weight:700}
+#fr{display:inline-block;margin-top:70px;background:#ffd166;color:#063b36;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px}
+#url{font-size:48px;margin-top:44px;direction:ltr;font-weight:700;color:#ccfbf1}
+#cur{position:absolute;font-size:90px;z-index:20;opacity:0}
+</style></head><body><div id="R">
+<div id="bgT"></div>
+<div id="cap"></div>
+<div id="win"><div id="wtop"><i></i><i></i><i></i><span></span></div><table><thead><tr id="hr"></tr></thead><tbody id="tb"></tbody></table></div>
+<div id="cards"></div>
+<div id="prog"></div>
+<div id="cur">👆</div>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#0d6b66" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+</div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),U=C.unit;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), io=x=>{x=Math.max(0,Math.min(1,x));return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2}, back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+// الخط الزمني بوحدات U (= ضربتان)
+const SH=1*U, DET=4*U, chipT=C.cols.map((_,i)=>DET+.5*U+i*.5*U), DUP=DET+3.5*U, FLY=DUP+3*U;
+const good=C.rows.map((r,i)=>i).filter(i=>!C.rows[i].dup), flyT=good.map((_,j)=>FLY+.5*U+j*.6*U);
+const DONE=flyT[flyT.length-1]+1.2*U, LOGO=DONE+3*U, TOTAL=LOGO+C.endU*U;
+window.TOTAL=TOTAL; window.EVENTS={unit:U,total:TOTAL,sheet:SH,detect:DET,chips:chipT,dup:DUP,fly:FLY,flies:flyT,done:DONE,logo:LOGO};
+$("#wtop span").textContent=C.file; $("#sl").textContent=C.slogan;
+$("#hr").innerHTML=C.cols.map(c=>`<th>${c.h}<span class="chip">✓ ${c.chip}</span></th>`).join("");
+$("#tb").innerHTML=C.rows.map(r=>`<tr class="r">${r.c.map((v,j)=>`<td class="${C.cols[j].ph?'ph':''}">${v}</td>`).join("")}</tr>`).join("");
+const chips=[...document.querySelectorAll(".chip")], trs=[...document.querySelectorAll("#tb tr")];
+const dupI=C.rows.findIndex(r=>r.dup); const stk=document.createElement("div"); stk.className="strike";
+const cards=good.map((i,j)=>{const r=C.rows[i];const d=document.createElement("div");d.className="pc";d.innerHTML=`<div class="av">${r.c[0][0]}</div><div class="pn">${r.c[0]}</div><div class="pt">✓ مريض</div>`;$("#cards").appendChild(d);return d;});
+function capAt(t){if(t<DET)return C.cap0; if(t<DUP)return C.cap1; if(t<FLY)return C.cap2; if(t<DONE)return C.cap3; return C.cap4;}
+let lastCap="";
+function render(t){
+  // العنوان: يتبدّل مع كل مرحلة بقفزة صغيرة
+  const cp=$("#cap"), c=capAt(t); cp.innerHTML=c; const st=[0,DET,DUP,FLY,DONE].filter(x=>t>=x).pop(); const a=t-st;
+  cp.style.opacity=ease(a*4)*(1-cl((t-LOGO+.2)*5)); cp.style.transform=`translateY(${(1-ease(a*4))*30}px)`; cp.style.color=t>=FLY?"#fff":"#1f2933";
+  // النافذة
+  const w=$("#win"), wa=t-SH; w.style.opacity=wa<0?0:ease(wa*3)*(1-ease((t-FLY-flyT.length*.6*U)*2)); w.style.transform=`translateY(${(1-back(wa*2))*400}px) scale(${.92+.08*ease(wa*2)})`;
+  trs.forEach((tr,i)=>{const ra=t-SH-.3-i*.08; tr.style.opacity=ra<0?0:ease(ra*6);});
+  chips.forEach((ch,i)=>{const ca=t-chipT[i]; ch.style.opacity=ca<0?0:1; ch.style.transform=`translateX(-50%) scale(${ca<0?0:back(ca*4)})`;});
+  // الصف المكرر
+  const dt=trs[dupI], da=t-DUP;
+  dt.style.background=da>0&&t<FLY?`rgba(253,224,71,${.5*ease(da*4)})`:"transparent";
+  if(da>.3&&!stk.parentNode) dt.children[0].appendChild(stk);
+  if(stk.parentNode){stk.style.transform=`scaleX(${ease((da-.3)*4)})`; stk.style.width=(dt.offsetWidth-40)+"px"; stk.style.right="20px";}
+  if(t>=FLY) dt.style.opacity=1-ease((t-FLY)*3);
+  // الخلفية تتحول إلى أخضر نبض
+  $("#bgT").style.opacity=ease((t-FLY)*2);
+  // الصفوف تطير وتصبح بطاقات
+  const wr=w.getBoundingClientRect();
+  good.forEach((i,j)=>{const tr=trs[i], fa=t-flyT[j], cd=cards[j];
+    if(fa<0){cd.style.opacity=0; return;} tr.style.opacity=1-ease(fa*5);
+    const r=tr.getBoundingClientRect(); const y0=r.top, y1=480+j*180; const p=io(fa/.6);
+    cd.style.top=(y0+(y1-y0)*p)+"px"; cd.style.opacity=Math.min(1,fa*5)*(1-cl((t-LOGO+.3)*4));
+    cd.style.transform=`scale(${.8+.2*back(fa*2)}) rotate(${(1-p)*(j%2?-6:6)}deg)`;});
+  const pg=$("#prog"); pg.style.opacity=t>=FLY+.3&&t<LOGO-.2?1:0;
+  const n=flyT.filter(x=>t>=x+.3).length; pg.textContent=t<DONE?`جارٍ الاستيراد… ${n}/${good.length}`:`✓ تم استيراد ${good.length} مرضى`;
+  pg.style.transform=t>=DONE?`scale(${back((t-DONE)*3)})`:"none";
+  // المؤشر يضغط «استيراد»
+  const cu=$("#cur"), ka=t-(FLY-.6*U); cu.style.opacity=ka>0&&t<FLY+.2?1:0; cu.style.left="470px"; cu.style.top=(1420-ease(ka*2)*60)+"px"; cu.style.transform=`scale(${t>FLY-.15&&t<FLY+.1?.85:1})`;
+  const lg=t-LOGO; $("#logo").style.display=lg>0?"block":"none";
+  if(lg>0){$("#mk").style.transform=`scale(${back(lg*2)})`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.4],["#sl",.9],["#fr",1.5],["#url",2.0]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
