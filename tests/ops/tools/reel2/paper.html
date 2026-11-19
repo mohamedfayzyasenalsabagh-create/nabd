@@ -1,0 +1,93 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «قصاصات ورقية»: خلفية ورق كرافت وقصاصات بشريط لاصق وحركة متقطعة (ستوب موشن 12 إطاراً/ث):
+     ورقة تحليل ← جوال يصوّرها ويرفعها ← تُطوى طائرة ورقية وتطير ← تُثبَّت بدبوس على لوحة الطبيب ← الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#c9a77c;color:#2b2118}
+#R{position:absolute;inset:0;overflow:hidden;background:radial-gradient(1200px 1000px at 40% 30%,#d8b88d,#b8915f)}
+#R:before{content:"";position:absolute;inset:0;opacity:.25;background-image:radial-gradient(rgba(60,40,20,.35) 1px,transparent 1.5px),radial-gradient(rgba(255,255,255,.3) 1px,transparent 1.5px);background-size:7px 7px,11px 11px;background-position:0 0,3px 5px}
+.cut{position:absolute;background:#fffdf7;box-shadow:6px 8px 0 rgba(60,40,20,.25);clip-path:polygon(0 2%,3% 0,30% 1%,60% 0,97% 1%,100% 4%,99% 40%,100% 70%,98% 98%,70% 100%,40% 99%,5% 100%,0 96%,1% 60%)}
+.tape{position:absolute;width:150px;height:46px;background:rgba(255,236,170,.75);box-shadow:0 2px 4px rgba(0,0,0,.1)}
+#cap{position:absolute;top:120px;left:80px;right:80px;padding:30px 40px;text-align:center;font-size:66px;font-weight:700;line-height:1.35;background:#fffdf7;box-shadow:8px 10px 0 rgba(60,40,20,.25);transform:rotate(-2deg)}
+#cap b{background:linear-gradient(transparent 55%,#ffd166 55%)}
+#lab{left:200px;top:560px;width:620px;height:820px;padding:50px 46px}
+#lab h3{font-size:46px;text-align:center;border-bottom:4px solid #2b2118;padding-bottom:16px;margin-bottom:26px}
+#lab .r{display:flex;justify-content:space-between;font-size:36px;font-weight:500;padding:14px 0;border-bottom:2px dashed #cbbfa8}
+#lab .r b{direction:ltr}
+#lab .st{position:absolute;bottom:40px;left:40px;width:170px;height:170px;border-radius:50%;border:6px solid #c0392b;color:#c0392b;display:grid;place-items:center;font-size:30px;font-weight:700;transform:rotate(-14deg);text-align:center;line-height:1.2;opacity:.8}
+#phone{position:absolute;left:300px;top:1010px;width:480px;height:900px;border-radius:70px;background:#2b2118;padding:22px;box-shadow:10px 12px 0 rgba(60,40,20,.3)}
+#scr{width:100%;height:100%;border-radius:52px;background:#fffdf7;overflow:hidden;position:relative}
+#scr .vf{position:absolute;inset:40px 30px 260px;border:5px dashed #0d9488;border-radius:24px}
+#scr .btn{position:absolute;left:40px;right:40px;bottom:120px;height:110px;border-radius:30px;background:#0d9488;color:#fff;display:grid;place-items:center;font-size:44px;font-weight:700}
+#scr .ok{position:absolute;inset:0;background:#0d9488;color:#fff;display:grid;place-items:center;text-align:center;font-size:44px;font-weight:700;line-height:1.5;padding:40px;opacity:0}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:50}
+#plane{position:absolute;width:300px;height:180px;opacity:0;z-index:20}
+#board{position:absolute;left:90px;right:90px;top:540px;height:900px;background:#7a5a3a;border:18px solid #5a3e24;box-shadow:10px 12px 0 rgba(60,40,20,.3);opacity:0}
+#board h4{position:absolute;top:30px;left:0;right:0;text-align:center;color:#fffdf7;font-size:46px}
+.note{position:absolute;padding:34px 38px;font-size:46px;font-weight:700;line-height:1.4;box-shadow:5px 7px 0 rgba(0,0,0,.25)}
+.pin{position:absolute;top:-22px;left:50%;width:44px;height:44px;margin-left:-22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff8a80,#c0392b);box-shadow:2px 4px 0 rgba(0,0,0,.3)}
+#logo{position:absolute;left:0;right:0;top:470px;text-align:center;display:none}
+#lcard{display:inline-block;padding:70px 90px 60px;background:#fffdf7;box-shadow:10px 12px 0 rgba(60,40,20,.3);transform:rotate(-1.5deg)}
+#mk{width:220px;height:220px;margin:0 auto;border-radius:60px;background:#0d9488;display:grid;place-items:center}
+#nm{font-family:K;font-size:140px;margin-top:24px;color:#0b3b37}
+#sl{font-size:52px;margin-top:10px;font-weight:700}
+#fr{display:inline-block;margin-top:50px;background:#ffd166;color:#2b2118;font-size:48px;font-weight:700;padding:16px 40px;transform:rotate(2deg)}
+#url{font-size:46px;margin-top:36px;direction:ltr;font-weight:700;color:#0d6b66}
+</style></head><body><div id="R">
+<div id="cap"><span id="capt"></span></div>
+<div id="lab" class="cut"><h3></h3><div id="rows"></div><div class="st"></div></div>
+<div id="phone"><div id="scr"><div class="vf"></div><div class="btn"></div><div class="ok"></div></div></div>
+<div id="board"><h4></h4></div>
+<svg id="plane" viewBox="0 0 300 180"><path d="M10 90 L290 10 L120 110 Z" fill="#fffdf7" stroke="#2b2118" stroke-width="5" stroke-linejoin="round"/><path d="M120 110 L290 10 L150 170 Z" fill="#eadfca" stroke="#2b2118" stroke-width="5" stroke-linejoin="round"/></svg>
+<div id="logo"><div id="lcard"><div id="mk"><svg width="140" height="140" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div></div>
+<div id="flash"></div>
+</div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),B=60/C.bpm;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), io=x=>{x=Math.max(0,Math.min(1,x));return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2}, back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+$("#lab h3").textContent=C.labT; $("#rows").innerHTML=C.rows.map(r=>`<div class="r"><span>${r[0]}</span><b>${r[1]}</b></div>`).join(""); $("#lab .st").innerHTML=C.stamp;
+$("#scr .btn").textContent=C.btn; $("#scr .ok").innerHTML=C.ok; $("#board h4").textContent=C.boardT; $("#sl").textContent=C.slogan;
+// أشرطة لاصقة
+[["#lab",[[-30,-20,-8],[500,-18,6]]],["#cap",[[-40,-18,-10],[740,-16,8]]]].forEach(([s,arr])=>arr.forEach(([x,y,r])=>{const t=document.createElement("div");t.className="tape";Object.assign(t.style,{left:x+"px",top:y+"px",transform:`rotate(${r}deg)`});$(s).appendChild(t);}));
+const notes=C.notes.map((n,i)=>{const d=document.createElement("div");d.className="note";d.style.background=n.bg;Object.assign(d.style,{left:n.x+"px",top:n.y+"px",width:n.w+"px"});d.innerHTML=`<div class="pin"></div>${n.t}`;$("#board").appendChild(d);return d;});
+const hit=C.notes.findIndex(n=>n.hit);
+// الخط الزمني
+const LAB=C.introB*B, PH=LAB+3*B, SNAP=PH+3*B, UP=SNAP+2*B, FOLD=UP+3*B, FLY=FOLD+1.5*B, PIN=FLY+3*B, END=PIN+4*B, LOGO=END+C.capB*B, TOTAL=LOGO+C.endB*B;
+window.TOTAL=TOTAL; window.EVENTS={bpm:C.bpm,total:TOTAL,lab:LAB,ph:PH,snap:SNAP,up:UP,fold:FOLD,fly:FLY,pin:PIN,end:END,logo:LOGO};
+function render(t0){
+  const t=Math.floor(t0*12)/12; // ستوب موشن: 12 إطاراً في الثانية
+  const jit=(k)=>Math.sin(Math.floor(t0*12)*12.9898+k)*1.2; // اهتزاز ورقي خفيف
+  const cp=$("#cap"); let txt=C.cap0,st=0; if(t>=LAB+1.5*B){txt=C.cap1;st=LAB+1.5*B;} if(t>=PH+B){txt=C.cap2;st=PH+B;} if(t>=FLY){txt=C.cap3x||C.cap3;st=FLY;} if(t>=END){txt=C.cap4;st=END;}
+  $("#capt").innerHTML=txt;
+  const ca=t-st; cp.style.transform=`rotate(${-2+jit(1)}deg) scale(${ca<.25?.9+.4*ca:1})`; cp.style.opacity=t>=LOGO?1-cl((t-LOGO)*4):1;
+  // ورقة التحليل
+  const L=$("#lab"), la=t-LAB; let lx=0,ly=0,lr=jit(2),ls=1,lo=la<0?0:1;
+  if(la>=0&&la<.4) ly=(1-ease(la/.4))*-1400;
+  if(t>=FOLD){const f=cl((t-FOLD)/(FLY-FOLD)); ls=1-f*.7; lr+=f*40; lo=1-f;}
+  L.style.opacity=lo; L.style.transform=`translate(${lx}px,${ly}px) rotate(${lr}deg) scale(${ls})`;
+  // الجوال يدخل من الأسفل، يصوّر، ثم يرفع
+  const P=$("#phone"), pa=t-PH; let py=pa<0?900:(1-back(cl(pa/.5)))*900; if(t>=FOLD) py=ease(cl((t-FOLD)/.5))*1200;
+  P.style.transform=`translateY(${py}px) rotate(${4+jit(3)}deg)`;
+  $("#flash").style.opacity=t>=SNAP&&t<SNAP+.25?.85*(1-(t-SNAP)/.25):0;
+  const btn=$("#scr .btn"); btn.style.transform=t>=UP-.2&&t<UP?"scale(.92)":"none";
+  const ok=$("#scr .ok"); ok.style.opacity=t>=UP?1:0;
+  // الطائرة الورقية
+  const pl=$("#plane"), fa=t-FLY;
+  if(fa>=0&&t<PIN){const p=io(fa/(PIN-FLY)); const x=500-p*-0+(-200+p*900), y=900-Math.sin(p*Math.PI)*500-p*100; pl.style.opacity=1; pl.style.left=(x-150)+"px"; pl.style.top=y+"px"; pl.style.transform=`rotate(${-20+p*30}deg) scale(${1.4+p*.4})`;}
+  else pl.style.opacity=0;
+  // لوحة الطبيب
+  const bo=$("#board"), ba=t-FLY+.6; bo.style.opacity=t<FLY-.6||t>=LOGO+.3?0:1; bo.style.transform=`translateX(${t<FLY?(1-ease(cl(ba/.6)))*1200:0}px) rotate(${-1+jit(4)*.5}deg)`;
+  notes.forEach((d,i)=>{if(i===hit){const h=t-PIN; d.style.opacity=h<0?0:1; d.style.transform=`rotate(${(i%2?3:-3)+jit(5+i)}deg) scale(${h<0?1.4:h<.25?1.4-1.6*h:1})`;}
+    else {d.style.opacity=1; d.style.transform=`rotate(${(i%2?3:-3)+jit(5+i)}deg)`;}});
+  const lg=t-LOGO; $("#logo").style.display=lg>0?"block":"none";
+  if(lg>0){$("#lcard").style.transform=`rotate(${-1.5+jit(9)}deg) translateY(${lg<.4?(1-ease(lg/.4))*-1500:0}px)`; $("#pl").style.strokeDashoffset=1-ease((lg-.3)/1);
+    [["#nm",.4],["#sl",.8],["#fr",1.3],["#url",1.8]].forEach(([s,d])=>{const e=$(s);e.style.opacity=lg>d?1:0;});}
+}
+window.render=render;
+</script></body></html>
