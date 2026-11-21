@@ -1,0 +1,103 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «الخزنة»: باب خزنة معدني دائري، أيقونات بيانات العيادة تطير إليه ← الباب يُغلق ويدور مقبضه ← ملف نسخة احتياطية واحد يسقط في مجلد آمن ← سجل التعديلات يُكتب سطراً سطراً ← الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#0e1116;color:#e8ecf1}
+#R{position:absolute;inset:0;overflow:hidden;background:radial-gradient(900px 900px at 50% 45%,#232a35,#0e1116 70%)}
+#cap{position:absolute;top:150px;left:60px;right:60px;text-align:center;font-size:74px;font-weight:700;line-height:1.3;z-index:10}
+#cap b{color:#f2c14e}
+/* الخزنة */
+#vault{position:absolute;left:140px;top:560px;width:800px;height:800px}
+#frame{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#0b0d11 0 58%,#3a414c 59% 64%,#232931 65% 100%);box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 0 0 10px #4a525e}
+#door{position:absolute;inset:40px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#8d96a3,#5a626e 45%,#3c434d 100%);box-shadow:inset 0 0 0 18px #6b7480,inset 0 0 0 30px #4b535e,0 20px 50px rgba(0,0,0,.5);transform-origin:0% 50%}
+#door .bolt{position:absolute;width:70px;height:34px;border-radius:10px;background:#9aa3ae;left:50%;top:50%;margin:-17px 0 0 -35px}
+#hand{position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px}
+#hand i{position:absolute;left:50%;top:0;width:26px;height:300px;margin-left:-13px;border-radius:13px;background:linear-gradient(90deg,#b7bec7,#7c8591)}
+#hand b{position:absolute;inset:95px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#d0d6dd,#7c8591);box-shadow:0 6px 16px rgba(0,0,0,.4)}
+#dial{position:absolute;left:50%;top:115px;width:120px;height:120px;margin-left:-60px;border-radius:50%;background:repeating-conic-gradient(#c9ced5 0 4deg,#7c8591 4deg 12deg);box-shadow:0 0 0 8px #4b535e}
+#glow{position:absolute;inset:150px;border-radius:50%;background:radial-gradient(circle,rgba(242,193,78,.55),transparent 70%);opacity:0}
+.it{position:absolute;width:190px;height:190px;border-radius:40px;background:#1b212a;border:3px solid #3a414c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:30px;font-weight:700;z-index:6}
+.it span{font-size:74px;line-height:1}
+#file{position:absolute;left:390px;top:880px;width:300px;height:380px;border-radius:24px;background:#f2f4f7;color:#1b212a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;opacity:0;z-index:7;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+#file .ic{font-size:110px;line-height:1}
+#file .fn{font-size:30px;font-weight:700;direction:ltr}
+#file .sz{font-size:26px;color:#5b6573}
+#folder{position:absolute;left:290px;top:1330px;width:500px;height:330px;opacity:0;z-index:6}
+#folder .back{position:absolute;inset:0;top:40px;border-radius:30px;background:#c99a2e}
+#folder .tab{position:absolute;left:0;top:0;width:200px;height:80px;border-radius:24px 24px 0 0;background:#c99a2e}
+#folder .front{position:absolute;left:0;right:0;bottom:0;height:230px;border-radius:30px;background:linear-gradient(#f2c14e,#d9a93a);display:grid;place-items:center;font-size:44px;font-weight:700;color:#3a2a06;z-index:8}
+/* سجل التعديلات */
+#audit{position:absolute;left:60px;right:60px;top:520px;border-radius:30px;background:#151a21;border:3px solid #2c333d;padding:34px 36px;opacity:0}
+#audit h3{font-size:50px;margin-bottom:26px;color:#f2c14e}
+.ar{display:grid;grid-template-columns:150px 230px 1fr;gap:18px;font-size:38px;padding:22px 0;border-bottom:2px solid #232a34;align-items:center}
+.ar .tm{direction:ltr;color:#8b95a3;font-weight:500;text-align:center}
+.ar .by{font-weight:700;color:#7fd3c3}
+.ar .ac{font-weight:500}
+.cur{display:inline-block;width:4px;height:40px;background:#f2c14e;vertical-align:middle;margin-right:4px}
+#title{position:absolute;inset:0;z-index:30;display:grid;place-items:center;text-align:center;background:#0e1116}
+#title div{font-size:100px;font-weight:700;line-height:1.3}
+#title b{color:#f2c14e}
+#logo{position:absolute;inset:0;z-index:40;display:none;text-align:center;padding-top:520px;background:#0e1116}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#14b8a6;display:grid;place-items:center}
+#nm{font-family:K;font-size:150px;margin-top:30px}
+#sl{font-size:58px;margin-top:16px;font-weight:700}
+#fr{display:inline-block;margin-top:70px;background:#f2c14e;color:#0e1116;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px}
+#url{font-size:48px;margin-top:44px;direction:ltr;font-weight:700;color:#7fd3c3}
+</style></head><body><div id="R">
+<div id="cap"></div>
+<div id="vault"><div id="frame"></div><div id="glow"></div><div id="door"><div id="dial"></div><div id="hand"><i></i><i style="transform:rotate(60deg)"></i><i style="transform:rotate(120deg)"></i><b></b></div></div></div>
+<div id="file"><div class="ic">🗄️</div><div class="fn"></div><div class="sz"></div></div>
+<div id="folder"><div class="tab"></div><div class="back"></div><div class="front"></div></div>
+<div id="audit"><h3></h3><div id="ars"></div></div>
+<div id="title"><div></div></div>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+</div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),B=60/C.bpm;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), io=x=>{x=Math.max(0,Math.min(1,x));return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2}, back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+$("#title div").innerHTML=C.title; $("#file .fn").textContent=C.fname; $("#file .sz").textContent=C.fsub; $("#folder .front").textContent=C.folder; $("#audit h3").textContent=C.auditT; $("#sl").textContent=C.slogan;
+// مواقع انطلاق الأيقونات حول الخزنة
+const starts=[[60,420],[830,420],[40,1450],[850,1450],[445,1600]];
+const items=C.items.map((x,i)=>{const d=document.createElement("div");d.className="it";d.innerHTML=`<span>${x.ic}</span>${x.t}`;$("#R").appendChild(d);return d;});
+const ars=C.audit.map(a=>{const d=document.createElement("div");d.className="ar";d.innerHTML=`<div class="tm">${a.tm}</div><div class="by">${a.by}</div><div class="ac"></div>`;$("#ars").appendChild(d);return d;});
+// الخط الزمني
+const VA=C.titleB*B, itT=C.items.map((_,i)=>VA+1*B+i*B), CLOSE=VA+(2+C.items.length)*B, LOCK=CLOSE+1.5*B, FILE=LOCK+1.5*B, DROP=FILE+2*B, AUD=DROP+2.5*B;
+const audT=C.audit.map((_,i)=>AUD+1*B+i*1.3*B), LOGO=AUD+(2+C.audit.length*1.3)*B+1*B, TOTAL=LOGO+C.endB*B;
+window.TOTAL=TOTAL; window.EVENTS={bpm:C.bpm,total:TOTAL,vault:VA,items:itT,close:CLOSE,lock:LOCK,file:FILE,drop:DROP,audit:AUD,rows:audT,logo:LOGO};
+function render(t){
+  const ti=$("#title"), tf=cl((t-VA+.25)*4); ti.style.opacity=1-tf; ti.style.display=tf>=1?"none":"grid"; ti.firstElementChild.style.transform=`scale(${.9+.1*ease(t)})`;
+  // باب الخزنة: مفتوح (مستدير جانبياً) ثم يُغلق ثم يدور المقبض
+  const v=$("#vault"), va=t-VA; const vOut=t>=AUD?ease((t-AUD)*3):0;
+  v.style.opacity=(va<0?0:ease(va*3))*(1-vOut); v.style.transform=`scale(${(.9+.1*ease(va*2))*(1-.3*vOut)}) translateY(${t>=FILE?-ease((t-FILE)*2)*160:0}px)`;
+  const open=t<CLOSE?1:1-io((t-CLOSE)/(1.2*B)); $("#door").style.transform=`perspective(1600px) rotateY(${-75*open}deg)`;
+  $("#hand").style.transform=`rotate(${t>=LOCK?io((t-LOCK)/(1.2*B))*180:0}deg)`; $("#dial").style.transform=`rotate(${t>=LOCK?io((t-LOCK)/(1.2*B))*-270:0}deg)`;
+  $("#glow").style.opacity=t<CLOSE?.4+.6*Math.min(1,itT.filter(x=>t>=x+.5).length/5):0;
+  // الأيقونات تطير إلى قلب الخزنة
+  items.forEach((d,i)=>{const a=t-itT[i]; const [sx,sy]=starts[i]; const cx=445,cy=865;
+    if(a<-.6||a>.9){d.style.opacity=0;return;}
+    if(a<0){d.style.opacity=ease((a+.6)*3); d.style.left=sx+"px"; d.style.top=sy+"px"; d.style.transform=`scale(${back((a+.6)*3)})`; return;}
+    const p=io(a/.8); d.style.opacity=1-cl((a-.6)*5); d.style.left=(sx+(cx-sx)*p)+"px"; d.style.top=(sy+(cy-sy)*p-Math.sin(p*Math.PI)*150)+"px"; d.style.transform=`scale(${1-.6*p}) rotate(${p*30}deg)`;});
+  // ملف النسخة الاحتياطية يخرج ثم يسقط في المجلد
+  const f=$("#file"), fa=t-FILE; const fo=t>=AUD?1-ease((t-AUD)*3):1;
+  if(fa<0) f.style.opacity=0; else {const dp=t>=DROP?io((t-DROP)/(1*B)):0; f.style.zIndex=t>DROP+.55*B?5:7; f.style.opacity=fo; f.style.transform=`translateY(${(1-back(fa*2.5))*-200+dp*400}px) scale(${1-.5*dp}) rotate(${(1-ease(fa*2.5))*-12}deg)`;}
+  const fd=$("#folder"), fda=t-DROP+.6*B; fd.style.opacity=(fda<0?0:ease(fda*3))*fo; fd.style.transform=`translateY(${fda<0?200:(1-back(fda*3))*200}px)`;
+  $("#folder .front").style.transform=t>=DROP+1*B&&t<DROP+1.3*B?"scaleY(.94)":"none";
+  // سجل التعديلات يُكتب حرفاً حرفاً
+  const au=$("#audit"), aa=t-AUD; au.style.opacity=(aa<0?0:ease(aa*3))*(1-cl((t-LOGO+.3)*4)); au.style.transform=`translateY(${aa<0?80:(1-ease(aa*3))*80}px)`;
+  ars.forEach((d,i)=>{const a=t-audT[i]; const txt=C.audit[i].ac; d.style.opacity=a<0?0:1; const n=Math.max(0,Math.min(txt.length,Math.floor(a*28)));
+    d.querySelector(".ac").innerHTML=txt.slice(0,n)+(a>=0&&n<txt.length?'<span class="cur"></span>':"");});
+  // العناوين
+  const cs=C.caps.filter(c=>t>=eval(c.at)); const c=cs[cs.length-1], cp=$("#cap");
+  if(c&&t<LOGO){cp.innerHTML=c.t; const a=t-eval(c.at); cp.style.opacity=ease(a*4); cp.style.transform=`translateY(${(1-ease(a*4))*30}px)`;} else cp.style.opacity=0;
+  const lg=t-LOGO, L=$("#logo"); L.style.display=lg>0?"block":"none";
+  if(lg>0){L.style.opacity=ease(lg*3); $("#mk").style.transform=`scale(${back(lg*2)})`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.4],["#sl",.9],["#fr",1.5],["#url",2.0]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
