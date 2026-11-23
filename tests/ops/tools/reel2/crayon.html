@@ -1,0 +1,87 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «طباشير ملونة»: رسم بأقلام شمعية على ورق دفتر رسم: طريق متعرّج بمحطات اللقاحات حسب العمر، ملصقات ✓ للمكتمل، وتوهج للمستحق قريباً، وأحمر للمتأخر
+     ← تنبيه في لوحة الطبيب ← قياسات النمو ← الشعار. خطوط مهتزة بفلتر SVG. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#fffaf0;color:#3b2f2f}
+#R{position:absolute;inset:0;overflow:hidden;background:#fffaf0}
+#R:before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(150,120,90,.12) 1.2px,transparent 1.6px);background-size:9px 9px}
+svg{position:absolute;inset:0;overflow:visible}
+.wob{filter:url(#rough)}
+#cap{position:absolute;top:110px;left:60px;right:60px;text-align:center;font-size:76px;font-weight:700;line-height:1.3;z-index:10}
+#cap b{background:linear-gradient(transparent 55%,#ffd36e 55% 90%,transparent 90%)}
+.st{position:absolute;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;display:grid;place-items:center;font-size:60px;font-weight:700;z-index:5}
+.lb{position:absolute;width:380px;margin-left:-190px;text-align:center;font-size:44px;font-weight:700;line-height:1.25;z-index:5}
+.lb small{display:block;font-size:32px;font-weight:500;color:#7a6a5a}
+#child{position:absolute;left:60px;right:60px;top:300px;text-align:center;font-size:46px;font-weight:700;color:#7a6a5a;z-index:6}
+#alert{position:absolute;left:80px;right:80px;top:640px;border-radius:30px;background:#fff;border:5px solid #3b2f2f;padding:40px;font-size:50px;font-weight:700;line-height:1.4;box-shadow:12px 14px 0 #ffd36e;z-index:8;opacity:0}
+#alert small{display:block;font-size:34px;color:#7a6a5a;font-weight:500;margin-top:12px}
+#vcard{position:absolute;left:150px;right:150px;top:1050px;border-radius:24px;background:#e8f6ff;border:5px solid #3b2f2f;padding:34px 40px;z-index:8;opacity:0;transform:rotate(-3deg)}
+#vcard h4{font-size:44px;margin-bottom:16px}
+#vcard .r{display:flex;justify-content:space-between;font-size:32px;padding:8px 0;border-bottom:3px dashed #9cc8e6}
+#grow{position:absolute;left:120px;right:120px;top:560px;height:900px;z-index:8;opacity:0}
+.gb{position:absolute;bottom:120px;width:200px;border-radius:24px 24px 6px 6px;border:5px solid #3b2f2f}
+.gl{position:absolute;bottom:20px;width:260px;margin-left:-30px;text-align:center;font-size:38px;font-weight:700}
+.gv{position:absolute;width:260px;margin-left:-30px;text-align:center;font-size:44px;font-weight:700;direction:ltr}
+#logo{position:absolute;left:0;right:0;top:520px;text-align:center;display:none;z-index:20}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#14b8a6;display:grid;place-items:center;border:6px solid #3b2f2f;box-shadow:12px 14px 0 #ffd36e}
+#nm{font-family:K;font-size:150px;margin-top:30px;color:#0d3b37}
+#sl{font-size:58px;margin-top:16px;font-weight:700}
+#fr{display:inline-block;margin-top:70px;background:#ffd36e;color:#3b2f2f;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px;border:5px solid #3b2f2f}
+#url{font-size:48px;margin-top:44px;direction:ltr;font-weight:700;color:#0d6b66}
+</style></head><body><div id="R">
+<svg width="1080" height="1920"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="7"/></filter></defs>
+  <path id="road" class="wob" d="" fill="none" stroke="#9ad0c2" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+  <path id="dash" class="wob" d="" fill="none" stroke="#fffaf0" stroke-width="8" stroke-dasharray="22 26" stroke-linecap="round"/></svg>
+<div id="cap"></div><div id="child"></div>
+<div id="stops"></div>
+<div id="alert"></div>
+<div id="vcard"><h4></h4><div id="vr"></div></div>
+<div id="grow"></div>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="position:static"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+</div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),B=60/C.bpm;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+// طريق متعرّج من الأعلى إلى الأسفل عبر المحطات
+const P=C.stops.map((s,i)=>[i%2?290:790, 480+i*240]);
+let d=`M${P[0][0]} ${P[0][1]}`; for(let i=1;i<P.length;i++){const [x0,y0]=P[i-1],[x1,y1]=P[i]; d+=` C${x0} ${y0+110} ${x1} ${y1-110} ${x1} ${y1}`;}
+$("#road").setAttribute("d",d); $("#dash").setAttribute("d",d);
+$("#child").textContent=C.child; $("#alert").innerHTML=C.alert; $("#vcard h4").textContent=C.vcardT; $("#sl").textContent=C.slogan;
+$("#vr").innerHTML=C.stops.filter(s=>s.st==="done").map(s=>`<div class="r"><span>${s.v}</span><span>✓</span></div>`).join("");
+const col={done:"#7bd389",soon:"#ffd36e",late:"#ff8a8a",next:"#e6e0d6"};
+const stops=C.stops.map((s,i)=>{const e=document.createElement("div");e.className="st wob";Object.assign(e.style,{left:P[i][0]+"px",top:P[i][1]+"px",background:col[s.st],border:"6px solid #3b2f2f"});
+  e.textContent=s.st==="done"?"✓":s.st==="late"?"!":s.st==="soon"?"💉":"";$("#stops").appendChild(e);
+  const l=document.createElement("div");l.className="lb";Object.assign(l.style,{left:(i%2?P[i][0]+290:P[i][0]-290)+"px",top:(P[i][1]-50)+"px"});
+  l.innerHTML=`${s.age}<small>${s.v}</small>`;$("#stops").appendChild(l);return [e,l];});
+const g=C.grow.map((x,i)=>{const b=document.createElement("div");b.className="gb wob";Object.assign(b.style,{left:(i*300+40)+"px",background:x.c});$("#grow").appendChild(b);
+  const l=document.createElement("div");l.className="gl";l.style.left=(i*300+40)+"px";l.textContent=x.n;$("#grow").appendChild(l);
+  const v=document.createElement("div");v.className="gv";v.style.left=(i*300+40)+"px";$("#grow").appendChild(v);return [b,v];});
+// الخط الزمني
+const ROAD=C.introB*B, stT=C.stops.map((_,i)=>ROAD+.5*B+i*C.stopB*B), AL=stT[stT.length-1]+2*B, VC=AL+3*B, GR=VC+4*B, LOGO=GR+5*B, TOTAL=LOGO+C.endB*B;
+window.TOTAL=TOTAL; window.EVENTS={bpm:C.bpm,total:TOTAL,road:ROAD,stops:stT,states:C.stops.map(s=>s.st),alert:AL,vcard:VC,grow:GR,logo:LOGO};
+function render(t){
+  const lg=t-LOGO, fo=1-cl(lg*4); const outRoad=t>=GR?1:t>=AL?ease((t-AL)*2.5)*.85:0;
+  $("#road").style.strokeDashoffset=1-cl((t-ROAD)/((stT[stT.length-1]-ROAD)+.3)); $("#road").style.opacity=1-outRoad; $("#dash").style.opacity=(t>ROAD+.5?1:0)*(1-outRoad);
+  stops.forEach(([e,l],i)=>{const a=t-stT[i]; const s=C.stops[i]; let sc=a<0?0:back(a*4); if(s.st==="soon"&&a>0) sc*=1+.08*Math.sin(t*8); if(s.st==="late"&&a>0) e.style.transform=`scale(${sc}) rotate(${Math.sin(t*14)*6}deg)`; else e.style.transform=`scale(${sc})`;
+    e.style.opacity=1-outRoad; e.style.boxShadow=s.st==="soon"&&a>0?`0 0 0 ${10+8*Math.sin(t*8)}px rgba(255,211,110,.45)`:"none";
+    l.style.opacity=(a<0?0:ease((a-.15)*4))*(1-outRoad);});
+  $("#child").style.opacity=(t<ROAD?ease(t*3):1)*(1-outRoad);
+  const al=$("#alert"), aa=t-AL; al.style.opacity=aa<0?0:ease(aa*4)*(1-ease((t-GR)*3)); al.style.transform=`rotate(${-2+Math.sin(t*2)*.5}deg) translateY(${aa<0?-200:(1-back(aa*3))*-200}px)`;
+  const vc=$("#vcard"), va=t-VC; vc.style.opacity=va<0?0:ease(va*4)*(1-ease((t-GR)*3)); vc.style.transform=`rotate(${-3+Math.sin(t*2.3)*.6}deg) translateY(${va<0?400:(1-back(va*3))*400}px)`;
+  const gr=$("#grow"), ga=t-GR; gr.style.opacity=ga<0?0:ease(ga*4)*fo;
+  g.forEach(([b,v],i)=>{const x=C.grow[i]; const a=cl((ga-.2-i*.25)/.9); const h=ease(a)*x.h; b.style.height=h+"px"; v.style.bottom=(130+h)+"px"; v.textContent=a>0?((x.from+(x.to-x.from)*ease(a)).toFixed(x.dp)+" "+x.u):"";});
+  const cs=C.caps.filter(c=>t>=eval(c.at)); const c=cs[cs.length-1], cp=$("#cap");
+  if(c&&t<LOGO){cp.innerHTML=c.t; const a=t-eval(c.at); cp.style.opacity=ease(a*4); cp.style.transform=`rotate(${-1+Math.sin(t*1.7)*.6}deg) translateY(${(1-ease(a*4))*30}px)`;} else cp.style.opacity=0;
+  const L=$("#logo"); L.style.display=lg>0?"block":"none";
+  if(lg>0){$("#mk").style.transform=`scale(${back(lg*2)}) rotate(${(1-ease(lg*2))*-10}deg)`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.4],["#sl",.9],["#fr",1.5],["#url",2.0]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
