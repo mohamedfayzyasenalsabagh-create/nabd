@@ -1,0 +1,98 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «الإيصال المطبوع»: ورقة حرارية طويلة تخرج من فتحة طابعة وتتمرر للأعلى: بنود خطة العلاج ← المجموع والخصم ← اختيار التقسيط وجدول الأقساط
+     ← توقيع المريض يُرسم وختم «موافقة» ← الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#1c2b3a;color:#222}
+#R{position:absolute;inset:0;overflow:hidden;background:linear-gradient(160deg,#2c4a63,#14202c)}
+#cap{position:absolute;top:110px;left:60px;right:60px;text-align:center;font-size:70px;font-weight:700;line-height:1.3;color:#fff;z-index:20}
+#cap b{color:#ffcf5a}
+#printer{position:absolute;left:70px;right:70px;top:400px;height:120px;border-radius:30px;background:linear-gradient(#e9edf1,#b9c2cb);box-shadow:0 20px 40px rgba(0,0,0,.4);z-index:10}
+#printer:after{content:"";position:absolute;left:60px;right:60px;bottom:22px;height:16px;border-radius:8px;background:#2a333c}
+#printer i{position:absolute;top:30px;left:40px;width:22px;height:22px;border-radius:50%;background:#3ddc84;box-shadow:0 0 14px #3ddc84}
+#clip{position:absolute;left:0;right:0;top:500px;bottom:0;overflow:hidden;z-index:5}
+#paper{position:absolute;left:130px;right:130px;top:0;background:#fbfaf6;padding:50px 46px 80px;box-shadow:0 20px 50px rgba(0,0,0,.35);
+  -webkit-mask:linear-gradient(#000,#000) top/100% calc(100% - 20px) no-repeat,radial-gradient(circle 12px at 50% 100%,transparent 11px,#000 12px) bottom/32px 20px repeat-x}
+#paper h3{font-size:54px;text-align:center}
+#paper .sub{font-size:36px;text-align:center;color:#777;margin-top:6px}
+.dash{border-top:4px dashed #bbb;margin:26px 0}
+.ln{display:flex;justify-content:space-between;font-size:44px;font-weight:500;padding:9px 0}
+.ln b{direction:ltr;font-weight:700}
+.ln.tot{font-size:56px;font-weight:700}
+.ln.disc{color:#c0392b}
+.tabs{display:flex;gap:12px;margin:20px 0}
+.tab{flex:1;text-align:center;font-size:36px;font-weight:700;padding:14px 0;border-radius:14px;border:3px solid #333}
+.tab.on{background:#0d9488;color:#fff;border-color:#0d9488}
+.sig{height:200px;position:relative;margin-top:16px}
+.sig svg{position:absolute;left:0;right:0;top:0;height:130px}
+.sig .l{position:absolute;bottom:10px;left:0;right:0;border-top:3px solid #333;font-size:32px;color:#666;padding-top:8px;text-align:center}
+.stamp{position:absolute;left:60px;bottom:120px;width:280px;height:280px;border-radius:50%;border:10px solid #0d9488;color:#0d9488;display:grid;place-items:center;text-align:center;font-size:40px;font-weight:700;line-height:1.3;transform:rotate(-14deg);opacity:0;z-index:30}
+.val{font-size:32px;color:#666;text-align:center;margin-top:10px}
+#ex{position:absolute;top:290px;left:0;right:0;text-align:center;z-index:20}
+#ex span{display:inline-block;font-size:32px;font-weight:500;padding:8px 26px;border-radius:99px;border:2px solid rgba(255,255,255,.5);color:#fff}
+#logo{position:absolute;inset:0;z-index:40;display:none;text-align:center;padding-top:520px;background:linear-gradient(160deg,#2c4a63,#14202c);color:#fff}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#14b8a6;display:grid;place-items:center}
+#nm{font-family:K;font-size:150px;margin-top:30px}
+#sl{font-size:58px;margin-top:16px;font-weight:700}
+#fr{display:inline-block;margin-top:70px;background:#ffcf5a;color:#14202c;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px}
+#url{font-size:48px;margin-top:44px;direction:ltr;font-weight:700;color:#7fe3d3}
+</style></head><body><div id="R">
+<div id="cap"></div><div id="ex"><span></span></div>
+<div id="printer"><i></i></div>
+<div id="clip"><div id="paper"></div></div>
+<div class="stamp" id="stamp"></div>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+</div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),B=60/C.bpm;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), io=x=>{x=Math.max(0,Math.min(1,x));return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2}, back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+const fmt=n=>n.toLocaleString("en-US");
+const sum=C.items.reduce((a,i)=>a+i.p,0), disc=Math.round(sum*C.discPct/100), total=sum-disc;
+const first=Math.round(total*C.firstPct/100), inst=Math.round((total-first)/(C.n-1));
+// بناء الورقة: كل عنصر بسطر له زمن ظهور
+const parts=[]; const P=$("#paper");
+function addEl(html,cls,beat){const d=document.createElement("div");if(cls)d.className=cls;d.innerHTML=html;P.appendChild(d);parts.push({d,beat});return parts[parts.length-1];}
+{const d=document.createElement("h3");d.textContent=C.clinic;P.appendChild(d);parts.push({d,beat:0});}
+addEl(C.planT,"sub",.3); addEl("","dash",.6);
+C.items.forEach((it,i)=>addEl(`<span>${it.n}</span><b>${fmt(it.p)}</b>`,"ln",1+i*.8));
+let b0=1+C.items.length*.8; addEl("","dash",b0);
+addEl(`<span>المجموع</span><b>${fmt(sum)}</b>`,"ln",b0+.4);
+addEl(`<span>الخصم ${C.discPct}%</span><b>-${fmt(disc)}</b>`,"ln disc",b0+1);
+addEl(`<span>الإجمالي المطلوب</span><b>${fmt(total)}</b>`,"ln tot",b0+1.8);
+b0+=3; addEl("","dash",b0);
+const tabs=addEl(C.tabs.map((x,i)=>`<div class="tab">${x}</div>`).join(""),"tabs",b0+.3);
+const sched=[`<span>الدفعة الأولى (عند بدء العلاج)</span><b>${fmt(first)}</b>`].concat(Array.from({length:C.n-1},(_,k)=>`<span>القسط ${k+2}</span><b>${fmt(inst)}</b>`));
+const schedEls=sched.map((h,i)=>addEl(h,"ln",b0+2.2+i*.5));
+b0=b0+2.2+sched.length*.5+.6;
+const sig=addEl(`<svg viewBox="0 0 600 150"><path id="sg" d="M80 110 C120 40 150 40 160 100 S200 140 230 70 S290 20 300 90 S350 130 380 60 Q420 10 450 80 T540 70" fill="none" stroke="#1b3d8f" stroke-width="6" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg><div class="l">${C.sigL}</div>`,"sig",b0);
+const val=addEl(C.valid,"val",b0+.5);
+const tabEls=[...tabs.d.children];
+// الخط الزمني
+const K=C.k||1, PR=C.introB*B, partT=parts.map(p=>PR+p.beat*B*K), TAB=PR+(tabs.beat+.6)*B*K, SIG=PR+sig.beat*B*K+.3, STAMP=SIG+2*B, LOGO=STAMP+3*B, TOTAL=LOGO+C.endB*B;
+window.TOTAL=TOTAL; window.EVENTS={bpm:C.bpm,total:TOTAL,print:PR,lines:partT,tab:TAB,sign:SIG,stamp:STAMP,logo:LOGO};
+$("#stamp").innerHTML=C.stampT; $("#sl").textContent=C.slogan; $("#ex span").textContent=C.ex;
+function render(t){
+  // الأسطر تظهر بالتتابع والورقة تنزلق للأسفل من الطابعة، ثم تتمرر للأعلى كي يبقى آخر سطر مرئياً
+  parts.forEach((p,i)=>{const a=t-partT[i]; p.d.style.display=a>=0?"":"none"; p.d.style.opacity=a<0?0:cl(a*8);});
+  const vis=1380; const h=P.offsetHeight; P.style.transform=`translateY(${t<PR?-h:Math.min(0,vis-h)}px)`;
+  // اختيار خطة التقسيط: يمرّ المؤشر على الخيارات ويستقر على المختار
+  const ta=t-TAB; tabEls.forEach((e,i)=>{let on=false; if(ta>=0){const k=Math.min(C.tabSel,Math.floor(ta/(.35*B*K)));on=i===k;} e.className="tab"+(on?" on":"");});
+  schedEls.forEach(p=>{});
+  $("#sg").style.strokeDashoffset=1-ease((t-SIG)/(1.6*B));
+  const st=$("#stamp"), sa=t-STAMP; st.style.opacity=sa<0?0:cl(sa*8)*(1-cl((t-LOGO+.3)*4)); st.style.transform=`rotate(-14deg) scale(${sa<0?2:1+1.4*(1-back(cl(sa*4)))})`;
+  $("#printer i").style.opacity=t>=PR&&t<SIG?(Math.floor(t*6)%2?1:.3):1;
+  const cs=C.caps.filter(c=>t>=eval(c.at)); const c=cs[cs.length-1], cp=$("#cap");
+  if(c&&t<LOGO){cp.innerHTML=c.t; const a=t-eval(c.at); cp.style.opacity=ease(a*4); cp.style.transform=`translateY(${(1-ease(a*4))*30}px)`;} else cp.style.opacity=0;
+  $("#ex").style.opacity=t>=PR&&t<LOGO?1:0;
+  const lg=t-LOGO, L=$("#logo"); L.style.display=lg>0?"block":"none";
+  if(lg>0){L.style.opacity=ease(lg*3); $("#mk").style.transform=`scale(${back(lg*2)})`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.4],["#sl",.9],["#fr",1.5],["#url",2.0]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
