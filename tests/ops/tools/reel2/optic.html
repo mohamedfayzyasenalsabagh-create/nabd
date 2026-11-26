@@ -1,0 +1,93 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «لوحة فحص النظر»: لوحة حروف (سنيلين) ضبابية تتضح مع كل نقرة عدسة، شريط أحمر/أخضر، ثم نتائج حدة البصر وضغط العين،
+     ثم بطاقة وصفة نظارة بجدول OD/OS ونظارة تُرسم بخط ← الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#eef1f4;color:#111}
+#R{position:absolute;inset:0;overflow:hidden;background:#eef1f4}
+#cap{position:absolute;top:110px;left:60px;right:60px;text-align:center;font-size:72px;font-weight:700;line-height:1.3;z-index:10}
+#cap b{color:#0d9488}
+#chart{position:absolute;left:170px;right:170px;top:430px;height:1050px;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.12);overflow:hidden}
+#letters{position:absolute;inset:40px 30px 200px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;direction:ltr}
+#letters div{font-weight:700;letter-spacing:.35em;line-height:1;font-family:P}
+#duo{position:absolute;left:0;right:0;bottom:0;height:170px;display:flex}
+#duo div{flex:1;display:grid;place-items:center;font-size:70px;font-weight:700;direction:ltr;letter-spacing:.2em}
+#duo div:first-child{background:#d7263d}
+#duo div:last-child{background:#2a9d4b}
+#lens{position:absolute;left:50%;top:1500px;width:280px;height:280px;margin-left:-140px;border-radius:50%;border:22px solid #222;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.7),rgba(180,220,255,.25) 60%);display:grid;place-items:center;z-index:6;box-shadow:0 20px 40px rgba(0,0,0,.25)}
+#lens span{font-size:52px;font-weight:700;direction:ltr;color:#0b3d66}
+#res{position:absolute;left:90px;right:90px;top:520px;display:none;z-index:7}
+.rc{border-radius:36px;background:#fff;box-shadow:0 20px 50px rgba(0,0,0,.1);padding:40px 44px;margin-bottom:34px}
+.rc h5{font-size:40px;color:#555}
+.rc .v{font-size:110px;font-weight:700;direction:ltr;text-align:right;color:#0d9488;line-height:1.15}
+.rc .v small{font-size:44px;color:#777}
+#rx{position:absolute;left:70px;right:70px;top:470px;border-radius:30px;background:#fff;box-shadow:0 30px 80px rgba(0,0,0,.15);padding:46px 40px;display:none;z-index:8}
+#rx h4{font-size:54px}
+#rx p{font-size:32px;color:#666;margin-top:6px}
+#rx table{width:100%;border-collapse:collapse;margin-top:30px;direction:ltr;font-size:40px}
+#rx th,#rx td{border:3px solid #dde3e8;padding:18px 6px;text-align:center}
+#rx thead th{background:#f1f6f8;color:#0b3d66}
+#rx tbody th{font-size:32px;color:#333}
+#rx .pd{direction:ltr;text-align:right;font-size:40px;font-weight:700;margin-top:20px}
+#gl{position:absolute;left:190px;top:1380px;width:700px;height:260px;z-index:9;display:none}
+#logo{position:absolute;inset:0;z-index:40;display:none;text-align:center;padding-top:520px;background:#eef1f4}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#14b8a6;display:grid;place-items:center}
+#nm{font-family:K;font-size:150px;margin-top:30px;color:#0d3b37}
+#sl{font-size:58px;margin-top:16px;font-weight:700}
+#fr{display:inline-block;margin-top:70px;background:#ffd166;color:#111;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px}
+#url{font-size:48px;margin-top:44px;direction:ltr;font-weight:700;color:#0d6b66}
+</style></head><body><div id="R">
+<div id="cap"></div>
+<div id="chart"><div id="letters"></div><div id="duo"><div>E F</div><div>P Z</div></div></div>
+<div id="lens"><span></span></div>
+<div id="res"><div class="rc"><h5></h5><div class="v" id="va"></div></div><div class="rc"><h5></h5><div class="v" id="iop"></div></div></div>
+<div id="rx"><h4></h4><p></p><table><thead><tr><th></th><th>Sph</th><th>Cyl</th><th>Axis</th><th>Add</th></tr></thead><tbody></tbody></table><div class="pd"></div></div>
+<svg id="gl" viewBox="0 0 700 260"><g fill="none" stroke="#111" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+ <path class="gp" d="M60 70 Q60 40 100 40 L280 40 Q310 40 310 80 L300 170 Q290 220 230 220 L140 220 Q80 220 70 170 Z" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+ <path class="gp" d="M640 70 Q640 40 600 40 L420 40 Q390 40 390 80 L400 170 Q410 220 470 220 L560 220 Q620 220 630 170 Z" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+ <path class="gp" d="M310 85 Q350 55 390 85" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+ <path class="gp" d="M60 70 L10 60 M640 70 L690 60" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></g></svg>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+</div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),B=60/C.bpm;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+const sizes=[190,150,118,92,72,56,44];
+$("#letters").innerHTML=C.rows.map((r,i)=>`<div style="font-size:${sizes[i]}px">${r}</div>`).join("");
+const rc=document.querySelectorAll(".rc h5"); rc[0].textContent=C.vaT; rc[1].textContent=C.iopT;
+$("#rx h4").textContent=C.rxT; $("#rx p").textContent=C.rxSub; $("#sl").textContent=C.slogan;
+$("#rx tbody").innerHTML=C.rx.map(r=>`<tr><th>${r[0]}</th>${r.slice(1).map(v=>`<td>${v}</td>`).join("")}</tr>`).join(""); $("#rx .pd").textContent=C.pd;
+const rows=[...document.querySelectorAll("#rx tbody tr")], gps=[...document.querySelectorAll(".gp")];
+// الخط الزمني
+const CH=0, clickT=C.lens.map((_,i)=>C.introB*B+i*2*B), RES=C.introB*B+C.lens.length*2*B+B, RX=RES+C.resB*B, LOGO=RX+C.rxB*B, TOTAL=LOGO+C.endB*B;
+window.TOTAL=TOTAL; window.EVENTS={bpm:C.bpm,total:TOTAL,clicks:clickT,res:RES,rx:RX,rows:rows.map((_,i)=>RX+(1+i*.8)*B),glasses:RX+3.5*B,logo:LOGO};
+function render(t){
+  // الضبابية تقل مع كل نقرة عدسة
+  const k=clickT.filter(x=>t>=x).length; const blurs=C.blurs; let bl=blurs[k]; if(k>0){const a=t-clickT[k-1]; bl=blurs[k]+(blurs[k-1]-blurs[k])*(1-ease(a*5));}
+  $("#letters").style.filter=`blur(${bl}px)`; $("#duo").style.filter=`blur(${bl*.6}px)`;
+  const ch=$("#chart"), out=t>=RES?ease((t-RES)*3):0; ch.style.opacity=1-out; ch.style.transform=`scale(${1-.08*out})`;
+  const ln=$("#lens"); ln.style.opacity=t<RES?(t<clickT[0]-.4?0:ease((t-clickT[0]+.4)*4)):1-out; $("#lens span").textContent=k?C.lens[k-1]:C.lens[0];
+  ln.style.transform=`rotate(${k*35+(k?(1-ease((t-clickT[k-1])*5))*-35:0)}deg)`; $("#lens span").style.transform=`rotate(${-(k*35+(k?(1-ease((t-clickT[k-1])*5))*-35:0))}deg)`;
+  // النتائج
+  const rs=$("#res"), ra=t-RES; rs.style.display=ra>0&&t<RX+.4?"block":"none";
+  if(ra>0){[...rs.children].forEach((c,i)=>{const a=ra-.2-i*.4; c.style.opacity=ease(a*4)*(1-cl((t-RX)*3)); c.style.transform=`translateY(${(1-back(a*3))*120}px)`;});
+    $("#va").innerHTML=ra>.4?C.va:""; $("#iop").innerHTML=ra>.8?C.iop:"";}
+  // الوصفة
+  const rx=$("#rx"), xa=t-RX; rx.style.display=xa>0&&t<LOGO+.3?"block":"none";
+  if(xa>0){rx.style.opacity=ease(xa*4)*(1-cl((t-LOGO)*4)); rx.style.transform=`translateY(${(1-back(xa*2.5))*200}px)`;
+    rows.forEach((r,i)=>{const a=t-(RX+(1+i*.8)*B); r.style.opacity=a<0?0:ease(a*5);}); $("#rx .pd").style.opacity=ease((t-(RX+2.8*B))*4);}
+  const gl=$("#gl"), ga=t-(RX+3.5*B); gl.style.display=ga>0&&t<LOGO+.3?"block":"none"; gps.forEach((p,i)=>p.style.strokeDashoffset=1-ease((ga-i*.15)/.8)); gl.style.opacity=1-cl((t-LOGO)*4);
+  const cs=C.caps.filter(c=>t>=eval(c.at)); const c=cs[cs.length-1], cp=$("#cap");
+  if(c&&t<LOGO){cp.innerHTML=c.t; const a=t-eval(c.at); cp.style.opacity=ease(a*4); cp.style.transform=`translateY(${(1-ease(a*4))*30}px)`;} else cp.style.opacity=0;
+  const lg=t-LOGO, L=$("#logo"); L.style.display=lg>0?"block":"none";
+  if(lg>0){L.style.opacity=ease(lg*3); $("#mk").style.transform=`scale(${back(lg*2)})`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.4],["#sl",.9],["#fr",1.5],["#url",2.0]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
