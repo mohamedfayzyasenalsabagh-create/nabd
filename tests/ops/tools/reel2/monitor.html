@@ -1,0 +1,93 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «جهاز المراقبة»: شاشة مراقبة حيوية سوداء بخط نبض أخضر متحرك، قراءات منزلية تصل من جوال المريض وتُصنَّف بالألوان،
+     ثم مربعات «آخر ضغط/آخر سكر/السكر التراكمي» ← الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#05080a;color:#e6fff4}
+#R{position:absolute;inset:0;overflow:hidden;background:radial-gradient(900px 900px at 50% 45%,#0b1a17,#05080a 70%)}
+#cap{position:absolute;top:120px;left:60px;right:60px;text-align:center;font-size:70px;font-weight:700;line-height:1.3;z-index:10}
+#cap b{color:#39ff9e}
+#mon{position:absolute;left:50px;right:50px;top:420px;height:1150px;border-radius:40px;background:#020504;border:8px solid #1d2a27;box-shadow:inset 0 0 80px rgba(57,255,158,.08),0 30px 80px rgba(0,0,0,.6);overflow:hidden}
+#mon:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(transparent 0 3px,rgba(0,0,0,.25) 3px 5px);pointer-events:none}
+#grid{position:absolute;inset:0;background-image:linear-gradient(rgba(57,255,158,.07) 2px,transparent 2px),linear-gradient(90deg,rgba(57,255,158,.07) 2px,transparent 2px);background-size:60px 60px}
+#ecg{position:absolute;left:0;top:40px;width:964px;height:240px}
+#hdr{position:absolute;left:40px;right:40px;top:300px;display:flex;justify-content:space-between;font-size:42px;color:#7fbfa5;font-weight:500}
+#rows{position:absolute;left:30px;right:30px;top:370px}
+.rw{display:grid;grid-template-columns:170px 1fr 250px;gap:14px;align-items:center;height:150px;border-bottom:2px solid rgba(57,255,158,.12);font-size:54px;font-weight:700}
+.rw .src{font-size:34px;padding:8px 16px;border-radius:99px;background:rgba(80,180,255,.15);color:#8fd3ff;text-align:center}
+.rw .val{direction:ltr;text-align:right}
+.rw .val small{font-size:28px;color:#7fbfa5;margin-right:10px}
+.rw .st{font-size:38px;padding:10px 18px;border-radius:14px;text-align:center}
+.st.hi{background:rgba(255,77,109,.18);color:#ff6b86}
+.st.mid{background:rgba(255,190,60,.18);color:#ffc65c}
+.st.ok{background:rgba(57,255,158,.15);color:#39ff9e}
+#tiles{position:absolute;left:30px;right:30px;top:360px;display:none}
+.tl{height:220px;border-radius:30px;border:3px solid rgba(57,255,158,.25);margin-bottom:26px;padding:30px 36px;display:flex;flex-direction:column;justify-content:center}
+.tl b{font-size:96px;direction:ltr;text-align:right;line-height:1;color:#39ff9e}
+.tl span{font-size:36px;color:#9fd8c0;margin-top:10px}
+#phone{position:absolute;left:640px;top:1460px;width:340px;height:420px;border-radius:50px;background:#f4f7f6;color:#123;padding:30px 26px;z-index:12;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#phone h6{font-size:30px}
+#phone .btn{margin-top:20px;border-radius:20px;background:#0d9488;color:#fff;font-size:32px;font-weight:700;text-align:center;padding:18px 0}
+#phone .rd{margin-top:20px;font-size:40px;font-weight:700;direction:ltr;text-align:center}
+#phone .ok{margin-top:10px;font-size:28px;color:#0d9488;text-align:center;font-weight:700}
+#fly{position:absolute;width:30px;height:30px;border-radius:50%;background:#39ff9e;box-shadow:0 0 30px #39ff9e;z-index:13;opacity:0}
+#title{position:absolute;inset:0;z-index:30;display:grid;place-items:center;text-align:center;background:#05080a}
+#title div{font-size:96px;font-weight:700;line-height:1.3}
+#title b{color:#39ff9e}
+#logo{position:absolute;inset:0;z-index:40;display:none;text-align:center;padding-top:520px;background:#05080a}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#14b8a6;display:grid;place-items:center;box-shadow:0 0 90px rgba(57,255,158,.4)}
+#nm{font-family:K;font-size:150px;margin-top:30px}
+#sl{font-size:58px;margin-top:16px;font-weight:700}
+#fr{display:inline-block;margin-top:70px;background:#39ff9e;color:#05080a;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px}
+#url{font-size:48px;margin-top:44px;direction:ltr;font-weight:700;color:#8fd3ff}
+</style></head><body><div id="R">
+<div id="cap"></div>
+<div id="mon"><div id="grid"></div><svg id="ecg" viewBox="0 0 964 240"><path id="trace" d="" fill="none" stroke="#39ff9e" stroke-width="6" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px #39ff9e)"/><circle id="head" r="9" fill="#d9ffe9"/></svg>
+  <div id="hdr"><span></span><span></span></div><div id="rows"></div><div id="tiles"></div></div>
+<div id="phone"><h6></h6><div class="btn">＋ سجّل قراءة</div><div class="rd"></div><div class="ok"></div></div>
+<div id="fly"></div>
+<div id="title"><div></div></div>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+</div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),B=60/C.bpm;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+$("#title div").innerHTML=C.title; $("#hdr span:first-child").textContent=C.patient; $("#hdr span:last-child").textContent=C.hdrR; $("#phone h6").textContent=C.phoneT; $("#sl").textContent=C.slogan;
+const rows=C.reads.map(r=>{const d=document.createElement("div");d.className="rw";d.innerHTML=`<div class="src">${r.src}</div><div class="val">${r.v}</div><div class="st ${r.c}">${r.s}</div>`;$("#rows").appendChild(d);return d;});
+const tiles=C.tiles.map(x=>{const d=document.createElement("div");d.className="tl";d.innerHTML=`<b>${x.v}</b><span>${x.l}</span>`;$("#tiles").appendChild(d);return d;});
+// شكل نبضة ECG واحدة (طول 240 بكسل)
+function beat(x0){const y=150;return `L${x0} ${y} L${x0+40} ${y} L${x0+55} ${y-18} L${x0+70} ${y} L${x0+90} ${y} L${x0+100} ${y+20} L${x0+115} ${y-110} L${x0+130} ${y+40} L${x0+145} ${y} L${x0+175} ${y} L${x0+195} ${y-30} L${x0+215} ${y} L${x0+240} ${y}`;}
+// الخط الزمني
+const MON=C.titleB*B, rdT=C.reads.map((_,i)=>MON+1.5*B+i*C.readB*B), TIL=rdT[rdT.length-1]+3*B, LOGO=TIL+C.tileB*B, TOTAL=LOGO+C.endB*B;
+const beats=[]; for(let t=MON;t<LOGO;t+=B) beats.push(t);
+window.TOTAL=TOTAL; window.EVENTS={bpm:C.bpm,total:TOTAL,monitor:MON,beats,reads:rdT,tiles:TIL,logo:LOGO};
+function render(t){
+  const ti=$("#title"), tf=cl((t-MON+.25)*4); ti.style.opacity=1-tf; ti.style.display=tf>=1?"none":"grid";
+  // خط النبض: رأس يتحرك، والخط القديم يُمسح خلفه (نافذة متحركة)
+  const speed=240/B, x=((t*speed)%964); let d="M0 150"; for(let k=0;k<5;k++) d+=beat(k*240-((t*speed)%240));
+  $("#trace").setAttribute("d",d); $("#head").setAttribute("cx",964-60); $("#head").setAttribute("cy",150);
+  $("#ecg").style.opacity=t<TIL?1:.5;
+  // القراءات تصل
+  rows.forEach((r,i)=>{const a=t-rdT[i]-.45; r.style.opacity=a<0?0:ease(a*5)*(t<TIL?1:1-ease((t-TIL)*4)); r.style.transform=`translateX(${a<0?-300:(1-back(a*3))*-300}px)`;
+    r.style.background=a>0&&a<.5?`rgba(57,255,158,${.15*(1-a/.5)})`:"transparent";});
+  $("#hdr").style.opacity=t<TIL?1:1-ease((t-TIL)*4);
+  // جوال المريض يرسل القراءة
+  const ph=$("#phone"), k=rdT.filter(x=>t>=x).length-1; const pa=t-MON-.5*B; ph.style.opacity=t<MON?0:(t<TIL?1:1-ease((t-TIL)*4)); ph.style.transform=`translateY(${pa<0?500:(1-back(pa*2.5))*500}px) rotate(-4deg)`;
+  if(k>=0){const a=t-rdT[k]; $("#phone .rd").innerHTML=C.reads[k].pv; $("#phone .ok").textContent=a>.2?"✓ حُفظت القراءة":""; $("#phone .btn").style.transform=a>=0&&a<.15?"scale(.93)":"none";
+    const f=$("#fly"), p=cl((a-.15)/.35); f.style.opacity=a>.15&&a<.5?1:0; f.style.left=(800-p*520)+"px"; f.style.top=(1520-p*(1520-(420+370+k*150+60)))+"px";}
+  // المربعات
+  const tl=$("#tiles"), ta=t-TIL; tl.style.display=ta>0?"block":"none"; tiles.forEach((e,i)=>{const a=ta-.3-i*.35; e.style.opacity=a<0?0:ease(a*4); e.style.transform=`scale(${a<0?.9:.9+.1*back(a*3)})`;});
+  const cs=C.caps.filter(c=>t>=eval(c.at)); const c=cs[cs.length-1], cp=$("#cap");
+  if(c&&t<LOGO){cp.innerHTML=c.t; const a=t-eval(c.at); cp.style.opacity=ease(a*4); cp.style.transform=`translateY(${(1-ease(a*4))*30}px)`;} else cp.style.opacity=0;
+  const lg=t-LOGO, L=$("#logo"); L.style.display=lg>0?"block":"none";
+  if(lg>0){L.style.opacity=ease(lg*3); $("#mk").style.transform=`scale(${back(lg*2)})`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.4],["#sl",.9],["#fr",1.5],["#url",2.0]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
