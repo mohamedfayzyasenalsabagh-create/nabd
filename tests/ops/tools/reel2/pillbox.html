@@ -1,0 +1,106 @@
+<!doctype html><html dir="rtl"><head><meta charset="utf-8">
+<!-- ريل «علبة الأدوية الأسبوعية»: علبة حبوب ملوّنة بأغطية تنفتح عند كل جرعة، ساعة رقمية تتقدم، إشعار جوال لكل جرعة، عدّاد الجرعات المتبقية في العلبة
+     ← الشعار. الإعداد في cfg.js (CFG) -->
+<style>
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-700-normal.woff2);font-weight:700}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-700-normal.woff2);font-weight:700;unicode-range:U+0000-00FF}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-arabic-500-normal.woff2);font-weight:500}
+@font-face{font-family:P;src:url(fntfiles/ibm-plex-sans-arabic-latin-500-normal.woff2);font-weight:500;unicode-range:U+0000-00FF}
+@font-face{font-family:K;src:url(fntfiles/reem-kufi-arabic-600-normal.woff2);font-weight:600}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:clip;font-family:P,sans-serif;background:#fef6e4;color:#172c66}
+#R{position:absolute;inset:0;overflow:hidden;background:linear-gradient(#fef6e4,#f9e3c3)}
+#cap{position:absolute;top:110px;left:60px;right:60px;text-align:center;font-size:70px;font-weight:700;line-height:1.3;z-index:10}
+#cap b{color:#f582ae}
+#clock{position:absolute;top:380px;left:0;right:0;text-align:center;font-size:120px;font-weight:700;direction:ltr;letter-spacing:4px;color:#172c66}
+#clock small{font-size:40px;color:#8a7aa0;margin-left:10px}
+#box{position:absolute;left:80px;right:80px;top:600px;height:640px;border-radius:50px;background:#8bd3dd;box-shadow:0 30px 0 #5fb1bd,0 50px 80px rgba(23,44,102,.25);display:flex;gap:26px;padding:40px 36px;perspective:1600px}
+.cm{flex:1;position:relative;border-radius:34px;background:#fffffe;box-shadow:inset 0 10px 24px rgba(0,0,0,.12)}
+.cm .lb{position:absolute;bottom:22px;left:0;right:0;text-align:center;font-size:40px;font-weight:700}
+.cm .tm{position:absolute;bottom:76px;left:0;right:0;text-align:center;font-size:34px;font-weight:700;direction:ltr;color:#8a7aa0}
+.lid{position:absolute;inset:-6px;border-radius:36px;transform-origin:50% 0%;display:grid;place-items:center;font-size:90px;box-shadow:0 8px 0 rgba(0,0,0,.12);backface-visibility:hidden}
+.pill{position:absolute;width:110px;height:56px;border-radius:30px;left:50%;margin-left:-55px;overflow:hidden;box-shadow:0 6px 10px rgba(0,0,0,.15)}
+.pill:before{content:"";position:absolute;left:0;top:0;bottom:0;width:50%;background:inherit;filter:brightness(1.25)}
+.pill.round{width:76px;height:76px;margin-left:-38px;border-radius:50%}
+#rx{position:absolute;left:170px;right:170px;top:620px;height:600px;background:#fffffe;border-radius:18px;box-shadow:0 30px 60px rgba(23,44,102,.25);padding:46px;z-index:6}
+#rx h4{font-size:46px}
+#rx p{font-size:32px;color:#8a7aa0;margin-top:6px}
+#rx .rl{font-size:38px;font-weight:700;margin-top:30px;padding-bottom:16px;border-bottom:3px dashed #e5d9c3}
+#rx .rl span{display:block;font-size:30px;color:#8a7aa0;font-weight:500;margin-top:6px}
+#notif{position:absolute;left:60px;right:60px;top:1320px;border-radius:40px;background:rgba(23,44,102,.94);color:#fff;padding:30px 36px;display:flex;gap:26px;align-items:center;z-index:8;opacity:0}
+#notif .ic{width:100px;height:100px;border-radius:26px;background:#14b8a6;display:grid;place-items:center;font-size:56px;flex:0 0 100px}
+#notif b{display:block;font-size:44px}
+#notif span{font-size:34px;opacity:.8}
+#left{position:absolute;left:0;right:0;top:1560px;text-align:center;font-size:52px;font-weight:700}
+#left b{display:inline-block;min-width:110px;padding:6px 26px;border-radius:20px;background:#f582ae;color:#fff;direction:ltr;margin:0 10px}
+#chips{position:absolute;left:80px;right:80px;top:1320px;display:flex;gap:20px;justify-content:center;opacity:0;z-index:7}
+#chips div{font-size:44px;font-weight:700;padding:18px 34px;border-radius:99px;background:#fff;border:4px solid #172c66;direction:ltr}
+#chips div.on{background:#172c66;color:#fff}
+#done{position:absolute;left:0;right:0;top:1340px;text-align:center;font-size:64px;font-weight:700;color:#0d9488;opacity:0}
+#title{position:absolute;inset:0;z-index:30;display:grid;place-items:center;text-align:center;background:#fef6e4}
+#title div{font-size:96px;font-weight:700;line-height:1.3}
+#title b{color:#f582ae}
+#logo{position:absolute;inset:0;z-index:40;display:none;text-align:center;padding-top:520px;background:#fef6e4}
+#mk{width:240px;height:240px;margin:0 auto;border-radius:64px;background:#14b8a6;display:grid;place-items:center;box-shadow:0 20px 0 #0d8a7d}
+#nm{font-family:K;font-size:150px;margin-top:40px;color:#0d3b37}
+#sl{font-size:58px;margin-top:16px;font-weight:700}
+#fr{display:inline-block;margin-top:70px;background:#f582ae;color:#fff;font-size:52px;font-weight:700;padding:18px 44px;border-radius:99px}
+#url{font-size:48px;margin-top:44px;direction:ltr;font-weight:700;color:#0d6b66}
+</style></head><body><div id="R">
+<div id="cap"></div>
+<div id="clock"></div>
+<div id="box"></div>
+<div id="rx"><h4></h4><p></p><div id="rls"></div></div>
+<div id="notif"><div class="ic">💊</div><div><b></b><span></span></div></div>
+<div id="chips"></div>
+<div id="left"></div><div id="done"></div>
+<div id="title"><div></div></div>
+<div id="logo"><div id="mk"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="pl" d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div><div id="nm">نبض</div><div id="sl"></div><div id="fr">🎁 جرّبوه مجاناً 14 يوماً</div><div id="url">nabd.sy</div></div>
+</div>
+<script src="cfg.js"></script>
+<script>
+const C=CFG,$=s=>document.querySelector(s),B=60/C.bpm;
+const ease=x=>x<0?0:x>1?1:1-Math.pow(1-x,3), io=x=>{x=Math.max(0,Math.min(1,x));return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2}, back=x=>{x=Math.max(0,Math.min(1,x));const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)}, cl=x=>Math.max(0,Math.min(1,x));
+$("#title div").innerHTML=C.title; $("#rx h4").textContent=C.rxT; $("#rx p").textContent=C.rxSub; $("#sl").textContent=C.slogan;
+$("#rls").innerHTML=C.meds.map(m=>`<div class="rl">${m.n}<span>${m.d}</span></div>`).join("");
+$("#chips").innerHTML=C.chips.map(c=>`<div>${c}</div>`).join("");
+const cms=C.slots.map((s,i)=>{const d=document.createElement("div");d.className="cm";d.innerHTML=`<div class="tm">${s.tm}</div><div class="lb">${s.n}</div>`;
+  s.pills.forEach((p,k)=>{const e=document.createElement("div");e.className="pill"+(p.r?" round":"");e.style.background=p.c;e.style.top=(60+k*90)+"px";d.appendChild(e);});
+  const l=document.createElement("div");l.className="lid";l.style.background=s.lid;l.textContent=s.ic;d.appendChild(l);$("#box").appendChild(d);return d;});
+// الخط الزمني
+const RX=C.titleB*B, FILL=RX+3*B, doseT=C.slots.map((_,i)=>FILL+2*B+i*C.doseB*B), CH=doseT[doseT.length-1]+C.doseB*B, LEFT=CH+3*B, DONE=LEFT+3*B, LOGO=DONE+3*B, TOTAL=LOGO+C.endB*B;
+window.TOTAL=TOTAL; window.EVENTS={bpm:C.bpm,total:TOTAL,rx:RX,fill:FILL,doses:doseT,chips:CH,left:LEFT,done:DONE,logo:LOGO};
+const pills=cms.map(d=>[...d.querySelectorAll(".pill")]);
+function fmt(m){m=Math.round(m);return String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0");}
+function render(t){
+  const ti=$("#title"), tf=cl((t-RX+.25)*4); ti.style.opacity=1-tf; ti.style.display=tf>=1?"none":"grid";
+  // الوصفة تظهر ثم تنكمش داخل العلبة
+  const rx=$("#rx"), ra=t-RX; const sh=cl((t-FILL)/(.8)); rx.style.opacity=ra<0?0:(1-sh); rx.style.transform=`translateY(${ra<0?300:(1-back(ra*2.5))*300+sh*200}px) scale(${1-.6*sh}) rotate(${sh*-10}deg)`;
+  // الحبوب تسقط في الخانات
+  pills.forEach((ps,i)=>ps.forEach((p,k)=>{const a=t-FILL-.3-i*.15-k*.1; const eaten=t>=doseT[i]+.5; p.style.opacity=a<0?0:eaten?1-cl((t-doseT[i]-.5)*3):1; p.style.transform=`translateY(${a<0?-600:(1-back(a*3))*-600}px) rotate(${(k%2?1:-1)*(a<0?40:(1-ease(a*3))*40+8)}deg)`;}));
+  // الساعة: تتقدم بين أوقات الجرعات
+  const times=C.slots.map(s=>{const [h,m]=s.tm.split(":").map(Number);return h*60+m;}); let cm=times[0]-60;
+  if(t>=FILL){const k=doseT.filter(x=>t>=x-1.2*B).length; if(k===0) cm=times[0]-60+(t-FILL)/(2*B)*45; else {const i=k-1; const a=t-(doseT[i]-1.2*B); const from=i?times[i-1]:times[0]-15, to=times[i]; cm=from+(to-from)*io(a/(1.2*B));}}
+  const ck=$("#clock"); ck.innerHTML=fmt(cm); ck.style.opacity=t<FILL?0:(t<CH?1:1-ease((t-CH)*3));
+  // الأغطية تنفتح عند كل جرعة
+  cms.forEach((d,i)=>{const l=d.querySelector(".lid"); const cover=t<FILL+.9; const a=t-doseT[i];
+    let ang=cover?-110*(1-ease((t-FILL-.8)*4))*(t>=FILL?1:1):a>0?-110*ease(a*4):0; if(t<FILL) ang=-110; l.style.transform=`rotateX(${ang}deg)`;
+    d.style.boxShadow=a>0&&a<1.2?`0 0 0 8px #f582ae, inset 0 10px 24px rgba(0,0,0,.12)`:"inset 0 10px 24px rgba(0,0,0,.12)";});
+  // الإشعار
+  const nf=$("#notif"), k=doseT.filter(x=>t>=x-.2).length-1;
+  if(k>=0&&t<CH){const a=t-doseT[k]+.2; nf.style.opacity=ease(a*5)*(1-cl((a-C.doseB*B+.4)*5)); nf.style.transform=`translateY(${(1-back(a*3))*-120}px)`; nf.querySelector("b").textContent=C.notifT; nf.querySelector("span").textContent=C.slots[k].nf;} else nf.style.opacity=0;
+  // اختيار الأوقات
+  const chp=$("#chips"), ca=t-CH; chp.style.opacity=ca>0&&t<LEFT?ease(ca*4)*(1-cl((t-LEFT+.3)*4)):0; [...chp.children].forEach((e,i)=>e.className=ca>.4+i*.35?"on":"");
+  // الجرعات المتبقية
+  const lf=$("#left"), la=t-LEFT; lf.style.opacity=la>0&&t<LOGO?ease(la*4):0;
+  const n=la<0?C.left0:Math.max(0,C.left0-Math.floor(la/(.45*B)));
+  lf.innerHTML=`${C.leftT} <b>${n}</b>`; lf.style.transform=la>0?`scale(${1+.05*Math.sin(cl(((la/(.45*B))%1))*Math.PI)})`:"none";
+  const dn=$("#done"), da=t-DONE; dn.textContent=C.doneT; dn.style.opacity=da>0&&t<LOGO?ease(da*4):0; dn.style.transform=`scale(${da>0?back(da*3):.5})`;
+  const cs=C.caps.filter(c=>t>=eval(c.at)); const c=cs[cs.length-1], cp=$("#cap");
+  if(c&&t<LOGO){cp.innerHTML=c.t; const a=t-eval(c.at); cp.style.opacity=ease(a*4); cp.style.transform=`translateY(${(1-ease(a*4))*30}px)`;} else cp.style.opacity=0;
+  const lg=t-LOGO, L=$("#logo"); L.style.display=lg>0?"block":"none";
+  if(lg>0){L.style.opacity=ease(lg*3); $("#mk").style.transform=`scale(${back(lg*2)})`; $("#pl").style.strokeDashoffset=1-ease((lg-.2)/1);
+    [["#nm",.4],["#sl",.9],["#fr",1.5],["#url",2.0]].forEach(([s,d])=>{const e=$(s),x=ease((lg-d)*2.5);e.style.opacity=x;e.style.transform=`translateY(${(1-x)*40}px)`});}
+}
+window.render=render;
+</script></body></html>
